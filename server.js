@@ -12,7 +12,9 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-mongoose.connect(process.env.MONGO_URI);
+mongoose.connect(process.env.MONGO_URI).then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.error("❌ MongoDB Connection Error:", err));
+
 
 const User = mongoose.model("User", new mongoose.Schema({
     email: String,
@@ -75,15 +77,18 @@ app.get("/verify/:token", async (req, res) => {
 // 🚀 **Login (Only for Verified Users)**
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    console.log("Login attempt:", email); // Debugging
 
-    if (!user || !await bcrypt.compare(password, user.password))
-        return res.status(400).json({ error: "Invalid credentials" });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: "Incorrect password" });
 
     if (!user.verified) return res.status(400).json({ error: "Please verify your email first" });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    res.json({ token });
+    res.json({ success: true, token });
 });
 
 // 🚀 **Problems API**
