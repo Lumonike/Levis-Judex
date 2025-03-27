@@ -1,4 +1,4 @@
-import { server } from './getServer.js';
+import { server } from '/problems/getServer.js';
 
 let alreadySubmitting = false;
 

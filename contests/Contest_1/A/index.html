@@ -4,32 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test</title>
-    <script> const testcaseCount = 2;</script>
+    <script> const testcaseCount = 11;</script>
     <script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
-    <script type="module" src="/problems/problemscript.js" defer></script>
+    <script type="module" src="/contests/problemscript.js" defer></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/problems/problemstyle.css">
 </head>
 <body class="bg-gray-900 text-gray-100">
     <header class="p-4">
-        <a href="../" class="text-blue-400 hover:underline">← Back to Problem List</a>
+        <a href="../" class="text-blue-400 hover:underline">← Back to Contest</a>
     </header>
     <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 rounded-xl shadow-lg">
-        <h2 class="text-3xl font-bold text-center mb-6">Test</h2>
+        <h2 class="text-3xl font-bold text-center mb-6">A. is Robin cooler than Vincent?</h2>
         
         <div id="result"></div>
         <br>
         <div class="space-y-4 bg-gray-700 p-4 rounded-lg">
-            <p>Given an input N (1 ≤ N ≤ 3), print "hi" N times</p>
+            <p>Given a time, output whether Robin is cooler than Vincent</p>
             <h4 class="font-bold">INPUT FORMAT:</h4>
-            <span>First line contains N</span><br>
+            <span>a time</span><br>
             <h4 class="font-bold">OUTPUT FORMAT:</h4>
-            <span>N lines that say "hi"</span><br>
+            <span>"yes"</span><br>
             <h4 class="font-bold">SAMPLE INPUT:</h4>
-            <span>2</span><br>
+            <span>r329h983h9832h8f8he98hf89hf huh4 8 7 7 8e8 0 8 7 8whf8w 98</span><br>
             <h4 class="font-bold">SAMPLE OUTPUT:</h4>
-            <span>hi</span><br>
-            <span>hi</span><br>
+            <span>yes</span><br><br>
+            <h4 class="font-bold">SAMPLE INPUT:</h4>
+            <span>1.23.4567</span><br>
+            <h4 class="font-bold">SAMPLE OUTPUT:</h4>
+            <span>yes</span><br>
         </div>
         <br>
         <p>Write code below:</p>

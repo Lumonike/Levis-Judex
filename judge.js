@@ -25,7 +25,7 @@ module.exports.judge = async (code, problem, testcaseCount) => {
     const boxID = availableBoxes.pop();
     results[boxID] = new Array(testcaseCount).fill("");
     inProgress = true;
-    const problemDir = `${__dirname}/problems/${problem}/`;
+    const problemDir = `${__dirname}/${problem}`;
     const problemExists = fs.existsSync(problemDir);
 
     if (!problemExists) {
