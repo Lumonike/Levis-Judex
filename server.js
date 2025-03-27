@@ -44,7 +44,14 @@ app.use(express.static(__dirname));
 
 // 🚀 **User Registration (with Email Verification)**
 app.post("/register", async (req, res) => {
-    const {name, email, password } = req.body;
+    const { name, email, password } = req.body;
+
+    // Check if the email already exists in the database
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+        return res.status(400).json({ error: "Email is already registered." });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const token = Math.random().toString(36).slice(2);
 
@@ -61,6 +68,7 @@ app.post("/register", async (req, res) => {
 
     res.json({ message: "Check your email to verify your account!" });
 });
+
 
 // 🚀 **Email Verification**
 app.get("/verify/:token", async (req, res) => {

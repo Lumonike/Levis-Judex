@@ -26,8 +26,14 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             console.log(data);
-            alert(data.message);
-            window.location.href = '/login';  // Redirect to login page on successful registration
+            if (!data.message){
+                alert(data.error);
+                
+            }
+            else{
+                alert(data.message);
+                window.location.href = '/login';  // Redirect to login page on successful registration
+            }
         })
         .catch(error => {
             console.error('Error:', error);
