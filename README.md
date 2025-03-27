@@ -5,8 +5,15 @@ Creates a judge for problems similar to USACO or IOI
 1. Install [isolate](https://github.com/ioi/isolate) (if you have a debian-based linux distro, make sure to install the service. You can find it by searching "isolate.service" on their github)
 2. Install mongodb and instal their service as well, u need mongodb and mongo
 3. Set up node by running `npm install`
-4. Run `sudo node server.js` to initialize the server
-5. The test problem can be found in `localhost:3000/problems/test/`
+4. Set up .env file, i.e:
+  PORT=3000
+  JWT_SECRET=[run node -e "console.log(require('crypto')).randomBytes(32).toString('hex)))"]
+  MONGO_URI=mongodb://localhost:27017/authdb
+  EMAIL_USER=(make your own email. This email is to send to other's email to verify)
+  EMAIL_PASS=[enable 2FA on google, next make new app password in security settings, use that here. It should look like "aaaa bbbb cccc dddd"]
+  BASE_URL=url for your webpage, i.e localhost:3000
+5. Run `sudo node server.js` to initialize the server
+6. The test problem can be found in `localhost:3000/problems/test/`
 ## How to make a problem
 *NOTE*:  DO NOT, and I mean DO. NOT. put whitespace into problem names, use underscores as they are automatically converted to whitespace in the problemlist.
 1. Add a folder to the `problems` folder
