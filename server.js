@@ -102,7 +102,7 @@ app.get("/verify/:token", async (req, res) => {
     user.verificationToken = null;
     await user.save();
 
-    res.json({ message: "Email verified! You can now log in." });
+    res.json({ message: `Email verified! You can now log in. Login: ${process.env.BASE_URL}/login` });
 });
 
 // 🚀 **Login (Only for Verified Users)**
