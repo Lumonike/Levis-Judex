@@ -90,7 +90,7 @@ async function runProgram(boxID, submissionDir, testcaseDir, testcase) {
         } else if (metadata.status != undefined) {
             result.status = "RTE";
         } else {
-            result.status = stdout == expected ? "AC" : "WA";
+            result.status = stdout.trim() == expected ? "AC" : "WA";
         }
         result.time = `${metadata.time}s`;
         result.mem = `${(metadata['max-rss']/1024.0).toFixed(2)} MB`;
