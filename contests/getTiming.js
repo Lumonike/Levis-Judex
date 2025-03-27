@@ -1,6 +1,3 @@
-
-async function getTimes(){
-    const { startTime, endTime } = await import(`getContestTime.mjs`);
-    console.log(startTime);
+function apply(elem, startTime, endTime){
+    
 }
-getTimes();
