@@ -2,10 +2,11 @@
 Creates a judge for problems similar to USACO or IOI
 ## How to set up
 1. You **need** to run this on Linux, so make sure you have Linux
-1. Install [isolate](https://github.com/ioi/isolate) (if you have a debian-based linux distro, you should create a debian package to install it)
-2. Set up node by running `npm install`
-3. Run `sudo node server.js` to initialize the server
-4. The test problem can be found in `localhost:3000/problems/test/`
+1. Install [isolate](https://github.com/ioi/isolate) (if you have a debian-based linux distro, make sure to install the service. You can find it by searching "isolate.service" on their github)
+2. Install mongodb and instal their service as well, u need mongodb and mongo
+3. Set up node by running `npm install`
+4. Run `sudo node server.js` to initialize the server
+5. The test problem can be found in `localhost:3000/problems/test/`
 ## How to make a problem
 *NOTE*:  DO NOT, and I mean DO. NOT. put whitespace into problem names, use underscores as they are automatically converted to whitespace in the problemlist.
 1. Add a folder to the `problems` folder
