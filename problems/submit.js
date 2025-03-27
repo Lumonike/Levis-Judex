@@ -22,7 +22,11 @@ export async function submitCode(code, problem, testcaseCount) {
     const completedResults = submit(code, problem, testcaseCount).then((res) => {
         completed = true;
         return res;
+    }).catch((error) => {
+        completed = true;
+        return null;
     });
+
     while (!completed) {
         const curResult = await getStatus(boxID);
         displayStatus(outputArea, curResult, completed);
@@ -48,15 +52,21 @@ async function submit(code, problem, testcaseCount) {
     try {
         console.log({
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({ code, problem, testcaseCount })})
+
         const response = await fetch(`${server}/submit`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({ code, problem, testcaseCount })
         });
         const data = await response.json();
-        console.log(data);
         if (data.error) {
             throw new Error(data.error);
         }
@@ -84,6 +94,20 @@ async function getStatus(boxID) {
 }
 
 function displayStatus(outputArea, results, completed) {
+    if (completed == true){
+        if (!results){
+            outputArea.innerHTML = "";
+            const h4 = document.createElement("h4");
+            h4.textContent = "Log in to submit!";
+            h4.style.margin = "0 auto";
+            h4.style.textAlign = "center";
+            outputArea.appendChild(h4);
+            const boxContainer = document.createElement('div');
+            boxContainer.className = 'box-container';
+            outputArea.appendChild(boxContainer);
+            return;
+        }
+    }
     outputArea.innerHTML = "";
     const h4 = document.createElement("h4");
     h4.textContent = completed ? "Submitted! View results below:" : "Processing code...";

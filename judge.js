@@ -12,6 +12,7 @@ const results = new Array(numBoxes).fill([]);
 
 module.exports.getBoxID = () => {
     if (availableBoxes.length == 0) return -1;
+    results[availableBoxes.at(-1)] = [];
     return availableBoxes.at(-1);
 };
 

@@ -22,6 +22,29 @@ const User = mongoose.model("User", new mongoose.Schema({
     verified: { type: Boolean, default: false },
     verificationToken: String,
 }));
+
+function authenticateToken(req, res, next) {
+    // Get token from the Authorization header
+    const token = req.headers["authorization"]?.split(" ")[1]; // The token is usually passed as Bearer <token>
+    if (!token) {
+        return res.status(403).json({ error: "Access denied. No token provided." });
+    }
+
+    // Verify the token using JWT secret
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ error: "Invalid or expired token." });
+        }
+
+        // Attach user data to the request object
+        req.user = user;  // The decoded token will contain the user information
+        next(); // Proceed to the next middleware or route handler
+    });
+}
+
+
+
+// emailer to email verifcation link
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
@@ -95,7 +118,7 @@ app.post("/login", async (req, res) => {
 
     if (!user.verified) return res.status(400).json({ error: "Please verify your email first" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "48h" });
     res.json({ success: true, token });
 });
 
@@ -119,11 +142,16 @@ app.post("/contests", (req, res) => {
     });
 });
 
-// 🚀 **Submit Code**
-app.post("/submit", (req, res) => {
+// 🚀 **Submit Code (requires login)**
+app.post("/submit", authenticateToken, (req, res) => {
     const { code, problem, testcaseCount } = req.body;
+
+    // You can access `req.user` which contains the authenticated user's data
+    console.log("User ID from token:", req.user.id);
+
     judge.judge(code, problem, testcaseCount).then(result => res.json({ result }));
 });
+
 
 // 🚀 **Available Boxes**
 app.post("/available", (req, res) => {

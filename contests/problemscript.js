@@ -1,4 +1,4 @@
-import { submitCode } from "/contests/submit.js";
+import { submitCode } from "/problems/submit.js";
 
 
 const editor = ace.edit("editor");

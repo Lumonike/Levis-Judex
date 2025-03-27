@@ -24,7 +24,14 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                window.location.href = '/dashboard';  // Redirect to dashboard on success
+                // Assuming the token is in data.token
+                const token = data.token;
+
+                // Store token in localStorage
+                localStorage.setItem('authToken', token);
+
+                // Redirect to dashboard on success
+                window.location.href = '/';
             } else {
                 alert('Invalid credentials. Please try again.');
             }

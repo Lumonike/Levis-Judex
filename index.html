@@ -7,18 +7,50 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-gray-100">
-    <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl text-center">
-        <div class="flex items-center justify-center space-x-2 items-center">
-            <h1 class="text-5xl font-bold text-center mb-6">Home</h1>
+    <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl text-center relative">
+        <!-- Display authToken at the top -->
+        <div id="authTokenContainer" class="absolute top-0 right-0 mt-4 mr-4 text-white text-xl font-bold">
+            <!-- Token will be inserted here -->
         </div>
-        
 
+        <!-- Login & Register Links in Top-Left -->
+        <div class="absolute top-0 left-0 mt-4 ml-4 space-y-2">
+            <a href="/login" class="text-2xl font-bold hover:underline text-green-400">Login</a>
+            <span class="text-2xl font-bold" style="color:white; user-select: none;"> |  </span>
+            <a href="/register" class="text-2xl font-bold hover:underline text-green-400">Register</a>
+            <span class="text-2xl font-bold" style="color:white; user-select: none;"> |  </span>
+            <a onclick="localStorage.removeItem('authToken');loginStatus()" class="text-2xl font-bold hover:underline text-green-400">Logout</a>
+        </div>
+    
+        <!-- Main Title -->
+        <h1 class="text-5xl font-bold text-center mb-6 text-white">Home</h1>
+    
         <br>
-        <a href="/problems" class="text-4xl font-bold text-center mb-6 hoverUnderline text-blue-400">Problems List</h1><br>
-        <a href="/contests" class="text-4xl font-bold text-center mb-6 hoverUnderline text-blue-400">Contests</h1><br><br>
-        <a href="https://codejoint.org/" class="text-2xl font-bold text-center mb-6 hoverUnderline text-blue-400">About</h1>
+        <a href="/problems" class="text-4xl font-bold text-center mb-6 hover:underline text-blue-400">Problems List</a><br>
+        <a href="/contests" class="text-4xl font-bold text-center mb-6 hover:underline text-blue-400">Contests</a><br><br>
+        <a href="https://codejoint.org/" class="text-2xl font-bold text-center mb-6 hover:underline text-blue-400">About</a><br><br>
     </div>
+    
 
     <style>.hoverUnderline:hover{text-decoration: underline;}</style>
+
+    <script>
+        function loginStatus(){
+            // Fetch the authToken from localStorage
+            const authToken = localStorage.getItem('authToken');
+            
+            // If the token exists, display it in the authTokenContainer
+            if (authToken) {
+                const authTokenContainer = document.getElementById('authTokenContainer');
+                authTokenContainer.textContent = `Logged In`;
+            }
+            else {
+                const authTokenContainer = document.getElementById('authTokenContainer');
+                authTokenContainer.textContent = `Logged Out`;
+            }
+        }
+        loginStatus();
+        
+    </script>
 </body>
 </html>
