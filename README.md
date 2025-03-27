@@ -7,7 +7,7 @@ Creates a judge for problems similar to USACO or IOI
 3. Run `sudo node server.js` to initialize the server
 4. The test problem can be found in `localhost:3000/problems/test/`
 ## How to make a problem
-*NOTE* DO NOT, and I mean DO. NOT. put whitespace into problem names, use underscores as they are automatically converted to whitespace in the problemlist.
+*NOTE*:  DO NOT, and I mean DO. NOT. put whitespace into problem names, use underscores as they are automatically converted to whitespace in the problemlist.
 1. Add a folder to the `problems` folder
 2. copy and paste the `index.html` and `script.js` files from the `test` folder into that folder
 3. Modify `index.html` to change the problem statement
