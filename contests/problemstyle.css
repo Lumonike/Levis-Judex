@@ -1,0 +1,63 @@
+#container {
+    height: 40vh;
+    width: 100%;
+}
+#editor { 
+    position: relative;
+    width: 100%;
+    height: 100%;
+    font-size: medium;
+}
+/* .problem {
+    background-color: white;
+    outline: 1px solid black;
+    padding: 10px;
+    width: 70%;
+    margin: 0 auto;
+} */
+.outline {
+    background-color: rgb(55, 65, 81);
+    padding: 15px;
+    margin: 2px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.box-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    flex-direction: row;
+    align-items: flex-start;
+
+}
+.box {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    margin: 5px;
+    user-select: none;
+}
+.bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+.bottom-left {
+    padding-left:6px;
+    position: relative;
+    text-align: left;
+    margin-bottom: 0px;
+}
+.bottom-right {
+    padding-right: 6px;
+    position: relative;
+    text-align: right;
+}
+    
+/* body {
+    background-color: lightgray;
+    font-family: "Arial", sans-serif;
+}
+    */
