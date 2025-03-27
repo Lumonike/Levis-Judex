@@ -152,7 +152,6 @@ app.get("/contests/:contestName/:problemName", async (req, res) => {
         // Dynamically import contest times
         const contestTimePath = path.join(__dirname, "contests", contestName, "getContestTime.mjs");
         const { startTime, endTime } = await import(`file://${contestTimePath}`);
-        console.log(startTime, endTime, contestTimePath);
         const now = new Date();
 
         // Check if contest is active
