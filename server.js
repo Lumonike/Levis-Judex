@@ -8,9 +8,9 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.use('/', (req, res, next) => {
-    if (req.url === "/") {
-        return res.redirect("/problems/");
-    }
+    // if (req.url === "/") {
+    //     return res.redirect("/problems/");
+    // }
     if (req.url.endsWith('.html')) {
         return res.status(403).send('Forbidden');
     }
