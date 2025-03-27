@@ -6,12 +6,14 @@ Creates a judge for problems similar to USACO or IOI
 2. Install mongodb and instal their service as well, u need mongodb and mongo
 3. Set up node by running `npm install`
 4. Set up .env file, i.e:
-  PORT=3000
-  JWT_SECRET=[run node -e "console.log(require('crypto')).randomBytes(32).toString('hex)))"]
-  MONGO_URI=mongodb://localhost:27017/authdb
-  EMAIL_USER=(make your own email. This email is to send to other's email to verify)
-  EMAIL_PASS=[enable 2FA on google, next make new app password in security settings, use that here. It should look like "aaaa bbbb cccc dddd"]
-  BASE_URL=url for your webpage, i.e localhost:3000
+```
+PORT=3000
+JWT_SECRET=[run node -e "console.log(require('crypto')).randomBytes(32).toString('hex)))"]
+MONGO_URI=mongodb://localhost:27017/authdb
+EMAIL_USER=(make your own email. This email is to send to other's email to verify)
+EMAIL_PASS=[enable 2FA on google, next make new app password in security settings, use that here. It should look like "aaaa bbbb cccc dddd"]
+BASE_URL=url for your webpage, i.e localhost:3000
+```
 5. Run `sudo node server.js` to initialize the server
 6. The test problem can be found in `localhost:3000/problems/test/`
 ## How to make a problem
