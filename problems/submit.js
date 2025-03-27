@@ -46,6 +46,10 @@ async function checkGradingServer() {
 
 async function submit(code, problem, testcaseCount) {
     try {
+        console.log({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code, problem, testcaseCount })})
         const response = await fetch(`${server}/submit`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -104,19 +108,19 @@ function displayStatus(outputArea, results, completed) {
         testcase.innerText = `${index+1}`;
         testcase.className = "bottom-left";
         testcase.style.fontSize = "15px";
-        testcase.style.marginBottom = "-1px";
+        testcase.style.marginBottom = "-3px";
         info.className = 'bottom-right';
         time.innerText = line.time;
         mem.innerText = line.mem;
-        time.style.fontSize = "13px";
-        mem.style.fontSize = "13px";
-        time.style.marginTop = "8px";
-        time.style.marginBottom = "-25px";
+        time.style.fontSize = "12px";
+        mem.style.fontSize = "12px";
+        mem.style.marginTop = "8px";
+        mem.style.marginBottom = "-25px";
         symbol.style.fontSize = "30px";
         symbol.style.fontWeight = "bold";
-        info.appendChild(time);
-        info.appendChild(document.createElement('br'));
         info.appendChild(mem);
+        info.appendChild(document.createElement('br'));
+        info.appendChild(time);
         bottom.appendChild(testcase);
         bottom.appendChild(info);
         setBox(box, symbol, line);
