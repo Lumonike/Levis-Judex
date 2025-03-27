@@ -42,7 +42,7 @@ app.use(express.static(__dirname));
 
 // 🚀 **User Registration (with Email Verification)**
 app.post("/register", async (req, res) => {
-    const { email, password } = req.body;
+    const {name, email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
     const token = Math.random().toString(36).slice(2);
 
@@ -53,7 +53,7 @@ app.post("/register", async (req, res) => {
     await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: email,
-        subject: "Verify Your Email",
+        subject: `${name}: Verify Your Email`,
         text: `Click here to verify: ${link}`
     });
 
