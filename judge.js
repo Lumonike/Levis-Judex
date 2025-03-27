@@ -18,13 +18,13 @@ module.exports.getBoxID = () => {
 
 module.exports.getStatus = (boxID) => results[boxID];
 
-module.exports.judge = async (code, problem, testcaseCount) => {
+module.exports.judge = async (code, problem) => {
     if (availableBoxes.length == 0) {
         console.error("No available grading server. Frontend should check if grading server is available before submitting!");
         return ["Error with grading server. Please try submitting again!"];
     }
     const boxID = availableBoxes.pop();
-    results[boxID] = new Array(testcaseCount).fill("");
+    results[boxID] = [];
     inProgress = true;
     const problemDir = `${__dirname}/${problem}`;
     const problemExists = fs.existsSync(problemDir);
@@ -52,8 +52,13 @@ module.exports.judge = async (code, problem, testcaseCount) => {
     fs.writeFileSync(codeFile, code);
     fs.copyFileSync(codeFile, `${boxPaths[boxID]}code.py`);
 
-    for (let testcase = 1; testcase <= testcaseCount; testcase++) {
-        results[boxID][testcase-1] = `Running testcase #${testcase}...`;
+    const maxTestcases = 50;
+    for (let testcase = 1; testcase <= maxTestcases; testcase++) {
+        const testcaseExists = fs.existsSync(`${testcaseDir}${testcase}.in`);
+        if (!testcaseExists) {
+            break;
+        }
+        results[boxID].push({ status: `...`, time: "...", mem: "..." });
         results[boxID][testcase-1] = await runProgram(boxID, submissionDir, testcaseDir, testcase);
     }
 

@@ -1,0 +1,1 @@
+print(["yes", "no"][int(input())%2])

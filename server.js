@@ -144,12 +144,12 @@ app.post("/contests", (req, res) => {
 
 // 🚀 **Submit Code (requires login)**
 app.post("/submit", authenticateToken, (req, res) => {
-    const { code, problem, testcaseCount } = req.body;
+    const { code, problem } = req.body;
 
     // You can access `req.user` which contains the authenticated user's data
     console.log("User ID from token:", req.user.id);
 
-    judge.judge(code, problem, testcaseCount).then(result => res.json({ result }));
+    judge.judge(code, problem).then(result => res.json({ result }));
 });
 
 

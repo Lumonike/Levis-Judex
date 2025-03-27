@@ -2,7 +2,7 @@ import { server } from './getServer.js';
 
 let alreadySubmitting = false;
 
-export async function submitCode(code, problem, testcaseCount) {
+export async function submitCode(code, problem) {
     if (alreadySubmitting) {
         return;
     }
@@ -19,11 +19,12 @@ export async function submitCode(code, problem, testcaseCount) {
         boxID = await checkGradingServer();
     }
     let completed = false;
-    const completedResults = submit(code, problem, testcaseCount).then((res) => {
+    const completedResults = submit(code, problem).then((res) => {
         completed = true;
         return res;
     }).catch((error) => {
         completed = true;
+        console.log(error);
         return null;
     });
 
@@ -48,7 +49,7 @@ async function checkGradingServer() {
     }
 }
 
-async function submit(code, problem, testcaseCount) {
+async function submit(code, problem) {
     try {
         console.log({
             method: "POST",
@@ -56,7 +57,8 @@ async function submit(code, problem, testcaseCount) {
                 "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ code, problem, testcaseCount })})
+            body: JSON.stringify({ code, problem })
+        });
 
         const response = await fetch(`${server}/submit`, {
             method: "POST",
@@ -64,7 +66,7 @@ async function submit(code, problem, testcaseCount) {
                 "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ code, problem, testcaseCount })
+            body: JSON.stringify({ code, problem })
         });
         const data = await response.json();
         if (data.error) {
@@ -80,7 +82,10 @@ async function getStatus(boxID) {
     try {
         const response = await fetch(`${server}/subStatus`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+                "Content-Type": "application/json" 
+            },
             body: JSON.stringify({ boxID })
         });
         const data = await response.json();

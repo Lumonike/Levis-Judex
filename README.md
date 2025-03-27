@@ -9,7 +9,7 @@ Creates a judge for problems similar to USACO or IOI
 5. Set up .env file, i.e:
 ```
 PORT=3000
-JWT_SECRET=[run node -e "console.log(require('crypto')).randomBytes(32).toString('hex)))"]
+JWT_SECRET=[run `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))`"]
 MONGO_URI=mongodb://localhost:27017/authdb
 EMAIL_USER=(make your own email. This email is to send to other's email to verify)
 EMAIL_PASS=[enable 2FA on google, next make new app password in security settings, use that here. It should look like "aaaa bbbb cccc dddd"]

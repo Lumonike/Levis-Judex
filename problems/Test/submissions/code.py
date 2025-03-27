@@ -1,2 +1,1 @@
-for i in range(int(input())):
-    print("hi")
+print("hi\n" * int(input()))
