@@ -10,7 +10,7 @@ export async function submitCode(code, problem, testcaseCount) {
     console.log("Attempted to submit code!");
     
     const outputArea = document.getElementById("result");
-    outputArea.className = "outline";
+    outputArea.className += "outline rounded-xl";
     scroll(0, 0);
     let boxID = await checkGradingServer();
     while (boxID == -1) {
@@ -94,21 +94,26 @@ function displayStatus(outputArea, results, completed) {
         const bottom = document.createElement('div');
         const testcase = document.createElement('span');
         const info = document.createElement('div');
-        const time = document.createElement('span');
-        const mem = document.createElement('span');
+        const time = document.createElement('p');
+        const mem = document.createElement('p');
         box.className = 'box';
+        box.style.fontFamily = "Arial";
         symbol.style.textAlign = 'center';
-        symbol.style.marginTop = '2px';
-        symbol.style.marginBottom = '2px';
+        symbol.style.marginBottom = '-13px';
         bottom.className = 'bottom';
-        testcase.innerText = `${index+1}.`;
+        testcase.innerText = `${index+1}`;
         testcase.className = "bottom-left";
-        testcase.style.fontSize = "25px";
+        testcase.style.fontSize = "15px";
+        testcase.style.marginBottom = "-1px";
         info.className = 'bottom-right';
         time.innerText = line.time;
         mem.innerText = line.mem;
-        time.style.fontSize = "10px";
-        mem.style.fontSize = "10px";
+        time.style.fontSize = "13px";
+        mem.style.fontSize = "13px";
+        time.style.marginTop = "8px";
+        time.style.marginBottom = "-25px";
+        symbol.style.fontSize = "30px";
+        symbol.style.fontWeight = "bold";
         info.appendChild(time);
         info.appendChild(document.createElement('br'));
         info.appendChild(mem);

@@ -1,5 +1,18 @@
-<!-- <a href="../problem_creator/">problem Creator</a><br> -->
-<head>Problems List</head>
-<div id="problem-list"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problems List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
+        <h1 class="text-4xl font-bold text-center mb-6">Problems List</h1>
+        <!-- Uncomment to enable link -->
+        <div id="problem-list" class="text-2xl space-y-4 block text-blue-400 hover:underline text-center mb-4"></div>
+    </div>
 
-<script type="module" src="getProblems.js"></script>
+    <script type="module" src="getProblems.js"></script>
+</body>
+</html>
