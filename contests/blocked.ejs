@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contest Status</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
+        <% if (contestStatus === 'notStarted') { %>
+            <h1 class="text-4xl font-bold text-center mb-6 text-red-500">Contest Not Started Yet</h1>
+            <p class="text-center text-2xl mb-6">The contest is scheduled to start at <%= startTime %></p>
+        <% } else if (contestStatus === 'ended') { %>
+            <h1 class="text-4xl font-bold text-center mb-6 text-red-500">Contest Ended</h1>
+            <p class="text-center text-2xl mb-6">The contest ended on <%= endTime %></p>
+        <% } else { %>
+            <h1 class="text-4xl font-bold text-center mb-6 text-green-500">Contest is Active</h1>
+            <p class="text-center text-2xl mb-6">You can participate in the contest now.</p>
+        <% } %>
+        <div class="text-center">
+            <a href="/contests/<%= contestName %>" class="text-blue-400 hover:underline">← Back to Contest</a>
+        </div>
+    </div>
+</body>
+</html>
