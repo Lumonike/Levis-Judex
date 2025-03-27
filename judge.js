@@ -79,7 +79,7 @@ async function runProgram(boxID, submissionDir, testcaseDir, testcase) {
     const timeWall = 2*timeLimit; // used to prevent sleeping
     const memLimit = 256 * 1024; // 256 MB is the USACO limit. could lower to allow more control groups
     const command = `isolate --cg --dir=${submissionDir} --meta=${submissionDir}meta.txt --dir=${testcaseDir} --stdin=${testcaseDir}${testcase}.in --time=${timeLimit} --wall-time=${timeWall} --cg-mem=${memLimit} --box-id=${boxID} --run -- /bin/python3 -O code.py`;
-    const expected = fs.readFileSync(testcaseDir+testcase+".out");
+    const expected = fs.readFileSync(testcaseDir+testcase+".out", "utf8").trim();
     let result = {status: "", time: "", mem: ""};
     const checkOutput = (error, stdout) => {
         const metadata = parseMetafile(submissionDir);

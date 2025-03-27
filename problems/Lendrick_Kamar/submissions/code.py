@@ -1,5 +1,2 @@
-n = int(input())
-if n%2==0:
-    print("yes")
-else:
-    print("no")
+print(["yes", "no"][int(input())%2], end="")
+# 8==========D
