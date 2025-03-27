@@ -1,2 +1,4 @@
 // Change this value to the domain or ip of the server
-export const server = "https://judge.codejoint.org/";
+// by default localhost:3000
+export const server = "YOUR OWN SERVER";
+alert("you haven't configured getServer.js in the problem folder yet!!")
