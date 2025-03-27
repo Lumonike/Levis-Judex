@@ -1,5 +1,5 @@
 n = int(input())
-if n % 2 == 0:
-    print("yes\n\n\n\n\n")
+if n%2==0:
+    print("yes")
 else:
-    print("no\n\n\n\n\n\n\n")
+    print("no")
