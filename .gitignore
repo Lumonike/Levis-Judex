@@ -2,3 +2,4 @@ node_modules/
 isolate/
 TODO.md
 problems/getServer.js
+.env
