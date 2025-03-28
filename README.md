@@ -56,3 +56,4 @@ WantedBy=multi-user.target
 3. Add problems in the same format as adding problems, but instead add into contest folder.
 ## Special Thanks
 - Brian Dean for informing us of the sandboxing tool USACO uses (ioi isolate, open-sourced on github)
+- thanks to ChatGPT for setting the Vibes ~~
