@@ -18,7 +18,7 @@ EMAIL_USER=(make your own email. This email is to send to other's email to verif
 EMAIL_PASS=[enable 2FA on google, next make new app password in security settings, use that here. It should look like "aaaa bbbb cccc dddd"]
 BASE_URL=url for your webpage, i.e localhost:3000
 ```
-6. Create file `problems/getServer.js` to be the server you're hosting on, i.e
+7. Create file `problems/getServer.js` to be the server you're hosting on, i.e
    `export const server = "http://localhost:3000/"`, or, for us, `export const server = "https://judge.codejoint.org/"` (<- do notice i use https:// for mine as it is configured that way in the nginx)
 9. Edit the home page so the "About" link and contact us banner reflects you (or leave ours there if you don't mind)
 10. Run `sudo node server.js` to initialize the server
