@@ -1,7 +1,7 @@
 # Levis Judex
-Creates a judge for problems similar to CodeForces or Leetcode. \
+Creates a problem judging platform for problems similar to CodeForces or Leetcode. \
 Better version of [Online-Judge](https://github.com/VinkentLi/Online-Judge) \
-View [here](https://judge.codejoint.org/)
+View our self-hosted page [here](https://judge.codejoint.org/)
 ## How to set up
 1. You **need** to run this on Linux, so make sure you have Linux
 1. Install [isolate](https://github.com/ioi/isolate) (if you have a debian-based linux distro, make sure to install the service. You can find it by searching "isolate.service" on their github)
