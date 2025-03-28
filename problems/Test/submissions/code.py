@@ -1,1 +1,1 @@
-print("hi\n" * int(input()))
+print("hi")
