@@ -1,5 +1,7 @@
-# Online Judge
-Creates a judge for problems similar to USACO or IOI
+# Levis Judex
+Creates a judge for problems similar to CodeForces or Leetcode. \
+Better version of [Online-Judge](https://github.com/VinkentLi/Online-Judge) \
+View [here](https://judge.codejoint.org/)
 ## How to set up
 1. You **need** to run this on Linux, so make sure you have Linux
 1. Install [isolate](https://github.com/ioi/isolate) (if you have a debian-based linux distro, make sure to install the service. You can find it by searching "isolate.service" on their github)
@@ -15,6 +17,8 @@ EMAIL_USER=(make your own email. This email is to send to other's email to verif
 EMAIL_PASS=[enable 2FA on google, next make new app password in security settings, use that here. It should look like "aaaa bbbb cccc dddd"]
 BASE_URL=url for your webpage, i.e localhost:3000
 ```
+6. Change the constant in `problems/getServer.js` to be the server you're hosting on
+7. Make a `submissions` folder in `problems/test` (we will probably make it so it's already there)
 6. Run `sudo node server.js` to initialize the server
 7. The test problem can be found in `localhost:3000/problems/test/`
 8. [optional] make a online-judge service as shown:
@@ -39,13 +43,6 @@ WantedBy=multi-user.target
 4. Modify `script.js` to set the number of testcases you have **(make sure you don't mess this up)**
 5. For each testcase, **name them in this format**: `[testcaseNumber].in` for input, `[testcaseNumber].out` for output. testcaseNumber is one-indexed
 6. Create a `submissions` folder to host submissions
-## If you're hosting the grading server on a different server from the website
-1. You will need to split the problem folder between the grading server and the website
-2. Both the grading server and the website should have a similar folder structure (as described in [How to make a problem](#how-to-make-a-problem)). **If you don't have folders for a problem in both servers, you're gonna have issues with the problems list**
-3. On the grading server, you need `server.js`, `judge.js`, `problems/[problemName]/submissions/`, and`problems/[problemName]/testcases/`
-4. On the website, you need everything in the `problems` folder that's not on the grading server
-5. In `getServer.js`, **replace server with where you're hosting the grading server or it won't work**
 ## Special Thanks
-- [Lumonike](https://github.com/lumonike), for emailing Brian Dean about what USACO uses for judging. We will use this judge for a project we're working on together
-- ChatGPT, for coding the base of the code and giving tips lol
-- DuckDuckGo, for giving me answers from StackOverflow
+- ChatGPT, for coding like half the project
+- DuckDuckGo, for giving us answers from StackOverflow
