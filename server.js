@@ -23,6 +23,7 @@ const User = mongoose.model("User", new mongoose.Schema({
     verified: { type: Boolean, default: false },
     verificationToken: String,
     results: { type: Object, default: {} }, // basically a map with the problems to the results
+    code: {type: Object, default: {} }
 }));
 
 function authenticateToken(req, res, next) {
@@ -221,37 +222,34 @@ app.post("/submit", authenticateToken, async (req, res) => {
     const { code, problem } = req.body;
     // You can access `req.user` which contains the authenticated user's data
     console.log("User ID from token:", req.user.id);
-
-    // judge.judge(code, problem)
-    // .then(result => {
-    //     res.json({ result });
-    //     return (result, User.findById(req.user.id));
-    // })
-    // .then(async (result, user) => {
-    //     // store result in database
-    //     console.log(user);
-    //     user.results[problem] = result;
-    //     await user.save();
-    // })
-    // .catch((error) => {
-    //     console.error(error);
-    // });
     const user = await User.findById(req.user.id);
     const result = await judge.judge(code, problem);
     res.json({ result });
-    console.log("User:", user);
-    if (!user) {
-        console.error("WTF HOW IS THERE NO USER");
-    }
+    // console.log("User:", user);
     user.results[problem] = result;
+    user.markModified('results'); // if i don't do this, the data won't save
+    // console.log(`Saving this to ${problem}:`, user.results);
+    user.code[problem] = code;
+    user.markModified('code');
     await user.save();
+});
+
+app.post("/getCode", authenticateToken, async (req, res) => {
+    const { problem } = req.body;
+    const user = await User.findById(req.user.id);
+    // console.log("User requesting code:", user);
+    if (!user) {
+        console.error("WTF NO USER FOUND");
+    }
+    const result = user.code[problem];
+    res.json({ result });
 });
 
 // get results from a problem
 app.post("/getResult", authenticateToken, async (req, res) => {
     const { problem } = req.body;
     const user = await User.findById(req.user.id);
-    console.log("User requesting result:", user);
+    // console.log("User requesting result:", user);
     if (!user) {
         console.error("WTF NO USER FOUND");
     }
