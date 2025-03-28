@@ -1,1 +1,1 @@
-print(["yes", "no"][int(input())%2])
+print(["yes","no"][int(input())%2])
