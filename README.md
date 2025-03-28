@@ -3,7 +3,7 @@ Creates a problem judging platform for problems similar to CodeForces or Leetcod
 Better version of [Online-Judge](https://github.com/VinkentLi/Online-Judge) \
 View our self-hosted page [here](https://judge.codejoint.org/)
 ## How to set up
-*NOTE*:  if you need any help installing the service email us at codejointcrew@gmail.com, we are more than willing to help you through the step-by-step process if you need help intalling our service
+*NOTE*:  if you need any help installing the service, feel free to email us at codejointcrew@gmail.com, we are more than willing to help you through the step-by-step process if you need help intalling our service
 1. You **need** to run this on Linux, so make sure you have Linux
 1. Install [isolate](https://github.com/ioi/isolate) (if you have a debian-based linux distro, make sure to install the service. You can find it by searching "isolate.service" on their github)
 2. Install mongodb and install their system service as well, u need mongodb and mongo
