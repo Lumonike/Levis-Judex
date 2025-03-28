@@ -149,7 +149,9 @@ app.post("/contests", (req, res) => {
 
 app.get("/contests/:contestName/:problemName", async (req, res) => {
     const { contestName, problemName } = req.params;
-
+    if (problemName.endsWith(".js")){
+        next();
+    }
     try {
         // Dynamically import contest times
         const contestTimePath = path.join(__dirname, "contests", contestName, "getContestTime.mjs");
