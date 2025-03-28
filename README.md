@@ -1,5 +1,5 @@
 # Levis Judex
-Creates a problem judging platform for problems similar to CodeForces or Leetcode. \
+(currently only supports Python) Creates a problem judging platform for problems similar to CodeForces or Leetcode. \
 Better version of [Online-Judge](https://github.com/VinkentLi/Online-Judge) \
 View our self-hosted page [here](https://judge.codejoint.org/)
 ## How to set up
