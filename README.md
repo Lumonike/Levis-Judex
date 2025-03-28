@@ -24,11 +24,11 @@ BASE_URL=url for your webpage, i.e localhost:3000
 10. Run `sudo node server.js` to initialize the server
 11. The test problem can be found in `localhost:3000/problems/test/`
 12. [optional] make a online-judge service as shown:
-13. [optional] if you want to just check out the submission functionality and don't feel like setting up the email verification system, then:
+13. [optional] if you want to just check out the submission functionality and don't feel like setting up the email verification system, then:  
     a. "sign up" on the frontend,  
     b. run `mongosh "mongodb://localhost:27017/authdb"` and then `db.users.find()`  
-    c. get your verificationToken, and go to [webpage]/verify/{verificationToken}/ i.e http://localhost:3000/verify/39rj84j9/
-    d. after verifying, login and use the website as normal.
+    c. get your verificationToken, and go to [webpage]/verify/{verificationToken}/ i.e http://localhost:3000/verify/39rj84j9/  
+    d. after verifying, login and use the website as normal.  
 ```
 [Unit]
 Description=Levis Judex Server
