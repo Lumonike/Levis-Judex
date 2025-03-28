@@ -1,1 +1,5 @@
-print(["yes","no"][int(input())%2])
+N = int(input())
+if N % 2 == 0:
+    print("yes")
+else:
+    print("no")

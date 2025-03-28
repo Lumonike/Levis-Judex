@@ -41,7 +41,8 @@ function authenticateToken(req, res, next) {
 
         // Attach user data to the request object
         req.user = user;  // The decoded token will contain the user information
-        next(); // Proceed to the next middleware or route handler
+        next(); // Proceed to th
+8. Make a `submissions` folder in `problems/test` (we will probably make it so it's already there)e next middleware or route handler
     });
 }
 
@@ -91,8 +92,8 @@ app.get("/verify/:token", async (req, res) => {
         </head>
         <body class="bg-gray-900 text-gray-100">
             <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
-                <h1 class="text-4xl font-bold text-center mb-6 text-green-400">Contest Not Started Yet</h1>
-                <p class="text-center text-2xl mb-6">Email Verified!</p>
+                <h1 class="text-4xl font-bold text-center mb-6 text-green-400">Email Verified!</h1>
+                <p class="text-center text-2xl mb-6">Welcome to the community. Contact us at codejointcrew@gmail.com for any inquiries.</p>
                 <div class="text-center">
                     <a href="/login/" class="text-blue-400 hover:underline">← Login</a>
                 </div>
