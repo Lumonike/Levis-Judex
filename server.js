@@ -79,7 +79,27 @@ app.get("/verify/:token", async (req, res) => {
     user.verificationToken = null;
     await user.save();
 
-    res.json({ message: `Email verified! You can now log in. Login: ${process.env.BASE_URL}/login` });
+    // res.json({ message: `Email verified! You can now log in. Login: ${process.env.BASE_URL}/login` });
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Contest Not Started</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-900 text-gray-100">
+            <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
+                <h1 class="text-4xl font-bold text-center mb-6 text-green-400">Contest Not Started Yet</h1>
+                <p class="text-center text-2xl mb-6">Email Verified!</p>
+                <div class="text-center">
+                    <a href="/login/" class="text-blue-400 hover:underline">← Login</a>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
 });
 
 
