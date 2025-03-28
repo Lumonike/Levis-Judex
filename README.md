@@ -19,9 +19,10 @@ BASE_URL=url for your webpage, i.e localhost:3000
 ```
 6. Change the constant in `problems/getServer.js` to be the server you're hosting on
 7. Make a `submissions` folder in `problems/test` (we will probably make it so it's already there)
-6. Run `sudo node server.js` to initialize the server
-7. The test problem can be found in `localhost:3000/problems/test/`
-8. [optional] make a online-judge service as shown:
+8. Edit the home page so the "About" link and contact us banner reflects you (or leave ours there if you don't mind)
+9. Run `sudo node server.js` to initialize the server
+10. The test problem can be found in `localhost:3000/problems/test/`
+11. [optional] make a online-judge service as shown:
 ```[Unit]
 Description=Levis Judex Server
 
