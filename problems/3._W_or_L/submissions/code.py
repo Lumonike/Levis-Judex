@@ -2,7 +2,7 @@ s = input()
 w = 0
 l = 0
 for i in s:
-    if i == "L":
+    if i == "W":
         w += 1
     else:
         l += 1
