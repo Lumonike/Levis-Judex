@@ -53,7 +53,6 @@ router.post("/", authenticateToken, async (req, res) => {
             return res.status(400).json({ error: "Invalid Contest!" });
         }
         const now = new Date();
-        console.log(contest.startTime);
         if (now < contest.startTime) {
             return res.status(400).json({ error: "Contest hasn't started!" });
         } else if (now >= contest.endTime) {

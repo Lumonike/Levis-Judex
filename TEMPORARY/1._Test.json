@@ -1,8 +1,0 @@
-{
-    "id": 1,
-    "name": "Test",
-    "problemStatement": "<p>Given an input N (1 ≤ N ≤ 3), print \"hi\" N times</p>",
-    "inputFormat": "First line contains N",
-    "outputFormat": "N lines that say \"hi\"",
-    "numSampleTestcases": 1 
-}

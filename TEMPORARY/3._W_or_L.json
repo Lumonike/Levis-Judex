@@ -1,8 +1,0 @@
-{
-    "id": 3,
-    "name": "W or L",
-    "problemStatement": "<p>Given a random combination of 'W's and 'L's, output which letter appears more</p>",
-    "inputFormat": "A string <i><b>s</b></i> of length <i><b>l</b></i> (<i><b>l</b></i> is odd, <i><b>l</b></i> < 1e6) containing Ws and Ls",
-    "outputFormat": "W or L",
-    "numSampleTestcases": 2 
-}

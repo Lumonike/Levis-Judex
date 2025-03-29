@@ -43,8 +43,6 @@ app.use(bodyParser.json());
 mongoose.connect(process.env.MONGO_URI).then(() => console.log("✅ MongoDB Connected"))
     .catch(err => console.error("MongoDB Connection Error:", err));
 
-// require('./PORTING.js')();
-
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use('/', (req, res, next) => {
