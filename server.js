@@ -41,8 +41,7 @@ function authenticateToken(req, res, next) {
 
         // Attach user data to the request object
         req.user = user;  // The decoded token will contain the user information
-        next(); // Proceed to th
-8. Make a `submissions` folder in `problems/test` (we will probably make it so it's already there)e next middleware or route handler
+        next(); // Proceed to the next middleware or route handler
     });
 }
 
@@ -125,10 +124,20 @@ app.post("/register", async (req, res) => {
         from: process.env.EMAIL_USER,
         to: email,
         subject: `${name}: Verify Your Email`,
-        text: `Click here to verify: ${link}`
+        text: `Click here to verify: ${link}\n(Link expires in one minute)`
     });
 
     res.json({ message: "Check your email to verify your account!" });
+
+    // delete unverified accounts after a minute
+    setTimeout(async () => {
+        console.log("checking for unverified account");
+        const updatedUser = await User.findOne({ email });
+        if (!updatedUser.verified) {
+            await User.deleteOne({ email });
+            console.log("Deleted unverified account");
+        }
+    }, 1000*20);
 });
 
 // 🚀 **Login (Only for Verified Users)**
