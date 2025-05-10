@@ -22,6 +22,8 @@ const User = mongoose.model("User", new mongoose.Schema({
     password: String,
     verified: { type: Boolean, default: false },
     verificationToken: String,
+    resetToken: String,
+    possibleNewPassword: String,
     results: { type: Object, default: {} }, // basically a map with the problems to the results
     code: {type: Object, default: {} }
 }));
@@ -137,7 +139,7 @@ app.post("/register", async (req, res) => {
             await User.deleteOne({ email });
             console.log("Deleted unverified account");
         }
-    }, 1000*20);
+    }, 1000*60);
 });
 
 // 🚀 **Login (Only for Verified Users)**
@@ -155,6 +157,76 @@ app.post("/login", async (req, res) => {
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "48h" });
     res.json({ success: true, token });
+});
+
+app.post("/resetPassword", async (req, res) => {
+    const { email, password } = req.body;
+
+    // Check if the email already exists in the database
+    const user = await User.findOne({ email });
+    if (!user) {
+        return res.status(400).json({ error: "Email is not registered" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const token = Math.random().toString(36).slice(2);
+    user.resetToken = token;
+    user.possibleNewPassword = hashedPassword;
+    user.markModified("resetToken");
+    user.markModified("possibleNewPassword");
+    await user.save();
+
+    const link = `${process.env.BASE_URL}/reset/${token}`;
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: `Reset your password`,
+        text: `If you did NOT request this email, do NOT click the link and instead IGNORE this email so you don't give access to your account to an unknown third-party.\n\nClick here to confirm reset: ${link}\n(Link expires in one minute)`
+    });
+
+    res.json({ message: "Check your email to confirm resetting your password!" });
+
+    // delete reset tokens after one minute
+    setTimeout(async () => {
+        const updatedUser = await User.findOne({ email });
+        updatedUser.resetToken = null;
+        updatedUser.possibleNewPassword = null;
+        updatedUser.markModified("resetToken");
+        updatedUser.markModified("possibleNewPassword");
+        await updatedUser.save();
+    }, 1000*60);
+});
+
+app.get("/reset/:token", async (req, res) => {
+    const user = await User.findOne({ resetToken: req.params.token });
+    if (!user) return res.status(400).json({ error: "Invalid token" });
+
+    user.password = user.possibleNewPassword;
+    user.resetToken = null;
+    user.possibleNewPassword = null;
+    await user.save();
+
+    // res.json({ message: `Email verified! You can now log in. Login: ${process.env.BASE_URL}/login` });
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Contest Not Started</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-900 text-gray-100">
+            <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
+                <h1 class="text-4xl font-bold text-center mb-6 text-green-400">Password Reset!</h1>
+                <p class="text-center text-2xl mb-6">Password successfully reset. Contact us at codejointcrew@gmail.com for any inquiries.</p>
+                <div class="text-center">
+                    <a href="/login/" class="text-blue-400 hover:underline">← Login</a>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
 });
 
 // 🚀 **Problems API**
@@ -243,9 +315,6 @@ app.get("/contests/:contestName/:problemName", async (req, res) => {
         res.status(500).json({ error: "Invalid contest or problem." });
     }
 });
-
-
-
 
 // 🚀 **Submit Code (requires login)**
 app.post("/submit", authenticateToken, async (req, res) => {
