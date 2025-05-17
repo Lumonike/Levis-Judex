@@ -25,7 +25,8 @@ const User = mongoose.model("User", new mongoose.Schema({
     resetToken: String,
     possibleNewPassword: String,
     results: { type: Object, default: {} }, // basically a map with the problems to the results
-    code: {type: Object, default: {} }
+    code: {type: Object, default: {} },
+    admin: { type: Boolean, default: false }
 }));
 
 function authenticateToken(req, res, next) {
@@ -47,7 +48,14 @@ function authenticateToken(req, res, next) {
     });
 }
 
-
+async function requireAdmin(req, res, next) {
+    const user = await User.findById(req.user.id);
+    if (user.admin) {
+        next();
+    } else {
+        res.status(403).json("Invalid access");
+    }
+}
 
 // emailer to email verifcation link
 const transporter = nodemailer.createTransport({
@@ -370,7 +378,31 @@ app.post("/subStatus", authenticateToken, (req, res) => {
     res.json({ result });
 });
 
+app.use((req, res, next) => {
+    if (req.url.startsWith("/private")) {
+        return res.status(403).send("403 Unauthorized");
+    }
+    next();
+})
 app.use(express.static(__dirname));
+
+app.post("/getAdminPage", authenticateToken, requireAdmin, async (req, res) => {
+    const { folder } = req.body;
+    res.sendFile(path.join(__dirname, "private", folder, "index.html"));
+});
+
+app.post("/setAdminStatus", authenticateToken, requireAdmin, async (req, res) => {
+    const { email, status } = req.body;
+    console.log("attempting to change status of ", email);
+    const user = await User.findOne( { email: email });
+    if (!user) {
+        return res.status(400).send("Failed to find user");
+    }
+    user.admin = status;
+    user.markModified("admin");
+    await user.save();
+    res.json({success: true});
+});
 
 // 🚀 **Start the Server**
 app.listen(3000, () => console.log("Server running on port 3000"));
