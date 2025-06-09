@@ -1,9 +1,11 @@
 const fs = require("fs");
 const { exec } = require("child_process");
+const path = require("path");
 
 let initializedIsolate = false;
 let inProgress = false;
 const numBoxes = 5;
+module.exports.maxTestcases = 50;
 const boxPaths = new Array(numBoxes);
 // stack of ids
 const availableBoxes = new Array(numBoxes).fill(0).map((_, index) => index);
@@ -26,13 +28,6 @@ module.exports.judge = async (code, problem) => {
     const boxID = availableBoxes.pop();
     results[boxID] = [];
     inProgress = true;
-    const problemDir = `${__dirname}/${problem}`;
-    const problemExists = fs.existsSync(problemDir);
-
-    if (!problemExists) {
-        console.error("Invalid problem!");
-        return null;
-    }
 
     // code must be less than 100,000 bytes
     if (code.length > 100000) {
@@ -40,9 +35,8 @@ module.exports.judge = async (code, problem) => {
         return [{status: "RTE", time: "0s", mem:"0 MB"}];
     }
 
-    const submissionDir = `${problemDir}submissions/`;
-    const testcaseDir = problemDir + "testcases/";
-    const codeFile = `${submissionDir}code.py`;
+    const submissionDir = path.join(__dirname, "private", "isolate", boxID.toString());
+    const codeFile = path.join(submissionDir, "code.py");
     
     if (!initializedIsolate) {
         await initIsolate();
@@ -50,16 +44,11 @@ module.exports.judge = async (code, problem) => {
     }
 
     fs.writeFileSync(codeFile, code);
-    fs.copyFileSync(codeFile, `${boxPaths[boxID]}code.py`);
+    fs.copyFileSync(codeFile, path.join(boxPaths[boxID], "code.py"));
 
-    const maxTestcases = 50;
-    for (let testcase = 1; testcase <= maxTestcases; testcase++) {
-        const testcaseExists = fs.existsSync(`${testcaseDir}${testcase}.in`);
-        if (!testcaseExists) {
-            break;
-        }
+    for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
         results[boxID].push({ status: `...`, time: "...", mem: "..." });
-        results[boxID][testcase-1] = await runProgram(boxID, submissionDir, testcaseDir, testcase);
+        results[boxID][testcase] = await runProgram(boxID, submissionDir, problem, testcase);
     }
 
     // return it back to the stack
@@ -80,12 +69,12 @@ async function initIsolate() {
     console.log("Initialized Isolate boxes!");
 }
 
-async function runProgram(boxID, submissionDir, testcaseDir, testcase) {
+async function runProgram(boxID, submissionDir, problem, testcase) {
     const timeLimit = 4;
     const timeWall = 2*timeLimit; // used to prevent sleeping
     const memLimit = 256 * 1024; // 256 MB is the USACO limit. could lower to allow more control groups
-    const command = `isolate --cg --dir=${submissionDir} --meta=${submissionDir}meta.txt --dir=${testcaseDir} --stdin=${testcaseDir}${testcase}.in --time=${timeLimit} --wall-time=${timeWall} --cg-mem=${memLimit} --box-id=${boxID} --run -- /bin/python3 -O code.py`;
-    const expected = fs.readFileSync(testcaseDir+testcase+".out", "utf8").trim();
+    const command = `isolate --cg --dir=${submissionDir} --meta=${path.join(submissionDir, "meta.txt")} --time=${timeLimit} --wall-time=${timeWall} --cg-mem=${memLimit} --box-id=${boxID} --run -- /bin/python3 -O code.py`;
+    const expected = problem.outputTestcases[testcase].trim();
     let result = {status: "", time: "", mem: ""};
     const checkOutput = (error, stdout) => {
         const metadata = parseMetafile(submissionDir);
@@ -101,12 +90,17 @@ async function runProgram(boxID, submissionDir, testcaseDir, testcase) {
         result.time = `${metadata.time}s`;
         result.mem = `${(metadata['max-rss']/1024.0).toFixed(2)} MB`;
     }
-    await new Promise((resolve) => { exec(command, checkOutput).on('close', resolve); });
+    await new Promise((resolve) => { 
+        const child = exec(command, checkOutput);
+        child.stdin.write(problem.inputTestcases[testcase]);
+        child.stdin.end();
+        child.on('close', resolve);
+     });
     return result;
 }
 
 function parseMetafile(submissionDir) {
-    const metadataArr = fs.readFileSync(submissionDir+"meta.txt").toString().split(":").join("\n").split("\n");
+    const metadataArr = fs.readFileSync(path.join(submissionDir, "meta.txt")).toString().split(":").join("\n").split("\n");
     const metadata = {};
     for (let i = 0; i < metadataArr.length-2 /*ignore last two characters*/; i += 2) {
         metadata[metadataArr[i]] = metadataArr[i+1];

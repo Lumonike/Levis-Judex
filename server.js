@@ -7,7 +7,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
-const path = require("path")
+const path = require("path");
+const fs = require("fs");
 
 const app = express();
 app.use(cors());
@@ -15,7 +16,6 @@ app.use(bodyParser.json());
 
 mongoose.connect(process.env.MONGO_URI).then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
-
 
 const User = mongoose.model("User", new mongoose.Schema({
     email: String,
@@ -28,6 +28,66 @@ const User = mongoose.model("User", new mongoose.Schema({
     code: {type: Object, default: {} },
     admin: { type: Boolean, default: false }
 }));
+
+const Problem = mongoose.model("Problem", new mongoose.Schema({
+    id: String, // in case we want to do stuff like 5B like codeforces
+    name: String,
+    html: String,
+    inputTestcases: [ String ],
+    outputTestcases: [ String ]
+}));
+
+async function portProblemsToDB() {
+    // await Problem.deleteMany({});
+    const problemsDir = `${__dirname}/problems/`;
+    fs.readdir(problemsDir, async (err, files) => {
+        const foldersWithIndex = files.filter(folder => fs.existsSync(`${problemsDir}/${folder}/index.html`));
+        for (const folder of foldersWithIndex) {
+            const html = fs.readFileSync(path.join(problemsDir, folder, "index.html"));
+            const inputTestcases = [];
+            for (let i = 1; i <= judge.maxTestcases; i++) {
+                const possCase = path.join(problemsDir, folder, `testcases/${i}.in`);
+                if (fs.existsSync(possCase)) {
+                    inputTestcases.push(fs.readFileSync(possCase));
+                } else {
+                    break;
+                }
+            }
+            const outputTestcases = [];
+            for (let i = 1; i <= judge.maxTestcases; i++) {
+                const possCase = path.join(problemsDir, folder, `testcases/${i}.out`);
+                if (fs.existsSync(possCase)) {
+                    outputTestcases.push(fs.readFileSync(possCase));
+                } else {
+                    break;
+                }
+            }
+            const problem = new Problem({ 
+                id: folder[0], 
+                name: folder.substring(3).split("_").join(" "),
+                html: html,
+                inputTestcases: inputTestcases,
+                outputTestcases: outputTestcases
+            });
+            await problem.save();
+        }
+    });
+    // copy over old data
+    const users = await User.find();
+    for (const user of users) {
+        for (const [oldProblemName, code] of Object.entries(user.code)) {
+            user.code[oldProblemName[10]] = code;
+        }
+        user.markModified("code");
+        for (const [oldProblemName, results] of Object.entries(user.results)) {
+            user.results[oldProblemName[10]] = results;
+        }
+        user.markModified("results");
+        await user.save();
+    }
+}
+// uncomment this to port problems to DB
+// portProblemsToDB();
 
 function authenticateToken(req, res, next) {
     // Get token from the Authorization header
@@ -237,22 +297,30 @@ app.get("/reset/:token", async (req, res) => {
     `);
 });
 
+app.get("/problem", async (req, res) => {
+    const problem = await Problem.findOne({ id: req.query.id });
+    if (problem == null) {
+        return res.redirect("../");
+    }
+    res.send(problem.html);
+});
+
 // 🚀 **Problems API**
-app.post("/problems", (req, res) => {
-    const problemsDir = `${__dirname}/problems/`;
-    require('fs').readdir(problemsDir, (err, files) => {
-        if (err) return res.status(500).json({ error: "Error reading directory" });
-        const foldersWithIndex = files.filter(folder => require('fs').existsSync(`${problemsDir}/${folder}/index.html`));
-        res.json(foldersWithIndex);
-    });
+app.post("/problems", async (req, res) => {
+    const problems = await Problem.find();
+    const data = [];
+    problems.forEach((problem) => {
+        data.push({ id: problem.id, name: problem.name });
+    })
+    res.json(data);
 });
 
 // 🚀 **Contests API**
 app.post("/contests", (req, res) => {
     const contestsDir = `${__dirname}/contests/`;
-    require('fs').readdir(contestsDir, (err, files) => {
+    fs.readdir(contestsDir, (err, files) => {
         if (err) return res.status(500).json({ error: "Error reading directory" });
-        const foldersWithIndex = files.filter(folder => require('fs').existsSync(`${contestsDir}/${folder}/index.html`));
+        const foldersWithIndex = files.filter(folder => fs.existsSync(`${contestsDir}/${folder}/index.html`));
         res.json(foldersWithIndex);
     });
 });
@@ -326,17 +394,18 @@ app.get("/contests/:contestName/:problemName", async (req, res) => {
 
 // 🚀 **Submit Code (requires login)**
 app.post("/submit", authenticateToken, async (req, res) => {
-    const { code, problem } = req.body;
+    const { code, problemID } = req.body;
     // You can access `req.user` which contains the authenticated user's data
     console.log("User ID from token:", req.user.id);
     const user = await User.findById(req.user.id);
+    const problem = await Problem.findOne({ id: problemID });
     const result = await judge.judge(code, problem);
     res.json({ result });
     // console.log("User:", user);
-    user.results[problem] = result;
+    user.results[problemID] = result;
     user.markModified('results'); // if i don't do this, the data won't save
     // console.log(`Saving this to ${problem}:`, user.results);
-    user.code[problem] = code;
+    user.code[problemID] = code;
     user.markModified('code');
     await user.save();
 });
@@ -363,7 +432,6 @@ app.post("/getResult", authenticateToken, async (req, res) => {
     const result = user.results[problem]
     res.json({ result });
 });
-
 
 // 🚀 **Available Boxes**
 app.post("/available", (req, res) => {

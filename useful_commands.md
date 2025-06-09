@@ -21,6 +21,8 @@ delete user:
 delete all users:  
 `db.users.deleteMany({});`
 
+Same stuff from above applies to problems: just replace `users` with `problems`
+
 ---
 ### run server to see debug console in terminal
 `sudo nodejs server.js`

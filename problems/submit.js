@@ -3,7 +3,7 @@ import { displayStatus } from './status.js';
 
 let alreadySubmitting = false;
 
-export async function submitCode(code, problem) {
+export async function submitCode(code, problemID) {
     if (alreadySubmitting) {
         return;
     }
@@ -20,7 +20,7 @@ export async function submitCode(code, problem) {
         boxID = await checkGradingServer();
     }
     let completed = false;
-    const completedResults = submit(code, problem).then((res) => {
+    const completedResults = submit(code, problemID).then((res) => {
         completed = true;
         return res;
     }).catch((error) => {
@@ -50,7 +50,7 @@ async function checkGradingServer() {
     }
 }
 
-async function submit(code, problem) {
+async function submit(code, problemID) {
     try {
         console.log({
             method: "POST",
@@ -58,7 +58,7 @@ async function submit(code, problem) {
                 "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ code, problem })
+            body: JSON.stringify({ code, problemID })
         });
 
         const response = await fetch(`${server}/submit`, {
@@ -67,7 +67,7 @@ async function submit(code, problem) {
                 "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ code, problem })
+            body: JSON.stringify({ code, problemID })
         });
         const data = await response.json();
         if (data.error) {
