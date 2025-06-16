@@ -1,5 +1,5 @@
 export function displayStatus(outputArea, results, completed) {
-    if (completed == true){
+    if (completed) {
         if (!results){
             outputArea.innerHTML = "";
             const h4 = document.createElement("h4");

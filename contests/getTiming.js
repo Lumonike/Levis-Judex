@@ -1,6 +1,21 @@
+import { server } from "/problems/getServer.js";
+
+export async function getTiming(contestID) {
+    try {
+        const response = await fetch(`${server}/contestTiming`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contestID: contestID })
+        });
+        const { startTime, endTime } = await response.json();
+        return { startTime: Date.parse(startTime), endTime: Date.parse(endTime) };
+    } catch (error) {
+        console.error("Error fetching timing:", error);
+    }
+}
+
 export function apply(elem, startTime, endTime) {
     const now = new Date();
-
     if (now < startTime) {
         const timeRemaining = startTime - now; // Time remaining in milliseconds
         const hours = Math.floor(timeRemaining / (1000 * 60 * 60));

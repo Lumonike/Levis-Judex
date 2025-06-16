@@ -3,7 +3,7 @@ import { displayStatus } from './status.js';
 
 let alreadySubmitting = false;
 
-export async function submitCode(code, problemID) {
+export async function submitCode(code, problemID, contestID) {
     if (alreadySubmitting) {
         return;
     }
@@ -20,7 +20,7 @@ export async function submitCode(code, problemID) {
         boxID = await checkGradingServer();
     }
     let completed = false;
-    const completedResults = submit(code, problemID).then((res) => {
+    const completedResults = submit(code, problemID, contestID).then((res) => {
         completed = true;
         return res;
     }).catch((error) => {
@@ -50,16 +50,16 @@ async function checkGradingServer() {
     }
 }
 
-async function submit(code, problemID) {
+async function submit(code, problemID, contestID) {
     try {
-        console.log({
-            method: "POST",
-            headers: { 
-                "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ code, problemID })
-        });
+        // console.log({
+        //     method: "POST",
+        //     headers: { 
+        //         "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+        //         "Content-Type": "application/json"
+        //     },
+        //     body: JSON.stringify({ code, problemID })
+        // });
 
         const response = await fetch(`${server}/submit`, {
             method: "POST",
@@ -67,7 +67,7 @@ async function submit(code, problemID) {
                 "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ code, problemID })
+            body: JSON.stringify({ code, problemID, contestID })
         });
         const data = await response.json();
         if (data.error) {

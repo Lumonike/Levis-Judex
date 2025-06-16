@@ -25,66 +25,109 @@ const User = mongoose.model("User", new mongoose.Schema({
     resetToken: String,
     possibleNewPassword: String,
     results: { type: Object, default: {} }, // basically a map with the problems to the results
-    code: {type: Object, default: {} },
+    code: { type: Object, default: {} },
     admin: { type: Boolean, default: false }
 }));
 
-const Problem = mongoose.model("Problem", new mongoose.Schema({
-    id: String, // in case we want to do stuff like 5B like codeforces
+// making a schema to store it in problems
+const ProblemSchema = new mongoose.Schema({
+    id: String, // in case we want to do stuff like 5B like codeforces. CANNOT HAVE COLONS
     name: String,
-    html: String,
+    html: String, // TODO: using html probably isn't the best idea. should make it match contest probably
     inputTestcases: [ String ],
-    outputTestcases: [ String ]
+    outputTestcases: [ String ],
+    contestID: { type: String, default: null } // null if not a contest problem
+});
+
+const Problem = mongoose.model("Problem", ProblemSchema);
+
+const Contest = mongoose.model("Contest", new mongoose.Schema({
+    id: String,
+    name: String,
+    problems: [ ProblemSchema ],
+    startTime: Date,
+    endTime: Date
 }));
 
 async function portProblemsToDB() {
-    // await Problem.deleteMany({});
-    const problemsDir = `${__dirname}/problems/`;
-    fs.readdir(problemsDir, async (err, files) => {
-        const foldersWithIndex = files.filter(folder => fs.existsSync(`${problemsDir}/${folder}/index.html`));
-        for (const folder of foldersWithIndex) {
-            const html = fs.readFileSync(path.join(problemsDir, folder, "index.html"));
-            const inputTestcases = [];
-            for (let i = 1; i <= judge.maxTestcases; i++) {
-                const possCase = path.join(problemsDir, folder, `testcases/${i}.in`);
-                if (fs.existsSync(possCase)) {
-                    inputTestcases.push(fs.readFileSync(possCase));
-                } else {
-                    break;
-                }
-            }
-            const outputTestcases = [];
-            for (let i = 1; i <= judge.maxTestcases; i++) {
-                const possCase = path.join(problemsDir, folder, `testcases/${i}.out`);
-                if (fs.existsSync(possCase)) {
-                    outputTestcases.push(fs.readFileSync(possCase));
-                } else {
-                    break;
-                }
-            }
-            const problem = new Problem({ 
-                id: folder[0], 
-                name: folder.substring(3).split("_").join(" "),
-                html: html,
-                inputTestcases: inputTestcases,
-                outputTestcases: outputTestcases
-            });
-            await problem.save();
-        }
-    });
-    // copy over old data
-    const users = await User.find();
-    for (const user of users) {
-        for (const [oldProblemName, code] of Object.entries(user.code)) {
-            user.code[oldProblemName[10]] = code;
-        }
-        user.markModified("code");
-        for (const [oldProblemName, results] of Object.entries(user.results)) {
-            user.results[oldProblemName[10]] = results;
-        }
-        user.markModified("results");
-        await user.save();
-    }
+    // const problemsDir = path.join(__dirname, "problems");
+    // fs.readdir(problemsDir, async (err, files) => {
+    //     const foldersWithIndex = files.filter(folder => fs.existsSync(path.join(problemsDir, folder, "index.html")));
+    //     for (const folder of foldersWithIndex) {
+    //         const html = fs.readFileSync(path.join(problemsDir, folder, "index.html"));
+    //         const inputTestcases = [];
+    //         for (let i = 1; i <= judge.maxTestcases; i++) {
+    //             const possCase = path.join(problemsDir, folder, "testcases", `${i}.in`);
+    //             if (fs.existsSync(possCase)) {
+    //                 inputTestcases.push(fs.readFileSync(possCase));
+    //             } else {
+    //                 break;
+    //             }
+    //         }
+    //         const outputTestcases = [];
+    //         for (let i = 1; i <= judge.maxTestcases; i++) {
+    //             const possCase = path.join(problemsDir, folder, "testcases", `${i}.out`);
+    //             if (fs.existsSync(possCase)) {
+    //                 outputTestcases.push(fs.readFileSync(possCase));
+    //             } else {
+    //                 break;
+    //             }
+    //         }
+    //         const problem = new Problem({ 
+    //             id: folder[0], 
+    //             name: folder.substring(3).split("_").join(" "),
+    //             html: html,
+    //             inputTestcases: inputTestcases,
+    //             outputTestcases: outputTestcases
+    //         });
+    //         await problem.save();
+    //     }
+    // });
+    // // copy over old data. copying stuff from contests causes bugs bcuz im lazy and no one did the contest
+    // const users = await User.find();
+    // for (const user of users) {
+    //     for (const [oldProblemName, code] of Object.entries(user.code)) {
+    //         user.code[oldProblemName[10]] = code;
+    //     }
+    //     user.markModified("code");
+    //     for (const [oldProblemName, results] of Object.entries(user.results)) {
+    //         user.results[oldProblemName[10]] = results;
+    //     }
+    //     user.markModified("results");
+    //     await user.save();
+    // }
+    // there was only one contest so im just doing it manually
+    // const contestTimePath = path.join(__dirname, "contests", "Contest_1", "getContestTime.mjs");
+    // const { startTime, endTime } = await import(`file://${contestTimePath}`);
+    // const html = fs.readFileSync(path.join(__dirname, "contests", "Contest_1", "A", "index.html"));
+    // const inputTestcases = [];
+    // for (let i = 1; i <= judge.maxTestcases; i++) {
+    //     const possCase = path.join(__dirname, "contests", "Contest_1", "A", "testcases", `${i}.in`);
+    //     if (fs.existsSync(possCase)) {
+    //         inputTestcases.push(fs.readFileSync(possCase));
+    //     } else {
+    //         break;
+    //     }
+    // }
+    // const outputTestcases = [];
+    // for (let i = 1; i <= judge.maxTestcases; i++) {
+    //     const possCase = path.join(__dirname, "contests", "Contest_1", "A", "testcases", `${i}.out`);
+    //     if (fs.existsSync(possCase)) {
+    //         outputTestcases.push(fs.readFileSync(possCase));
+    //     } else {
+    //         break;
+    //     }
+    // }
+    // const problem = {
+    //     id: "A", 
+    //     name: "Is Robin Cooler Than Vincent?", 
+    //     html: html, 
+    //     inputTestcases: inputTestcases, 
+    //     outputTestcases: outputTestcases,
+    //     contestID: 1
+    // };
+    // const contest = new Contest({id: 1, name: "Contest 1", problems: [problem], startTime: startTime, endTime: endTime});
+    // await contest.save();
 }
 // uncomment this to port problems to DB
 // portProblemsToDB();
@@ -297,10 +340,19 @@ app.get("/reset/:token", async (req, res) => {
     `);
 });
 
-app.get("/problem", async (req, res) => {
-    const problem = await Problem.findOne({ id: req.query.id });
+app.get("/problems/:target", async (req, res) => {
+    const target = req.params.target;
+    const targetPath = path.join(__dirname, "problems", target);
+    // send files if they exist
+    if (fs.existsSync(targetPath)) {
+        if (fs.statSync(targetPath).isFile()) {
+            return res.sendFile(targetPath);
+        }
+    }
+    const problem = await Problem.findOne({ id: target });
     if (problem == null) {
-        return res.redirect("../");
+        // redirect if the file doesn't exist
+        return res.redirect("/problems");
     }
     res.send(problem.html);
 });
@@ -316,120 +368,225 @@ app.post("/problems", async (req, res) => {
 });
 
 // 🚀 **Contests API**
-app.post("/contests", (req, res) => {
-    const contestsDir = `${__dirname}/contests/`;
-    fs.readdir(contestsDir, (err, files) => {
-        if (err) return res.status(500).json({ error: "Error reading directory" });
-        const foldersWithIndex = files.filter(folder => fs.existsSync(`${contestsDir}/${folder}/index.html`));
-        res.json(foldersWithIndex);
-    });
+app.post("/contests", async (req, res) => {
+    const contests = await Contest.find();
+    const data = [];
+    contests.forEach((contest) => {
+        data.push({ id: contest.id, name: contest.name });
+    })
+    res.json(data);
 });
 
-app.get("/contests/:contestName/:problemName", async (req, res) => {
-    const { contestName, problemName } = req.params;
-    if (problemName.endsWith(".js")){
-        next();
+app.post("/contestProblems", async (req, res) => {
+    const { contestID } = req.body;
+    const contest = await Contest.findOne({ id: contestID });
+    if (!contest) {
+        return res.sendStatus(404);
     }
-    try {
-        // Dynamically import contest times
-        const contestTimePath = path.join(__dirname, "contests", contestName, "getContestTime.mjs");
-        const { startTime, endTime } = await import(`file://${contestTimePath}`);
-        const now = new Date();
+    const data = [];
+    contest.problems.forEach((problem) => {
+        data.push({ id: problem.id, name: problem.name });
+    });
+    res.json(data);
+});
 
-        // Check if contest is active
-        if (now < startTime) {
-            // Contest not started yet
-            return res.send(`
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Contest Not Started</title>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                </head>
-                <body class="bg-gray-900 text-gray-100">
-                    <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
-                        <h1 class="text-4xl font-bold text-center mb-6 text-red-500">Contest Not Started Yet</h1>
-                        <p class="text-center text-2xl mb-6">The contest is scheduled to start at ${startTime.toLocaleString()}</p>
-                        <div class="text-center">
-                            <a href="/contests/${contestName}" class="text-blue-400 hover:underline">← Back to Contest</a>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `);
-        } else if (now > endTime) {
-            // Contest has ended
-            return res.send(`
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Contest Ended</title>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                </head>
-                <body class="bg-gray-900 text-gray-100">
-                    <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
-                        <h1 class="text-4xl font-bold text-center mb-6 text-red-500">Contest Ended</h1>
-                        <p class="text-center text-2xl mb-6">The contest ended on ${endTime.toLocaleString()}</p>
-                        <div class="text-center">
-                            <a href="/contests/${contestName}" class="text-blue-400 hover:underline">← Back to Contest</a>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `);
+// startTime and endTime are strings. do Date.parse
+app.post("/contestTiming", async (req, res) => {
+    const { contestID } = req.body;
+    const contest = await Contest.findOne({ id: contestID });
+    if (!contest) {
+        return res.sendStatus(404);
+    }
+    res.json({ startTime: contest.startTime, endTime: contest.endTime });
+});
+
+// copy paste from problems lmfao
+app.get("/contests/:target", async (req, res) => {
+    const target = req.params.target;
+    const targetPath = path.join(__dirname, "contests", target);
+    // send files if they exist
+    if (fs.existsSync(targetPath)) {
+        if (fs.statSync(targetPath).isFile()) {
+            return res.sendFile(targetPath);
         }
+    }
+    const contest = await Contest.findOne({ id: target });
+    if (!contest) {
+        // redirect if the file doesn't exist
+        return res.redirect("/contests");
+    }
+    // TODO: Fix problems list thing lmao
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${contest.name}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-900 text-gray-100">
+            <header class="p-4">
 
-        // Serve problem file if contest is active
-        const problemPath = path.join(__dirname, "contests", contestName, problemName, "index.html");
-        res.sendFile(problemPath);
-    } catch (error) {
-        console.error("Error accessing contest problem:", error);
-        res.status(500).json({ error: "Invalid contest or problem." });
+                <a href="/contests" class="text-blue-400 hover:underline">← Back to Contest List</a>
+            </header>
+
+            <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
+
+                <a href="/" style="position: fixed">
+                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 9.5L12 3L21 9.5V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V9.5Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M9 21V12H15V21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+
+                <h1 class="text-4xl font-bold text-center mb-6">${contest.name}</h1><br>
+                <h1 class="text-2xl font-bold text-center mb-6" id="contestTiming"></h1><br>
+                <!-- Uncomment to enable link -->
+                <div id="problem-list" class="text-2xl space-y-4 block text-blue-400 text-center mb-4"></div>
+            </div>
+
+            <style>.hoverUnderline:hover{text-decoration: underline;}</style>
+            <script type="module">
+                import { getTiming, apply } from "/contests/getTiming.js";
+                import { loadProblems } from "/contests/getContestProblems.js";
+                let elem = document.getElementById("contestTiming");
+                const { startTime, endTime } = await getTiming(${contest.id});
+                setInterval(apply, 100, elem, startTime, endTime); // repeat every 100 ms
+                loadProblems(${contest.id});
+            </script>
+        </body>
+        </html>    
+    `);
+});
+
+// TODO: put html stuff into its own file probably cuz this sucks lmfao
+app.get("/contests/:contestID/:problemID", async (req, res) => {
+    const { contestID, problemID } = req.params;
+    const contestDir = path.join(__dirname, "contests", contestID);
+    if (fs.existsSync(path.join(contestDir, problemID))) {
+        if (fs.statSync(path.join(contestDir, problemID)).isFile()) {
+            return res.sendFile(path.join(contestDir, problemID));
+        }
+    }
+    const contest = await Contest.findOne({ id: contestID });
+    if (!contest) {
+        return res.redirect("/contests");
+    }
+    const problem = contest.problems.find(problem => problem.id == problemID);
+    if (!problem) {
+        return res.redirect("../");
+    }
+    const now = new Date();
+
+    // Check if contest is active
+    if (now < contest.startTime) {
+        // Contest not started yet
+        return res.send(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Contest Not Started</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-gray-900 text-gray-100">
+                <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
+                    <h1 class="text-4xl font-bold text-center mb-6 text-red-500">Contest Not Started Yet</h1>
+                    <p class="text-center text-2xl mb-6">The contest is scheduled to start at ${startTime.toLocaleString()}</p>
+                    <div class="text-center">
+                        <a href="/contests/${contestID}" class="text-blue-400 hover:underline">← Back to Contest</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
+    } else if (now >= contest.endTime) {
+        // Contest has ended
+        return res.send(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Contest Ended</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-gray-900 text-gray-100">
+                <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
+                    <h1 class="text-4xl font-bold text-center mb-6 text-red-500">Contest Ended</h1>
+                    <p class="text-center text-2xl mb-6">The contest ended on ${endTime.toLocaleString()}</p>
+                    <div class="text-center">
+                        <a href="/contests/${contestID}" class="text-blue-400 hover:underline">← Back to Contest</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
+    } else {
+        return res.send(problem.html);
     }
 });
 
 // 🚀 **Submit Code (requires login)**
 app.post("/submit", authenticateToken, async (req, res) => {
-    const { code, problemID } = req.body;
-    // You can access `req.user` which contains the authenticated user's data
-    console.log("User ID from token:", req.user.id);
+    const { code, problemID, contestID } = req.body;
     const user = await User.findById(req.user.id);
-    const problem = await Problem.findOne({ id: problemID });
+    let problem = null;
+    if (!contestID) {
+        problem = await Problem.findOne({ id: problemID });
+    } else {
+        const contest = await Contest.findOne({ id: contestID });
+        if (!contest) {
+            return res.sendStatus(400);
+        }
+        problem = contest.problems.find(problem => problem.id == problemID);
+    }
+    if (!problem) {
+        return res.sendStatus(400);
+    }
     const result = await judge.judge(code, problem);
     res.json({ result });
-    // console.log("User:", user);
-    user.results[problemID] = result;
+    let combinedID = problemID;
+    if (contestID) {
+        combinedID = contestID.concat(":", problemID);
+    }
+    user.results[combinedID] = result;
     user.markModified('results'); // if i don't do this, the data won't save
-    // console.log(`Saving this to ${problem}:`, user.results);
-    user.code[problemID] = code;
+    user.code[combinedID] = code;
     user.markModified('code');
     await user.save();
 });
 
 app.post("/getCode", authenticateToken, async (req, res) => {
-    const { problem } = req.body;
+    const { problemID, contestID } = req.body;
     const user = await User.findById(req.user.id);
     // console.log("User requesting code:", user);
     if (!user) {
         console.error("WTF NO USER FOUND");
     }
-    const result = user.code[problem];
+    let combinedID = problemID;
+    if (contestID) {
+        combinedID = contestID.concat(":", problemID);
+    }
+    const result = user.code[combinedID];
     res.json({ result });
 });
 
 // get results from a problem
 app.post("/getResult", authenticateToken, async (req, res) => {
-    const { problem } = req.body;
+    const { problemID, contestID } = req.body;
     const user = await User.findById(req.user.id);
     // console.log("User requesting result:", user);
     if (!user) {
         console.error("WTF NO USER FOUND");
     }
-    const result = user.results[problem]
+    let combinedID = problemID;
+    if (contestID) {
+        combinedID = contestID.concat(":", problemID);
+    }
+    const result = user.results[combinedID]
     res.json({ result });
 });
 

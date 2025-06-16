@@ -43,8 +43,12 @@ module.exports.judge = async (code, problem) => {
         initializedIsolate = true;
     }
 
-    fs.writeFileSync(codeFile, code);
-    fs.copyFileSync(codeFile, path.join(boxPaths[boxID], "code.py"));
+    try {
+        fs.writeFileSync(codeFile, code);
+        fs.copyFileSync(codeFile, path.join(boxPaths[boxID], "code.py"));
+    } catch (error) {
+        console.log("Error writing code file:", error);
+    }
 
     for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
         results[boxID].push({ status: `...`, time: "...", mem: "..." });
@@ -90,12 +94,33 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
         result.time = `${metadata.time}s`;
         result.mem = `${(metadata['max-rss']/1024.0).toFixed(2)} MB`;
     }
-    await new Promise((resolve) => { 
-        const child = exec(command, checkOutput);
-        child.stdin.write(problem.inputTestcases[testcase]);
-        child.stdin.end();
-        child.on('close', resolve);
-     });
+    try {
+        await new Promise(async (resolve) => { 
+            const child = exec(command, checkOutput);
+            // i have to write in chunks to prevent a crash
+            let i = 0;
+            const writeChunks = () => {
+                while (i < problem.inputTestcases[testcase].length) {
+                    const chunk = problem.inputTestcases[testcase].slice(i, i+child.stdin.writableHighWaterMark);
+                    const canWrite = child.stdin.write(chunk);
+                    i += child.stdin.writableHighWaterMark;
+                    if (!canWrite) {
+                        child.stdin.once('drain', writeChunks);
+                        return;
+                    }
+                }
+            }
+            await new Promise((resolve, reject) => {
+                child.stdin.on('error', reject);
+                writeChunks();
+                resolve();
+            })
+            child.stdin.end();
+            child.on('close', resolve);
+        });
+    } catch (error) {
+        console.error("Error running isolate:", error);
+    }
     return result;
 }
 

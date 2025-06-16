@@ -1,10 +1,11 @@
 import { server } from "/problems/getServer.js";
 
-async function loadProblems() {
+export async function loadProblems(contestID) {
     try {
-        const response = await fetch(`${server}/problems/`, {
+        const response = await fetch(`${server}/contestProblems/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contestID })
         });
         const problems = await response.json();
         
@@ -12,7 +13,7 @@ async function loadProblems() {
         problems.forEach(problem => {
             let p = document.createElement("p");
             let a = document.createElement("a");
-            a.href = `../problems/${problem.id}`; 
+            a.href = `/contests/${contestID}/${problem.id}`; 
             a.textContent = `${problem.id}. ${problem.name}`;
             p.appendChild(a);
             a.className = "hoverUnderline";
@@ -22,6 +23,3 @@ async function loadProblems() {
         console.error("Error fetching problem list:", error);
     }
 }
-
-// Call the function asynchronously
-loadProblems();

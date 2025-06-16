@@ -44,16 +44,18 @@ WorkingDirectory=[this directory]
 WantedBy=multi-user.target
 ```
 ## How to make a problem (we have template problems already to help you)
-*NOTE*:  DO NOT, and I mean DO. NOT. put whitespace into problem names, use underscores as they are automatically converted to whitespace in the problemlist.
+Coming soon™
+<!-- *NOTE*:  DO NOT, and I mean DO. NOT. put whitespace into problem names, use underscores as they are automatically converted to whitespace in the problemlist.
 1. Add a folder to the `problems` folder
 2. copy and paste the `index.html` and `script.js` files from the `test` folder into that folder
 3. Modify `index.html` to change the problem statement  
-4. For each testcase, **name them in this format**: `[testcaseNumber].in` for input, `[testcaseNumber].out` for output. testcaseNumber is one-indexed
+4. For each testcase, **name them in this format**: `[testcaseNumber].in` for input, `[testcaseNumber].out` for output. testcaseNumber is one-indexed -->
 ## How to make a contest (we have template contests already to help you)
-*NOTE*:  same thing as problems, DO NOT use whitespace when naming anything.
+Coming soon™
+<!-- *NOTE*:  same thing as problems, DO NOT use whitespace when naming anything.
 1. Add a folder to `contests` folder
 2. Add `index.html` file and `getContestTime.mjs` file.
-3. Add problems in the same format as adding problems, but instead add into contest folder.
+3. Add problems in the same format as adding problems, but instead add into contest folder. -->
 ## Special Thanks
 - Brian Dean for informing us of the sandboxing tool USACO uses (ioi isolate, open-sourced on github)
 - thanks to ChatGPT for setting the Vibes ~~

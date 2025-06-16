@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contest 1</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- copy this from getContestTime.mjs & make it not exported -->
-    <script>
-        // Define start time and end time in UTC using string format with 'Z' suffix
-        const startTime = new Date("2025-03-27T20:00:00Z"); // March 28, 2025, 20:00 UTC
-        const endTime = new Date("2025-03-28T23:00:00Z"); // March 28, 2025, 23:00 UTC
-    </script>
 </head>
 <body class="bg-gray-900 text-gray-100">
     <header class="p-4">
@@ -30,7 +24,7 @@
         <h1 class="text-4xl font-bold text-center mb-6">Contest 1</h1><br>
         <h1 class="text-2xl font-bold text-center mb-6" id="contestTiming"></h1><br>
         <!-- Uncomment to enable link -->
-        <div id="contest-list" class="text-2xl space-y-4 block text-blue-400 text-center mb-4">
+        <div id="problem-list" class="text-2xl space-y-4 block text-blue-400 text-center mb-4">
             <p>
                 <a href="./A/" class="hoverUnderline">A. Is Robin Cooler Than Vincent?</a>
             </p>
@@ -38,34 +32,11 @@
     </div>
 
     <style>.hoverUnderline:hover{text-decoration: underline;}</style>
-    <script>
-        function checkTime(){
-            let elem = document.getElementById("contestTiming");
-            const now = new Date();
-
-            if (now < startTime) {
-                const timeRemaining = startTime - now; // Time remaining in milliseconds
-                const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-                const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-
-                elem.innerHTML = `Starts in ${hours} hours, ${minutes} minutes, and ${seconds} seconds`;
-            } else if (now >= startTime && now <= endTime) {
-                const timeRemaining = endTime - now; // Time remaining in milliseconds
-                const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-                const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-
-                elem.innerHTML = `Contest is running! ${hours} hours, ${minutes} minutes, and ${seconds} seconds left`;
-            } else {
-                elem.innerHTML = `Contest ended at ${endTime.toLocaleString()}`;
-            }
-            setTimeout(checkTime, 10);
-        }
-        checkTime();
-        
-
-
+    <script type="module">
+        import { getTiming, apply } from "/contests/getTiming.js";
+        let elem = document.getElementById("contestTiming");
+        const { startTime, endTime } = await getTiming(1);
+        setInterval(apply, 100, elem, startTime, endTime); // repeat every 100 ms
     </script>
 </body>
 </html>
