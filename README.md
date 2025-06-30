@@ -21,9 +21,9 @@ BASE_URL=url for your webpage, i.e localhost:3000
 7. Create file `problems/getServer.js` to be the server you're hosting on, i.e
    `export const server = "http://localhost:3000/"`, or, for us, `export const server = "https://judge.codejoint.org/"` (<- do notice i use https:// for mine as it is configured that way in the nginx)
 9. Edit the home page so the "About" link and contact us banner reflects you (or leave ours there if you don't mind)
-10. Run `sudo node server.js` to initialize the server
+10. Run `sudo npm start` to initialize the server
 11. The test problem can be found in `localhost:3000/problems/test/`
-12. [optional] make a online-judge service as shown:
+12. [optional] make a online-judge service as shown (note: if npm is not stored in `/usr/bin/`, run `whereis npm` and use that instead):
 13. [optional] if you want to just check out the submission functionality and don't feel like setting up the email verification system, then:  
     a. "sign up" on the frontend,  
     b. run `mongosh "mongodb://localhost:27017/authdb"` and then `db.users.find()`  
@@ -35,7 +35,7 @@ Description=Levis Judex Server
 
 [Service]
 Type=simple
-ExecStart=sudo /usr/bin/nodejs [this directory]/server.js
+ExecStart=sudo /usr/bin/npm [this directory]/server.js
 Restart=always
 User=root
 WorkingDirectory=[this directory]

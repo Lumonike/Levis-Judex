@@ -1,7 +1,6 @@
 node_modules/
 isolate/
-TODO.md
-problems/getServer.js
+src/public/problems/getServer.js
 .env
 problem_maker
 

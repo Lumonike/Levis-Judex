@@ -21,11 +21,11 @@ delete user:
 delete all users:  
 `db.users.deleteMany({});`
 
-Same stuff from above applies to problems: just replace `users` with `problems`
+Same stuff from above applies to problems and contests: just replace `users` with `problems` or `contests`
 
 ---
 ### run server to see debug console in terminal
-`sudo nodejs server.js`
+`sudo npm start`
 
 ---
 ### install dependencies

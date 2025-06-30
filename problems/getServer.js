@@ -1,1 +1,0 @@
-export const server = "https://judge.codejoint.org/"
