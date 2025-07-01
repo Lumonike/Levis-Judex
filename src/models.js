@@ -33,7 +33,10 @@ const User = mongoose.model("User", new mongoose.Schema({
 const ProblemSchema = new mongoose.Schema({
     id: String, // in case we want to do stuff like 5B like codeforces. CANNOT HAVE COLONS
     name: String,
-    html: String, // TODO: using html probably isn't the best idea. should make it match contest probably
+    problemStatement: String,
+    inputFormat: String,
+    outputFormat: String,
+    numSampleTestcases: Number,
     inputTestcases: [ String ],
     outputTestcases: [ String ],
     contestID: { type: String, default: null } // null if not a contest problem

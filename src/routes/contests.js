@@ -19,6 +19,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { Contest } = require('../models.js');
+const { createProblemHtml } = require("../pages/problems.js");
 const router = express.Router();
 module.exports = router;
 
@@ -151,7 +152,7 @@ router.get("/contests/:contestID/:problemID", async (req, res) => {
             <body class="bg-gray-900 text-gray-100">
                 <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
                     <h1 class="text-4xl font-bold text-center mb-6 text-red-500">Contest Not Started Yet</h1>
-                    <p class="text-center text-2xl mb-6">The contest is scheduled to start at ${startTime.toLocaleString()}</p>
+                    <p class="text-center text-2xl mb-6">The contest is scheduled to start at ${contest.startTime.toLocaleString()}</p>
                     <div class="text-center">
                         <a href="/contests/${contestID}" class="text-blue-400 hover:underline">← Back to Contest</a>
                     </div>
@@ -173,7 +174,7 @@ router.get("/contests/:contestID/:problemID", async (req, res) => {
             <body class="bg-gray-900 text-gray-100">
                 <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
                     <h1 class="text-4xl font-bold text-center mb-6 text-red-500">Contest Ended</h1>
-                    <p class="text-center text-2xl mb-6">The contest ended on ${endTime.toLocaleString()}</p>
+                    <p class="text-center text-2xl mb-6">The contest ended on ${contest.endTime.toLocaleString()}</p>
                     <div class="text-center">
                         <a href="/contests/${contestID}" class="text-blue-400 hover:underline">← Back to Contest</a>
                     </div>
@@ -182,6 +183,6 @@ router.get("/contests/:contestID/:problemID", async (req, res) => {
             </html>
         `);
     } else {
-        return res.send(problem.html);
+        return res.send(createProblemHtml(problem));
     }
 });

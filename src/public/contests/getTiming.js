@@ -25,7 +25,7 @@ export async function getTiming(contestID) {
             body: JSON.stringify({ contestID: contestID })
         });
         const { startTime, endTime } = await response.json();
-        return { startTime: Date.parse(startTime), endTime: Date.parse(endTime) };
+        return { startTime: new Date(startTime), endTime: new Date(endTime) };
     } catch (error) {
         console.error("Error fetching timing:", error);
     }

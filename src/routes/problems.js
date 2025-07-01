@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require("path");
 const { Problem } = require('../models.js');
+const { createProblemHtml } = require("../pages/problems.js");
 const router = express.Router();
 module.exports = router;
 
@@ -19,9 +20,10 @@ router.get("/problems/:target", async (req, res) => {
         // redirect if the file doesn't exist
         return res.redirect("/problems");
     }
-    res.send(problem.html);
+    res.send(createProblemHtml(problem));
 });
 
+// TODO: should be GET request
 router.post("/problems", async (req, res) => {
     const problems = await Problem.find();
     const data = [];

@@ -1,0 +1,8 @@
+{
+    "id": 4,
+    "name": "Fibonacci",
+    "problemStatement": "<p>Given a number <b><i>n</i></b> (0 &lt; <b><i>n</i></b> &lt; 1e6), output the first <b><i>n</i></b> terms in the fibonacci sequence modulo 1e9+7</p>",
+    "inputFormat": "the number <b><i>n</i></b>",
+    "outputFormat": "<b><i>n</i></b> numbers modulo 1e9+7",
+    "numSampleTestcases": 1 
+}

@@ -1,0 +1,8 @@
+{
+    "id": 2,
+    "name": "Lendrick Kamar",
+    "problemStatement": "<p>Would you trust a rose that bloomed in the dark? Only if the number of thorns it has is even!</p>",
+    "inputFormat": "First line contains N (N < 1e9)",
+    "outputFormat": "\"yes\" or \"no\", depending on if you trust it.",
+    "numSampleTestcases": 2 
+}

@@ -17,6 +17,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "fs": "^0.0.1-security",
+    "jsdom": "^26.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongod": "^2.0.0",
     "mongoose": "^8.13.0",
