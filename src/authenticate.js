@@ -15,8 +15,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-const jwt = require('jsonwebtoken');
+/**
+ * @module authenticate
+ */
 
+const jwt = require('jsonwebtoken');
+const express = require('express');
+
+/**
+ * Ensures user is using a valid token
+ * @memberof module:authenticate
+ * @param {express.Request} req
+ * @param {express.Response} res
+ * @param {express.NextFunction} next
+ * @returns 403 if invalid token, otherwise calls next
+ */
 function authenticateToken(req, res, next) {
     const token = req.headers["authorization"]?.split(" ")[1]; // The token is usually passed as Bearer <token>
     if (!token) {

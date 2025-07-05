@@ -18,12 +18,12 @@ EMAIL_USER=(make your own email. This email is to send to other's email to verif
 EMAIL_PASS=[enable 2FA on google, next make new app password in security settings, use that here. It should look like "aaaa bbbb cccc dddd"]
 BASE_URL=url for your webpage, i.e localhost:3000
 ```
-7. Create file `problems/getServer.js` to be the server you're hosting on, i.e
+7. Create file `src/public/get-server.js` to be the server you're hosting on, i.e
    `export const server = "http://localhost:3000/"`, or, for us, `export const server = "https://judge.codejoint.org/"` (<- do notice i use https:// for mine as it is configured that way in the nginx)
 9. Edit the home page so the "About" link and contact us banner reflects you (or leave ours there if you don't mind)
 10. Run `sudo npm start` to initialize the server
-11. The test problem can be found in `localhost:3000/problems/test/`
-12. [optional] make a online-judge service as shown (note: if npm is not stored in `/usr/bin/`, run `whereis npm` and use that instead):
+11. The test problem can be found in `localhost:3000/problems/1`
+12. [optional] make an online-judge service as shown (note: if npm is not stored in `/usr/bin/`, run `whereis npm` and use that instead):
 13. [optional] if you want to just check out the submission functionality and don't feel like setting up the email verification system, then:  
     a. "sign up" on the frontend,  
     b. run `mongosh "mongodb://localhost:27017/authdb"` and then `db.users.find()`  
@@ -56,6 +56,8 @@ Coming soon™
 1. Add a folder to `contests` folder
 2. Add `index.html` file and `getContestTime.mjs` file.
 3. Add problems in the same format as adding problems, but instead add into contest folder. -->
+## Documentation
+- Run `npm run docs` to generate docs.
 ## Special Thanks
 - Brian Dean for informing us of the sandboxing tool USACO uses (ioi isolate, open-sourced on github)
 - thanks to ChatGPT for setting the Vibes ~~

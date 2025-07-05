@@ -15,13 +15,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * Admin routing
+ * @module routes/admin
+ */
+
 const express = require('express');
 const path = require('path');
 const { User } = require('../models.js');
 const authenticateToken = require('../authenticate.js');
+const { createBaseAdminHtml } = require('../pages/admin.js');
+
+/**
+ * Router for admin
+ * @memberof module:routes/admin
+ */
 const router = express.Router();
 module.exports = router;
 
+/**
+ * Ensures user is admin
+ * @memberof module:routes/admin
+ * @param {express.Request} req 
+ * @param {express.Response} res 
+ * @param {express.NextFunction} next
+ * @returns 403 error if not admin, otherwise calls next
+ */
 async function requireAdmin(req, res, next) {
     const user = await User.findById(req.user.id);
     if (user.admin) {
@@ -31,12 +50,39 @@ async function requireAdmin(req, res, next) {
     }
 }
 
-router.post("/getAdminPage", authenticateToken, requireAdmin, async (req, res) => {
-    const { folder } = req.body;
-    res.sendFile(path.join(__dirname, "..", "private", folder, "index.html"));
+/**
+ * Basic admin page
+ * @name GET/
+ * @function 
+ * @memberof module:routes/admin
+ * @returns HTML page
+ */
+router.get("/", (req, res) => {
+    res.send(createBaseAdminHtml());
 });
 
-router.post("/setAdminStatus", authenticateToken, requireAdmin, async (req, res) => {
+/**
+ * Basic admin page
+ * @name GET/:target
+ * @function 
+ * @memberof module:routes/admin
+ * @returns HTML page
+ */
+router.get("/:target", (req, res) => {
+    const target = req.params.target;
+    res.send(createBaseAdminHtml(`${target}.js`));
+});
+
+/**
+ * Sets the admin status 
+ * @name POST/admin/set-admin-status 
+ * @function 
+ * @memberof module:routes/admin 
+ * @param {string} req.body.email User's email
+ * @param {boolean} req.body.status What to set the user's admin status to
+ * @returns {string | Object} Either error message or json {success: true}
+ */
+router.post("/set-admin-status", authenticateToken, requireAdmin, async (req, res) => {
     const { email, status } = req.body;
     console.log("attempting to change status of ", email);
     const user = await User.findOne( { email: email });
@@ -48,3 +94,16 @@ router.post("/setAdminStatus", authenticateToken, requireAdmin, async (req, res)
     await user.save();
     res.json({success: true});
 });
+
+/**
+ * Fetches admin page. TODO: This shouldn't exist
+ * @name POST/admin/get-admin-page
+ * @function 
+ * @memberof module:routes/admin 
+ * @param {string} req.body.folder What page
+ * @returns Html page
+ */
+router.post("/get-admin-page", authenticateToken, requireAdmin, (req, res) => {
+    const { folder } = req.body;
+    res.sendFile(path.join(__dirname, "..", "templates", "partials", `${folder}.html`));
+})

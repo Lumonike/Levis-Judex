@@ -15,6 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/** Main module
+ * @module server
+ */
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -22,7 +26,12 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const path = require("path");
 
+/**
+ * App
+ * @memberof module:server
+ */
 const app = express();
+
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -41,11 +50,12 @@ app.use('/', (req, res, next) => {
     next();
 });
 
+app.use("/", require("./routes/home.js"));
 app.use("/", require("./routes/user.js"));
 app.use("/", require("./routes/problems.js"));
 app.use("/", require("./routes/submit.js"));
 app.use("/", require("./routes/contests.js"));
-app.use("/", require("./routes/admin.js"));
+app.use("/admin", require("./routes/admin.js"));
 
 // 🚀 **Start the Server**
 app.listen(3000, () => console.log("Server running on port 3000"));

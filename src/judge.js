@@ -15,28 +15,99 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * Module for judging code
+ * @module judge
+ */
+
+/**
+ * @typedef {Object} Result
+ * @property {string} status AC, WA, TLE, etc.
+ * @property {string} time How many seconds it took
+ * @property {string} mem MB of space used
+ * @memberof module:judge
+ */
+
 const fs = require("fs");
-const { exec } = require("child_process");
+const { spawn } = require("child_process");
+const models = require('./models.js')
 const path = require("path");
 
 let initializedIsolate = false;
-let inProgress = false;
+
+/**
+ * Number of isolate boxes
+ * @private
+ * @type {number}
+ * @readonly
+ * @memberof module:judge
+ */
 const numBoxes = 5;
+
+/**
+ * Maximum number of testcases a problem can have
+ * @name maxTestcases
+ * @type {number}
+ * @readonly
+ * @memberof module:judge
+ */
 module.exports.maxTestcases = 50;
+
+/**
+ * Paths of all the isolate boxes
+ * @private
+ * @type {string[]}
+ * @memberof module:judge
+ */
 const boxPaths = new Array(numBoxes);
-// stack of ids
+
+/**
+ * Available isolate boxes
+ * @private
+ * @type {number[]}
+ * @memberof module:judge
+ */
 const availableBoxes = new Array(numBoxes).fill(0).map((_, index) => index);
-// results for each box
+
+/**
+ * @private
+ * @type {Result[]}
+ * @memberof module:judge
+ */
 const results = new Array(numBoxes).fill([]);
 
+/**
+ * Gets the ID of an available box
+ * @name getBoxID
+ * @function
+ * @memberof module:judge
+ * @returns {number} Available boxID, -1 if none available
+ */
 module.exports.getBoxID = () => {
     if (availableBoxes.length == 0) return -1;
     results[availableBoxes.at(-1)] = [];
     return availableBoxes.at(-1);
 };
 
+/**
+ * Gets the current results of an isolate box
+ * @name getStatus
+ * @function
+ * @memberof module:judge
+ * @param {number} boxID 
+ * @returns {Result} Results
+ */
 module.exports.getStatus = (boxID) => results[boxID];
 
+/**
+ * Judges a code submission to a problem
+ * @name judge
+ * @function
+ * @memberof module:judge
+ * @param {string} code 
+ * @param {models.ProblemModel} problem 
+ * @returns {Result} Results of the submission
+ */
 module.exports.judge = async (code, problem) => {
     if (availableBoxes.length == 0) {
         console.error("No available grading server. Frontend should check if grading server is available before submitting!");
@@ -44,15 +115,13 @@ module.exports.judge = async (code, problem) => {
     }
     const boxID = availableBoxes.pop();
     results[boxID] = [];
-    inProgress = true;
-
     // code must be less than 100,000 bytes
     if (code.length > 100000) {
         console.error("Code file too large!");
         return [{status: "RTE", time: "0s", mem:"0 MB"}];
     }
 
-    const submissionDir = path.join(__dirname, "private", "isolate", boxID.toString());
+    const submissionDir = path.join(__dirname, "..", "isolate", boxID.toString());
     const codeFile = path.join(submissionDir, "code.py");
     
     if (!initializedIsolate) {
@@ -74,30 +143,49 @@ module.exports.judge = async (code, problem) => {
 
     // return it back to the stack
     availableBoxes.push(boxID);
-    inProgress = false;
 
     return results[boxID];
 }
 
+/**
+ * Initializes isolate and sets box paths
+ * @private
+ * @memberof module:judge
+ */
 async function initIsolate() {
     // run commands concurrently
     const promises = new Array(numBoxes).fill(0).map((_, boxID) =>
-        new Promise((resolve) => { exec(`isolate --cg --box-id=${boxID} --init`, (error, stdout) => { 
-            boxPaths[boxID] = `${stdout.trim()}/box/`;
-        }).on('close', resolve); })
+        new Promise((resolve) => {
+            const child = spawn(`isolate`, [`--cg`, `--box-id=${boxID}`, `--init`]); 
+            child.stdout.on('data', (data) => { 
+                let stdout = data.toString();
+                boxPaths[boxID] = `${stdout.trim()}/box/`;
+            });
+            child.on('close', resolve);
+        })
     );
     await Promise.all(promises);
     console.log("Initialized Isolate boxes!");
 }
 
+/**
+ * Runs the code inside a box and compares the results to the testcase
+ * @private
+ * @memberof module:judge
+ * @param {number} boxID What box it is
+ * @param {string} submissionDir Where the submission is being stored
+ * @param {models.ProblemModel} problem The problem
+ * @param {number} testcase What testcase number it is
+ * @returns {Result} What were the results of the code
+ */
 async function runProgram(boxID, submissionDir, problem, testcase) {
     const timeLimit = 4;
     const timeWall = 2*timeLimit; // used to prevent sleeping
     const memLimit = 256 * 1024; // 256 MB is the USACO limit. could lower to allow more control groups
-    const command = `isolate --cg --dir=${submissionDir} --meta=${path.join(submissionDir, "meta.txt")} --time=${timeLimit} --wall-time=${timeWall} --cg-mem=${memLimit} --box-id=${boxID} --run -- /bin/python3 -O code.py`;
+    const args = [`--cg`, `--dir=${submissionDir}`, `--meta=${path.join(submissionDir, "meta.txt")}`, `--time=${timeLimit}`, `--wall-time=${timeWall}`, `--cg-mem=${memLimit}`, `--box-id=${boxID}`, `--run`, `--`, `/bin/python3`, `-O`, `code.py`];
     const expected = problem.outputTestcases[testcase].trim();
     let result = {status: "", time: "", mem: ""};
-    const checkOutput = (error, stdout) => {
+    const checkOutput = (stdout) => {
         const metadata = parseMetafile(submissionDir);
         if (metadata.status == "TO") {
             result.status = "TLE";
@@ -113,27 +201,16 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
     }
     try {
         await new Promise(async (resolve) => { 
-            const child = exec(command, checkOutput);
-            // i have to write in chunks to prevent a crash
-            let i = 0;
-            const writeChunks = () => {
-                while (i < problem.inputTestcases[testcase].length) {
-                    const chunk = problem.inputTestcases[testcase].slice(i, i+child.stdin.writableHighWaterMark);
-                    const canWrite = child.stdin.write(chunk);
-                    i += child.stdin.writableHighWaterMark;
-                    if (!canWrite) {
-                        child.stdin.once('drain', writeChunks);
-                        return;
-                    }
-                }
-            }
-            await new Promise((resolve, reject) => {
-                child.stdin.on('error', reject);
-                writeChunks();
-                resolve();
-            })
+            const child = spawn(`isolate`, args);
+            child.stdin.write(problem.inputTestcases[testcase]);
             child.stdin.end();
-            child.on('close', resolve);
+            child.on('error', err => console.error(err));
+            let stdout = "";
+            child.stdout.on('data', data => stdout += data.toString());
+            child.on('close', () => {
+                checkOutput(stdout);
+                resolve();
+            });
         });
     } catch (error) {
         console.error("Error running isolate:", error);
@@ -141,6 +218,13 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
     return result;
 }
 
+/**
+ * Parses the metafile of the program we ran in isolate
+ * @private
+ * @memberof module:judge
+ * @param {string} submissionDir - where the metafile is
+ * @returns {Object<string, string>} Metafile as a map
+ */
 function parseMetafile(submissionDir) {
     const metadataArr = fs.readFileSync(path.join(submissionDir, "meta.txt")).toString().split(":").join("\n").split("\n");
     const metadata = {};
@@ -150,10 +234,15 @@ function parseMetafile(submissionDir) {
     return metadata;
 }
 
+/**
+ * @private
+ * @memberof module:judge
+ * Shuts down isolate
+ */
 async function closeIsolate() {
     console.log("Attempting to close Isolate!");
     const promises = new Array(numBoxes).fill(0).map((_, boxID) =>
-        new Promise((resolve) => { exec(`isolate --cg --box-id=${boxID} --cleanup`).on('close', resolve); })
+        new Promise((resolve) => { spawn(`isolate`, [`--cg`, `--box-id=${boxID}`, `--cleanup`]).on('close', resolve); })
     );
     await Promise.all(promises);
     console.log("Closed Isolate!");

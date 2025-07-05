@@ -16,8 +16,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', function () {
-    const loginForm = document.getElementById('loginForm');
-    const loginButton = document.getElementById('loginButton');
+    const loginForm = document.getElementById('login-form');
+    const loginButton = document.getElementById('login-button');
 
     loginForm.addEventListener('submit', function (event) {
         event.preventDefault();  // Prevent form submission

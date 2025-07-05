@@ -1,6 +1,7 @@
 node_modules/
 isolate/
 src/public/problems/getServer.js
+src/public/get-server.js
 .env
 problem_maker
 

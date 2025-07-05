@@ -15,24 +15,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * @module transporter
- */
+import { submitCode } from "/problems/submit.js";
+import { fetchLastCode, displayPastResults } from "/problems/load-data.js";
 
-const nodemailer = require("nodemailer");
+const editor = ace.edit("editor");
+editor.setTheme('ace/theme/monokai');
+editor.session.setMode('ace/mode/python');
 
-/**
- * Nodemailer transporter
- * @memberof module:transporter
- */
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // true for 465, false for 587
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
 
-module.exports = transporter;
+const url = window.location.pathname.split("/");
+if (url.at(-1) == "") {
+    url.pop();
+}
+let contestID = null;
+if (url.at(-3) == "contests") {
+    contestID = url.at(-2);
+}
+const problemID = url.at(-1);
+console.log(contestID);
+console.log(problemID);
+// set up listener for run button
+document.getElementById("submit-button").onclick = () => { submitCode(editor.getValue(), problemID, contestID) };
+fetchLastCode(problemID, contestID, editor);
+displayPastResults(problemID, contestID);

@@ -16,7 +16,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function () {
-    const resetForm = document.getElementById('resetForm');
+    const resetForm = document.getElementById('reset-form');
 
     resetForm.addEventListener('submit', function (event) {
         event.preventDefault();  // Prevent form submission
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         // Send POST request to the backend login route
-        fetch('/resetPassword', {
+        fetch('/reset-password', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

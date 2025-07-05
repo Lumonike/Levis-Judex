@@ -16,7 +16,7 @@
  */
 
 function setAdmin(email, status, token) {
-    fetch('/setAdminStatus', {
+    fetch('/admin/set-admin-status', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -38,14 +38,14 @@ function setAdmin(email, status, token) {
 }
 
 function setupButtons() {
-    const addButton = document.getElementById('addButton');
-    const removeButton = document.getElementById('removeButton');
+    const addButton = document.getElementById('add-button');
+    const removeButton = document.getElementById('remove-button');
 
     addButton.addEventListener('click', (event) => {
         console.log("attempting to add admin");
         event.preventDefault();
 
-        const email = document.getElementById("userToAdd").value;
+        const email = document.getElementById("user-to-add").value;
         const status = true;
         const token = localStorage.getItem("authToken");
         setAdmin(email, status, token);
@@ -54,7 +54,7 @@ function setupButtons() {
     removeButton.addEventListener('click', (event) => {
         event.preventDefault();
 
-        const email = document.getElementById("userToRemove").value;
+        const email = document.getElementById("user-to-remove").value;
         const status = false;
         const token = localStorage.getItem("authToken");
         setAdmin(email, status, token);

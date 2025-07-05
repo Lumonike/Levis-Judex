@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { server } from './getServer.js';
+import { server } from '/get-server.js';
 import { displayStatus } from './status.js';
 
 let alreadySubmitting = false;
@@ -98,7 +98,7 @@ async function submit(code, problemID, contestID) {
 
 async function getStatus(boxID) {
     try {
-        const response = await fetch(`${server}/subStatus`, {
+        const response = await fetch(`${server}/sub-status`, {
             method: "POST",
             headers: { 
                 "Authorization": `Bearer ${localStorage.getItem("authToken")}`,

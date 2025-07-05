@@ -1,10 +1,11 @@
 {
-  "name": "judge",
+  "name": "levis-judex",
   "version": "0.2.0-alpha",
-  "description": "",
+  "description": "Self-hosted platform running on Express.js (prettified with tailwind css) for creating contests/problems like codeforces & usaco.org that uses ioi's isolate software to sandbox submissions.",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "docs": "jsdoc -r src/ -c jsdoc.json"
   },
   "keywords": [],
   "author": "Code Joint (https://codejoint.org)",
@@ -22,5 +23,10 @@
     "mongod": "^2.0.0",
     "mongoose": "^8.13.0",
     "nodemailer": "^6.10.0"
+  },
+  "devDependencies": {
+    "clean-jsdoc-theme": "^4.3.0",
+    "jsdoc": "^4.0.4",
+    "nodemon": "^3.1.10"
   }
 }

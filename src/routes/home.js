@@ -15,22 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { submitCode } from "/problems/submit.js";
-import { fetchLastCode, displayPastResults } from "/problems/loadData.js";
+/**
+ * Home page routing
+ * @module routes/home
+ */
 
-const editor = ace.edit("editor");
-editor.setTheme('ace/theme/monokai');
-editor.session.setMode('ace/mode/python');
+const { createHomeHtml } = require('../pages/home.js');
+const express = require('express');
 
-const url = window.location.pathname.split("/");
-let contestID = null;
-if (url.at(-3) == "contests") {
-    contestID = url.at(-2);
-}
-const problemID = url.at(-1);
-console.log(contestID);
-console.log(problemID);
-// set up listener for run button
-document.getElementById("submitButton").onclick = () => { submitCode(editor.getValue(), problemID, contestID) };
-fetchLastCode(problemID, contestID, editor);
-displayPastResults(problemID, contestID);
+/**
+ * Router for home page
+ * @memberof module:routes/home
+ */
+const router = express.Router();
+module.exports = router;
+
+/**
+ * @name GET/
+ * @function 
+ * @memberof module:routes/home
+ * @returns Html for home page
+ */
+router.get('/', (req, res) => {
+    res.send(createHomeHtml());
+});

@@ -16,8 +16,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', function () {
-    const registerForm = document.getElementById('registerForm');
-    const registerButton = document.getElementById('registerButton');
+    const registerForm = document.getElementById('register-form');
+    const registerButton = document.getElementById('register-button');
 
     registerForm.addEventListener('submit', function (event) {
         event.preventDefault();  // Prevent form submission

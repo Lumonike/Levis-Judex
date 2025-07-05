@@ -15,22 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { server } from "/problems/getServer.js";
-
-export async function getTiming(contestID) {
-    try {
-        const response = await fetch(`${server}/contestTiming`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contestID: contestID })
-        });
-        const { startTime, endTime } = await response.json();
-        return { startTime: new Date(startTime), endTime: new Date(endTime) };
-    } catch (error) {
-        console.error("Error fetching timing:", error);
-    }
-}
-
 export function apply(elem, startTime, endTime) {
     const now = new Date();
     if (now < startTime) {

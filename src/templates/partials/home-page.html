@@ -1,0 +1,38 @@
+<div id="auth-token-container" class="absolute top-0 right-0 mt-4 mr-4 text-white text-xl font-bold"></div>
+
+<div class="absolute top-0 left-0 mt-4 ml-4 space-y-2">
+    <a href="/login" class="text-2xl font-bold hover:underline text-green-400">Login</a>
+    <span class="text-2xl font-bold" style="color:white; user-select: none;"> |  </span>
+    <a href="/register" class="text-2xl font-bold hover:underline text-green-400">Register</a>
+    <span class="text-2xl font-bold" style="color:white; user-select: none;"> |  </span>
+    <a onclick="localStorage.removeItem('authToken');loginStatus()" class="text-2xl font-bold hover:underline text-green-400">Logout</a>
+</div>
+
+<!-- Main Title -->
+<h1 class="text-5xl font-bold text-center mb-6 text-white">Home</h1>
+<p class="font-bold text-center red text-sm" style="margin-bottom: -4px">
+    Note: currently the only language supported is Python    
+</p>
+
+<br>
+<a href="/problems" class="text-4xl font-bold text-center mb-6 hover:underline text-blue-400">Problems List</a><br>
+<a href="/contests" class="text-4xl font-bold text-center mb-6 hover:underline text-blue-400">Contests</a><br><br>
+<a href="https://codejoint.org/" class="text-2xl font-bold text-center mb-6 hover:underline text-blue-400">About</a><br><br>
+<p class="font-bold text-center white text-sm" style="margin-bottom: -4px">
+    Contact us (for support, to delete your account, feedback/suggestions, or out of curiousity) at codejointcrew@gmail.com
+</p>
+
+<script>
+    function loginStatus(){
+        const authTokenContainer = document.getElementById('auth-token-container');
+
+        const authToken = localStorage.getItem('authToken');
+        if (authToken) {
+            authTokenContainer.textContent = `Logged In`;
+        }
+        else {
+            authTokenContainer.textContent = `Logged Out`;
+        }
+    }
+    loginStatus();
+</script>

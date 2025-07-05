@@ -56,7 +56,7 @@ async function portProblemsToDB() {
         await user.save(); // technically, i could make all the users save at the same time, but I'm lazy lol
     }
     // there was only one contest so im just doing it manually
-    const contestTimePath = path.join(__dirname, "public", "contests", "Contest_1", "getContestTime.mjs");
+    const contestTimePath = path.join(__dirname, "public", "contests", "Contest_1", "get-contest-time.mjs");
     const { startTime, endTime } = await import(`file://${contestTimePath}`);
     const inputTestcases = [];
     for (let i = 1; i <= judge.maxTestcases; i++) {

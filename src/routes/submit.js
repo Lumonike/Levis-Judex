@@ -15,6 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * @module routes/submit
+ */
+
 const express = require('express');
 const authenticateToken = require('../authenticate.js')
 const { User, Problem, Contest } = require('../models.js');
@@ -22,6 +26,16 @@ const judge = require('../judge.js');
 const router = express.Router();
 module.exports = router;
 
+/**
+ * Submits code, requires login
+ * @name POST/submit
+ * @function
+ * @memberof module:routes/submit
+ * @param {string} req.body.code Code written by submitter
+ * @param {string} req.body.problemID Problem the code is meant for
+ * @param {string | null} req.body.contestID Contest the code is meant for, null is not part of any contest
+ * @returns {judge.Result} Results of submitting
+ */
 router.post("/submit", authenticateToken, async (req, res) => {
     const { code, problemID, contestID } = req.body;
     const user = await User.findById(req.user.id);
@@ -57,7 +71,15 @@ router.post("/available", (req, res) => {
     res.json({ result });
 });
 
-router.post("/subStatus", authenticateToken, (req, res) => {
+/**
+ * Gets submission results while code is running (TODO: should be GET request lol)
+ * @name POST/sub-status
+ * @function
+ * @memberof module:routes/submit
+ * @param {number} req.body.boxID What box to get results so far
+ * @returns {judge.Result} Current results of submission so far
+ */
+router.post("/sub-status", authenticateToken, (req, res) => {
     const { boxID } = req.body;
     const result = judge.getStatus(boxID);
     res.json({ result });

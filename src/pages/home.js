@@ -16,23 +16,25 @@
  */
 
 /**
- * @module transporter
+ * Creates html for home page
+ * @module pages/home 
  */
 
-const nodemailer = require("nodemailer");
+const fs = require('fs');
+const path = require('path');
+const html = require('../utils/html.js');
 
 /**
- * Nodemailer transporter
- * @memberof module:transporter
+ * Creates homepage
+ * @name createHomeHtml
+ * @function
+ * @memberof module:pages/home
+ * @returns {string} Html for homepage
  */
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // true for 465, false for 587
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
-
-module.exports = transporter;
+module.exports.createHomeHtml = () => {
+    const document = html.baseDocument();
+    const mainSection = document.getElementById("main-section");
+    mainSection.className += ' text-center relative';
+    mainSection.insertAdjacentHTML('afterbegin', fs.readFileSync(path.join(__dirname, "..", "templates", "partials", "home-page.html")));
+    return document.documentElement.outerHTML;
+}
