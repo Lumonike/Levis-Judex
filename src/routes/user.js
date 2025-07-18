@@ -24,6 +24,7 @@ const express = require('express');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const judge = require("../judge.js");
+const crypto = require('crypto');
 const transporter = require("../transporter.js");
 const { User } = require('../models.js');
 const authenticateToken = require('../authenticate.js');
@@ -60,7 +61,7 @@ router.post("/register", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const token = Math.random().toString(36).slice(2);
+    const token = crypto.randomBytes(8).toString('base64url');
 
     const user = new User({ email, password: hashedPassword, verificationToken: token });
     await user.save();
@@ -191,7 +192,7 @@ router.post("/reset-password", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const token = Math.random().toString(36).slice(2);
+    const token = crypto.randomBytes(8).toString('base64url');
     user.resetToken = token;
     user.possibleNewPassword = hashedPassword;
     user.markModified("resetToken");
