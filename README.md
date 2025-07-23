@@ -52,9 +52,9 @@ WorkingDirectory=[this directory]
 WantedBy=multi-user.target
 ```
 
-## How to make a problem (we have template problems already to help you)
+## How to make a problem
 
-Coming soon™
+Use the problem creator at `[url]/admin/add-problem/`. To add yourself as an admin, you will need to do some work with mongodb [(see useful_commands.md)](useful_commands.md)
 <!-- *NOTE*:  DO NOT, and I mean DO. NOT. put whitespace into problem names, use underscores as they are automatically converted to whitespace in the problemlist.
 1. Add a folder to the `problems` folder
 2. copy and paste the `index.html` and `script.js` files from the `test` folder into that folder
