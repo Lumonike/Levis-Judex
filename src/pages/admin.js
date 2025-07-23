@@ -75,6 +75,7 @@ module.exports.createBaseAdminHtml = (scriptSrc=null) => {
             }
             const html = await response.text();
             content.innerHTML = html;
+            content.dispatchEvent(new Event('contentLoaded'));
         }
         loadAdminHTML();
     `;

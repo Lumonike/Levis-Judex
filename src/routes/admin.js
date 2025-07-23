@@ -22,7 +22,7 @@
 
 const express = require('express');
 const path = require('path');
-const { User } = require('../models.js');
+const { User, Problem } = require('../models.js');
 const authenticateToken = require('../authenticate.js');
 const { createBaseAdminHtml } = require('../pages/admin.js');
 
@@ -106,4 +106,23 @@ router.post("/set-admin-status", authenticateToken, requireAdmin, async (req, re
 router.post("/get-admin-page", authenticateToken, requireAdmin, (req, res) => {
     const { folder } = req.body;
     res.sendFile(path.join(__dirname, "..", "templates", "partials", `${folder}.html`));
-})
+});
+
+router.post("/save-problem", authenticateToken, requireAdmin, async (req, res) => {
+    const update = {...req.body};
+    const response = await Problem.findOneAndUpdate(
+        { id: update.id },
+        update,
+        {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true
+        }
+    );
+    console.log(response);
+    if (response) {
+        res.status(200).json({ message: "Successfully updated problem!" });
+    } else {
+        res.status(400).json({ message: "Failed to update problem!" });
+    }
+});

@@ -67,3 +67,19 @@ router.get("/problems", async (req, res) => {
     const problems = await Problem.find();
     res.send(createProblemsHtml(problems));
 });
+
+/**
+ * Returns json of problem
+ * @function
+ * @memberof module:routes/problems
+ * @param {string} req.query.id problem ID
+ * @returns {ProblemModel} Problem as JSON, or error message
+ */
+router.get("/problem-json", async (req, res) => {
+    const id = req.query.id;
+    const problem = await Problem.findOne({ id: id });
+    if (problem == null) {
+        return res.status(400).json({ message: "Invalid problem ID" });
+    }
+    res.json(problem);
+});
