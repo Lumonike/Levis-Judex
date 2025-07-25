@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-const $ = document.getElementById.bind(document);
+const getId = document.getElementById.bind(document);
 let inputTestcases = [];
 let outputTestcases = [];
 const toolbarOptions = [
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     quillScript.onload = () => {
         // ensure all of that is loaded
         const interval = setInterval(() => {
-            if ($("problem-statement") && $("input-format") && $("output-format")) {
+            if (getId("problem-statement") && getId("input-format") && getId("output-format")) {
                 clearInterval(interval);
                 window.problemStatementContainer = new Quill('#problem-statement', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
                 window.inputFormatContainer = new Quill('#input-format', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
@@ -87,7 +87,7 @@ function addSymbolButtons() {
 }
 
 async function loadProblem() {
-    const id = $("problem-id-search").value.trim();
+    const id = getId("problem-id-search").value.trim();
     if (!id) return alert("Please enter a problem ID.");
     try {
         const res = await fetch(`/problem-json?id=${id}`);
@@ -100,14 +100,14 @@ async function loadProblem() {
 }
 
 function populateForm(data) {
-    $("id").value = data.id;
-    $("name").value = data.name;
+    getId("id").value = data.id;
+    getId("name").value = data.name;
     // can't be that dangerous right?
     problemStatementContainer.clipboard.dangerouslyPasteHTML(data.problemStatement);
     inputFormatContainer.clipboard.dangerouslyPasteHTML(data.inputFormat);
     outputFormatContainer.clipboard.dangerouslyPasteHTML(data.outputFormat);
-    $("num-testcases").value = data.inputTestcases.length;
-    $("num-sample-testcases").value = data.numSampleTestcases;
+    getId("num-testcases").value = data.inputTestcases.length;
+    getId("num-sample-testcases").value = data.numSampleTestcases;
 
     inputTestcases = [...data.inputTestcases];
     outputTestcases = [...data.outputTestcases];
@@ -117,9 +117,9 @@ function populateForm(data) {
 }
 
 function fillDropdown() {
-    const total = parseInt($("num-testcases").value);
-    const samples = parseInt($("num-sample-testcases").value);
-    const selector = $("testcase-selector");
+    const total = parseInt(getId("num-testcases").value);
+    const samples = parseInt(getId("num-sample-testcases").value);
+    const selector = getId("testcase-selector");
     selector.innerHTML = "";
     for (let i = 1; i <= total; i++) {
         let label = i.toString();
@@ -133,9 +133,9 @@ function fillDropdown() {
 }
 
 function onSelectTestcase() {
-    const selector = $(`testcase-selector`);
-    const inputTestcaseEditor = $(`input-testcase-editor`);
-    const outputTestcaseEditor = $(`output-testcase-editor`);
+    const selector = getId(`testcase-selector`);
+    const inputTestcaseEditor = getId(`input-testcase-editor`);
+    const outputTestcaseEditor = getId(`output-testcase-editor`);
 
     const idx = parseInt(selector.value);
     inputTestcaseEditor.value = inputTestcases[idx-1] || "";
@@ -143,9 +143,9 @@ function onSelectTestcase() {
 }
 
 function saveTestcase() {
-    const selector = $(`testcase-selector`);
-    const inputTestcaseEditor = $(`input-testcase-editor`);
-    const outputTestcaseEditor = $(`output-testcase-editor`);
+    const selector = getId(`testcase-selector`);
+    const inputTestcaseEditor = getId(`input-testcase-editor`);
+    const outputTestcaseEditor = getId(`output-testcase-editor`);
 
     const idx = parseInt(selector.value);
     inputTestcases[idx-1] = inputTestcaseEditor.value;
@@ -168,13 +168,13 @@ function loadTestcaseFromFile(event, type) {
 async function submitProblem(event) {
     event.preventDefault();
 
-    const id = $("id").value.trim();
-    const name = $("name").value.trim();
+    const id = getId("id").value.trim();
+    const name = getId("name").value.trim();
     const problemStatement = problemStatementContainer.root.innerHTML;
     const inputFormat = inputFormatContainer.root.innerHTML;
     const outputFormat = outputFormatContainer.root.innerHTML;
-    const numTestcases = parseInt($("num-testcases").value.trim());
-    const numSampleTestcases = parseInt($("num-sample-testcases").value.trim());
+    const numTestcases = parseInt(getId("num-testcases").value.trim());
+    const numSampleTestcases = parseInt(getId("num-sample-testcases").value.trim());
     // const contestID = $("contest-id").value.trim() || null;
     const contestID = null;
 
