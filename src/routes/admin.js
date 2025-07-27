@@ -21,10 +21,10 @@
  */
 
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const { User, Problem } = require('../models.js');
 const authenticateToken = require('../authenticate.js');
-const { createBaseAdminHtml } = require('../pages/admin.js');
 
 /**
  * Router for admin
@@ -58,7 +58,11 @@ async function requireAdmin(req, res, next) {
  * @returns HTML page
  */
 router.get("/", (req, res) => {
-    res.send(createBaseAdminHtml());
+    res.render("admin/admin-base", { 
+        title: "Admin",
+        mainSection: { centered: true },
+        head: `<script src="/admin/load-page.js"></script>`
+    });
 });
 
 /**
@@ -70,7 +74,13 @@ router.get("/", (req, res) => {
  */
 router.get("/:target", (req, res) => {
     const target = req.params.target;
-    res.send(createBaseAdminHtml(`${target}.js`));
+    // res.send(createBaseAdminHtml(`${target}.js`));
+    res.render("admin/admin-base", { 
+        title: "Admin",
+        mainSection: { centered: true },
+        head: `<script src="/admin/load-page.js"></script>`,
+        backArrow: { href: "/admin", text: "Back to Admin" }
+    });
 });
 
 /**
@@ -92,11 +102,11 @@ router.post("/set-admin-status", authenticateToken, requireAdmin, async (req, re
     user.admin = status;
     user.markModified("admin");
     await user.save();
-    res.json({success: true});
+    res.json({ success: true });
 });
 
 /**
- * Fetches admin page. TODO: This shouldn't exist
+ * Fetches admin page
  * @name POST/admin/get-admin-page
  * @function 
  * @memberof module:routes/admin 
@@ -105,7 +115,16 @@ router.post("/set-admin-status", authenticateToken, requireAdmin, async (req, re
  */
 router.post("/get-admin-page", authenticateToken, requireAdmin, (req, res) => {
     const { folder } = req.body;
-    res.sendFile(path.join(__dirname, "..", "templates", "partials", `${folder}.html`));
+    if (fs.existsSync(path.join(__dirname, "..", "views", "admin", `${folder}.ejs`))) {
+        return res.render(`admin/${folder}`, {
+            title: "Admin",
+            mainSection: { centered: true },
+            head: `<script src="${folder}.js" defer></script>`,
+            backArrow: folder != "admin" ? { href: "/admin", text: "Back to Admin" } : undefined
+        });
+    }
+    res.status(400).json({ message: "Page doesn't exist" });
+    // res.sendFile(path.join(__dirname, "..", "templates", "partials", `${folder}.html`));
 });
 
 router.post("/save-problem", authenticateToken, requireAdmin, async (req, res) => {

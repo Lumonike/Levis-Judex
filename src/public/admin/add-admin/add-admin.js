@@ -42,7 +42,6 @@ function setupButtons() {
     const removeButton = document.getElementById('remove-button');
 
     addButton.addEventListener('click', (event) => {
-        console.log("attempting to add admin");
         event.preventDefault();
 
         const email = document.getElementById("user-to-add").value;
@@ -60,3 +59,5 @@ function setupButtons() {
         setAdmin(email, status, token);
     });
 }
+
+document.addEventListener("DOMContentLoaded", setupButtons);

@@ -25,28 +25,25 @@ const toolbarOptions = [
     [{ 'script': 'sub'}, { 'script': 'super' }]
 ];
 
-// work around thing so code doesn't execute before stuff loads
-document.addEventListener('DOMContentLoaded', () => { 
-    const quillCSS = document.createElement('link');
-    quillCSS.rel = 'stylesheet';
-    quillCSS.href = 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css';
-    document.head.appendChild(quillCSS);
-    const quillScript = document.createElement('script');
-    quillScript.src = "https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js";
-    document.head.appendChild(quillScript);
-    quillScript.onload = () => {
-        // ensure all of that is loaded
-        const interval = setInterval(() => {
-            if (getId("problem-statement") && getId("input-format") && getId("output-format")) {
-                clearInterval(interval);
-                window.problemStatementContainer = new Quill('#problem-statement', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
-                window.inputFormatContainer = new Quill('#input-format', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
-                window.outputFormatContainer = new Quill('#output-format', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
-                addSymbolButtons();
-            }
-        }, 100);
-    };
-});
+const quillCSS = document.createElement('link');
+quillCSS.rel = 'stylesheet';
+quillCSS.href = 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css';
+document.head.appendChild(quillCSS);
+const quillScript = document.createElement('script');
+quillScript.src = "https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js";
+document.head.appendChild(quillScript);
+quillScript.onload = () => {
+    // ensure all of that is loaded
+    const interval = setInterval(() => {
+        if (getId("problem-statement") && getId("input-format") && getId("output-format")) {
+            clearInterval(interval);
+            window.problemStatementContainer = new Quill('#problem-statement', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
+            window.inputFormatContainer = new Quill('#input-format', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
+            window.outputFormatContainer = new Quill('#output-format', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
+            addSymbolButtons();
+        }
+    }, 100);
+};
 
 function addSymbolButtons() {
     document.querySelectorAll('.ql-toolbar').forEach(toolbar => {

@@ -25,12 +25,17 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const path = require("path");
+const ejsLayouts = require("express-ejs-layouts");
 
 /**
  * App
  * @memberof module:server
  */
 const app = express();
+
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+app.use(ejsLayouts);
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -42,7 +47,6 @@ mongoose.connect(process.env.MONGO_URI).then(() => console.log("✅ MongoDB Conn
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// Middleware to block .html file requests
 app.use('/', (req, res, next) => {
     if (req.url.endsWith('.html')) {
         return res.redirect(req.url.slice(0, -"index.html".length));
@@ -56,6 +60,10 @@ app.use("/", require("./routes/problems.js"));
 app.use("/", require("./routes/submit.js"));
 app.use("/", require("./routes/contests.js"));
 app.use("/admin", require("./routes/admin.js"));
+
+app.get("/ejstest", (req, res) => {
+    res.render("test", { name: "Bobby" });
+});
 
 // 🚀 **Start the Server**
 app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));

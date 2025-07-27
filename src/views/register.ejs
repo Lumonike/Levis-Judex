@@ -1,0 +1,8 @@
+<h1 class="text-4xl font-bold text-center mb-6 text-white">Register</h1>
+<form id="register-form" class="space-y-4 mb-0">
+    <%- include("partials/input", { id: "name", label: "Full Name", type: "text", placeholder: "Enter your full name" }) %>
+    <%- include("partials/input", { id: "email", label: "Email", type: "email", placeholder: "Enter your email" }) %>
+    <%- include("partials/input", { id: "password", label: "Password", type: "password", placeholder: "Enter your password" }) %>
+    <%- include("partials/button", { id: "register-button", text: "Register" }) %>
+</form>
+<p class="text-white text-center">Already have an account? <a class="hover:underline text-blue-400" href="/login">Login</a></p>

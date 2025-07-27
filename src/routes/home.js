@@ -20,7 +20,6 @@
  * @module routes/home
  */
 
-const { createHomeHtml } = require('../pages/home.js');
 const express = require('express');
 
 /**
@@ -37,5 +36,5 @@ module.exports = router;
  * @returns Html for home page
  */
 router.get('/', (req, res) => {
-    res.send(createHomeHtml());
+    res.render("home", { mainSection: { centered: true } });
 });

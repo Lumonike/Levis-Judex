@@ -23,7 +23,6 @@ const express = require('express');
 const fs = require('fs');
 const path = require("path");
 const { Problem } = require('../models.js');
-const { createProblemHtml, createProblemsHtml } = require("../pages/problems.js");
 
 /**
  * Problem Router
@@ -53,7 +52,15 @@ router.get("/problems/:target", async (req, res) => {
         // redirect if the file doesn't exist
         return res.redirect("/problems");
     }
-    res.send(createProblemHtml(problem));
+    
+    res.render("problem", { 
+        title: problem.name,
+        head: `<script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+               <script type="module" src="/problems/problem-script.js" defer></script>
+               <link rel="stylesheet" href="/problems/problem-style.css"></link>`,
+        backArrow: { href: "/problems", text: "Back to Problem List" },
+        problem 
+    });
 });
 
 /**
@@ -65,7 +72,7 @@ router.get("/problems/:target", async (req, res) => {
  */
 router.get("/problems", async (req, res) => {
     const problems = await Problem.find();
-    res.send(createProblemsHtml(problems));
+    res.render("problems", { problems });
 });
 
 /**

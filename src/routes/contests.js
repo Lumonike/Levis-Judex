@@ -24,8 +24,6 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { Contest } = require('../models.js');
-const { createContestsHtml, createContestHtml, createContestNotStartedHtml, createContestEndedHtml } = require('../pages/contests.js');
-const { createProblemHtml } = require("../pages/problems.js");
 
 /**
  * Contests Router
@@ -43,7 +41,7 @@ module.exports = router;
  */
 router.get("/contests", async (req, res) => {
     const contests = await Contest.find();
-    res.send(createContestsHtml(contests));
+    res.render("contests", { contests });
 });
 
 /**
@@ -68,7 +66,12 @@ router.get("/contests/:target", async (req, res) => {
         // redirect if the file doesn't exist
         return res.redirect("/contests");
     }
-    res.send(createContestHtml(contest));
+    // res.send(createContestHtml(contest));
+    res.render("contest", {
+        title: contest.name,
+        backArrow: { href: "/contests", text: "Back to Contest List" },
+        contest
+    });
 });
 
 /**
@@ -100,10 +103,25 @@ router.get("/contests/:contestID/:problemID", async (req, res) => {
 
     // Check if contest is active
     if (now < contest.startTime) {
-        return res.send(createContestNotStartedHtml(contest));
+        return res.render("contest-unavailable", {
+            title: "Contest Not Started",
+            reason: { title: "Contest Not Started", text: `The contest is scheduled to start at ${contest.startTime.toLocaleString()}` },
+            contestID: contest.id
+        });
     } else if (now >= contest.endTime) {
-        return res.send(createContestEndedHtml(contest));
+        return res.render("contest-unavailable", {
+            title: "Contest Ended",
+            reason: { title: "Contest Ended", text: `The contest ended on ${contest.endTime.toLocaleString()}` },
+            contestID: contest.id
+        });
     } else {
-        return res.send(createProblemHtml(problem));
+        return res.render("problem", { 
+            title: problem.name,
+            head: `<script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+                   <script type="module" src="/problems/problem-script.js" defer></script>
+                   <link rel="stylesheet" href="/problems/problem-style.css"></link>`, 
+            backArrow: { href: `/contests/${problem.contestID}`, text: "Back to Contest" },
+            problem 
+        });
     }
 });

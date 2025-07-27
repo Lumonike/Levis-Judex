@@ -1,0 +1,18 @@
+<%- include("partials/home-button") %>
+
+<h1 class="text-4xl font-bold text-center mb-6 text-white"><%= contest.name %></h1>
+<p class="text-2xl space-y-4 mb-4 text-white  text-center" id="contest-timing"></p>
+<div>
+    <% contest.problems.forEach(problem => { %>
+        <p class="text-2xl space-y-4 mb-4 text-center">
+            <a class="hover:underline text-blue-400" href="/contests/<%= contest.id %>/<%= problem.id %>"><%= problem.id %>. <%= problem.name %></a>
+        </p>
+    <% }) %>
+</div>
+<script type="module">
+    import { apply } from "/contests/update-timing.js";
+    let elem = document.getElementById("contest-timing");
+    const startTime = new Date("<%= contest.startTime.toISOString() %>");
+    const endTime = new Date("<%= contest.endTime.toISOString() %>");
+    setInterval(apply, 100, elem, startTime, endTime); // repeat every 100 ms
+</script>

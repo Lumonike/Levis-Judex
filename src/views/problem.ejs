@@ -1,0 +1,35 @@
+<h2 class="text-3xl font-bold text-center mb-6"><%= problem.name %></h2>
+
+<div id="result"></div>
+<br>
+<div class="space-y-4 bg-gray-700 p-4 rounded-lg">
+    <div>
+        <%- problem.problemStatement %>
+    </div>
+    <h4 class="font-bold">INPUT FORMAT:</h4>
+    <span><%- problem.inputFormat %></span>
+    <h4 class="font-bold">OUTPUT FORMAT:</h4>
+    <span><%- problem.outputFormat %></span>
+
+    <% for (let i = 0; i < problem.numSampleTestcases; i++) { %>
+        <% if (i > 0) { %>
+            <br><br>
+        <% } %>
+        <h4 class="font-bold">SAMPLE INPUT:</h4>
+        <% for (const line of problem.inputTestcases[i].split("\n")) { %>
+            <span><%= line %></span>
+        <% } %>
+        <h4 class="font-bold">SAMPLE OUTPUT:</h4>
+        <% for (const line of problem.outputTestcases[i].split("\n")) { %>
+            <span><%= line %></span>
+        <% } %>
+    <% } %>
+</div>
+<br>
+<p>Write code below:</p>
+<br>
+<div id="container">
+    <pre id="editor"></pre>
+</div><br>
+
+<%- include("partials/button", { id: "submit-button", small: true, text: "Submit" }) %>

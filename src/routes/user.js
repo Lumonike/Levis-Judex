@@ -28,7 +28,6 @@ const crypto = require('crypto');
 const transporter = require("../transporter.js");
 const { User } = require('../models.js');
 const authenticateToken = require('../authenticate.js');
-const { createForgotPasswordHtml, createLoginHtml, createRegisterHtml } = require("../pages/user.js");
 
 /**
  * User router
@@ -38,7 +37,12 @@ const router = express.Router();
 module.exports = router;
 
 router.get("/register", (req, res) => {
-    res.send(createRegisterHtml());
+    res.render("register", {
+        title: "Register",
+        head: `<script type="module" src="/register/register.js" defer=""></script>`,
+        backArrow: { href: "/", text: "Back to home" },
+        mainSection: { width: "max-w-md" }
+    });
 });
 
 /**
@@ -97,34 +101,13 @@ router.post("/register", async (req, res) => {
  */
 router.get("/verify/:token", async (req, res) => {
     const user = await User.findOne({ verificationToken: req.params.token });
-    if (!user) return res.status(400).json({ error: "Invalid token" });
+    if (!user) return res.render("verify", { success: false });
 
     user.verified = true;
     user.verificationToken = null;
     await user.save();
 
-    // res.json({ message: `Email verified! You can now log in. Login: ${process.env.BASE_URL}/login` });
-    // TODO: add to views folder
-    res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Contest Not Started</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-gray-900 text-gray-100">
-            <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
-                <h1 class="text-4xl font-bold text-center mb-6 text-green-400">Email Verified!</h1>
-                <p class="text-center text-2xl mb-6">Welcome to the community. Contact us at codejointcrew@gmail.com for any inquiries.</p>
-                <div class="text-center">
-                    <a href="/login/" class="text-blue-400 hover:underline">← Login</a>
-                </div>
-            </div>
-        </body>
-        </html>
-    `);
+    res.render("verify", { success: true });
 });
 
 /**
@@ -135,7 +118,12 @@ router.get("/verify/:token", async (req, res) => {
  * @returns html page
  */
 router.get("/login", (req, res) => {
-    res.send(createLoginHtml());
+    res.render("login", {
+        title: "Login",
+        head: `<script type="module" src="/login/login.js" defer=""></script>`,
+        backArrow: { href: "/", text: "Back to home" },
+        mainSection: { width: "max-w-md" }
+    });
 });
 
 /**
@@ -171,7 +159,12 @@ router.post("/login", async (req, res) => {
  * @returns Html page
  */
 router.get("/forgot-password", (req, res) => {
-    res.send(createForgotPasswordHtml());
+    res.render("forgot-password", {
+        title: "Reset Password",
+        head: `<script type="module" src="/forgot-password/forgot-password.js" defer=""></script>`,
+        backArrow: { href: "/", text: "Back to home" },
+        mainSection: { width: "max-w-md" }
+    });
 });
 
 /**
@@ -245,7 +238,7 @@ router.get("/reset/:token", async (req, res) => {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Contest Not Started</title>
+            <title>Password Reset</title>
             <script src="https://cdn.tailwindcss.com"></script>
         </head>
         <body class="bg-gray-900 text-gray-100">

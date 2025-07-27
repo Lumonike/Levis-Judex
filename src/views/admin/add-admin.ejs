@@ -1,0 +1,13 @@
+<h1 class="text-4xl font-bold text-center mb-6 text-white">Admin</h1>
+<div class="text-2xl space-y-4 mb-4 text-white font-bold text-center">
+    <div class="space-y-4">
+        <form>
+            <%- include("../partials/input", { id: "user-to-add", label: "Add user", type: "text", placeholder: "Enter user email" }) %>
+            <%- include("../partials/button", { id: "add-button", small: true, text: "Add" }) %>
+        </form>
+        <form>
+            <%- include("../partials/input", { id: "user-to-remove", label: "Remove user", type: "text", placeholder: "Enter user email" }) %>
+            <%- include("../partials/button", { id: "remove-button", small: true, text: "Remove" }) %>
+        </form>
+    </div>
+</div>

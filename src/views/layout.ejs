@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= typeof title != "undefined" ? title : "Levis Judex by CodeJoint" %></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <% if (typeof head != "undefined") {%>
+        <%- head %>
+    <% }%>
+</head>
+<body class="bg-gray-900 text-gray-100">
+    <% if (typeof backArrow != "undefined") { %>
+        <%- include("partials/back-arrow", backArrow) %>
+    <% } %>
+
+    <%# This is such a disaster lmfao %>
+    <div class="<% if (typeof mainSection != "undefined" && typeof mainSection.width != "undefined") { %>
+        <%= mainSection.width %>
+    <% } else { %>
+        <%= "max-w-4xl" %>
+    <% } %> mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl 
+    <% if (typeof mainSection != "undefined" && typeof mainSection.centered != "undefined" && mainSection.centered) { %>
+        <%= "text-center relative" %>
+    <% } %>" id="main-section">
+        <%- body %>
+    </div>
+</body>
+</html>
