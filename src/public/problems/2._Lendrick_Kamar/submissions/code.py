@@ -1,5 +1,5 @@
-N = int(input())
-if N % 2 == 0:
+n = int(input())
+if n % 2 == 0:
     print("yes")
 else:
     print("no")

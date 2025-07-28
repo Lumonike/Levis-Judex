@@ -3,3 +3,13 @@ isolate/
 docs/
 .env
 problem_maker
+
+
+# Ignore all folders inside /problems/
+problems/*/
+
+# Allow files inside /problems/
+!problems/*.*
+!problems/1._Test
+!problems/2._Lendrick_Kamar
+!problems/3._W_or_L
