@@ -15,24 +15,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export function displayStatus(outputArea, results, completed) {
-    if (completed) {
-        if (!results){
-            outputArea.innerHTML = "";
-            const h4 = document.createElement("h4");
-            h4.textContent = "Log in to submit!";
-            h4.style.margin = "0 auto";
-            h4.style.textAlign = "center";
-            outputArea.appendChild(h4);
-            const boxContainer = document.createElement('div');
-            boxContainer.className = 'box-container';
-            outputArea.appendChild(boxContainer);
-            return;
-        }
+export function displayStatus(outputArea, results, completed, err=undefined) {
+    if (err) {
+        outputArea.innerHTML = "";
+        const h4 = document.createElement("h4");
+        h4.textContent = err;
+        h4.style.margin = "0 auto";
+        h4.style.textAlign = "center";
+        outputArea.appendChild(h4);
+        const boxContainer = document.createElement('div');
+        boxContainer.className = 'box-container';
+        outputArea.appendChild(boxContainer);
+        return;
     }
     outputArea.innerHTML = "";
     const h4 = document.createElement("h4");
-    h4.textContent = completed ? "Submitted! View results below:" : "Processing code...";
+    if (completed) {
+        h4.textContent = "Submitted! View results below:";
+    } else if (results.length == 0) {
+        h4.textContent = "Waiting for available grading server...";
+    } else {
+        h4.textContent = "Processing code...";
+    }
     h4.style.margin = "0 auto";
     h4.style.textAlign = "center";
     outputArea.appendChild(h4);

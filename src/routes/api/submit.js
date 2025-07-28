@@ -39,7 +39,7 @@ module.exports = router;
  * @param {string} req.body.code Code written by submitter
  * @param {string} req.body.problemID Problem the code is meant for
  * @param {string | null} req.body.contestID Contest the code is meant for, null is not part of any contest
- * @returns {judge.Result} Results of submitting
+ * @returns {string} .submissionID for submission ID
  */
 router.post("/", authenticateToken, async (req, res) => {
     const { code, problemID, contestID } = req.body;
@@ -50,15 +50,27 @@ router.post("/", authenticateToken, async (req, res) => {
     } else {
         const contest = await Contest.findOne({ id: contestID });
         if (!contest) {
-            return res.sendStatus(400);
+            return res.status(400).json({ error: "Invalid Contest!" });
+        }
+        const now = new Date();
+        console.log(contest.startTime);
+        if (now < contest.startTime) {
+            return res.status(400).json({ error: "Contest hasn't started!" });
+        } else if (now >= contest.endTime) {
+            return res.status(400).json({ error: "Contest has already ended!" });
         }
         problem = contest.problems.find(problem => problem.id == problemID);
     }
     if (!problem) {
-        return res.sendStatus(400);
+        return res.status(400).json({ error: "Invalid Problem!" });
     }
-    const result = await judge.judge(code, problem);
-    res.json({ result });
+
+    const submissionID = require("crypto").randomBytes(32).toString("base64url");
+    judge.queueSubmission(submissionID, code, problem);
+    res.json({ submissionID });
+
+    const result = await judge.judge(submissionID);
+
     let combinedID = problemID;
     if (contestID) {
         combinedID = contestID.concat(":", problemID);
@@ -66,32 +78,27 @@ router.post("/", authenticateToken, async (req, res) => {
     user.results[combinedID] = result;
     user.markModified('results'); // if i don't do this, the data won't save
     user.code[combinedID] = code;
-    user.markModified('code');
+    user.markModified('code'); // same here
     await user.save();
-});
+})
 
 /**
- * Gets available box id (TODO: fix /submit so this doesn't need to exist)
- * @name POST/api/submit/sub-status
+ * Event stream that gets submission results while code is running
+ * @name GET/api/submit/sub-status
  * @function
  * @memberof module:api/submit
- * @returns {Number} Available box ID
+ * @param {string} req.query.submissionID
  */
-router.post("/available", (req, res) => {
-    const result = judge.getBoxID();
-    res.json({ result });
-});
+router.get("/sub-status", (req, res) => {
+    const submissionID = req.query.submissionID;
+    if (!submissionID) {
+        return res.status(400).json("No submission ID provided");
+    }
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
 
-/**
- * Gets submission results while code is running (TODO: this should be way more secure lmao)
- * @name POST/api/submit/sub-status
- * @function
- * @memberof module:api/submit
- * @param {number} req.body.boxID What box to get results so far
- * @returns {judge.Result} Current results of submission so far
- */
-router.post("/sub-status", authenticateToken, (req, res) => {
-    const { boxID } = req.body;
-    const result = judge.getStatus(boxID);
-    res.json({ result });
+    judge.addClient(submissionID, res);
+    res.write(`data: ${JSON.stringify(judge.getResults(submissionID))}\n\n`);
 });

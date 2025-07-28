@@ -28,6 +28,17 @@
  * @memberof module:judge
  */
 
+/**
+ * @typedef {Object} Submission 
+ * @property {string} code The code submitted
+ * @property {models.ProblemModel} problem The problem the code is submitted to
+ * @property {number} boxID What box ID the submission is occurring
+ * @property {Result[]} results List of results
+ * @property {express.Response[] | null} clients Clients to send updates to
+ * @memberof module:judge
+ */
+
+const express = require("express");
 const fs = require("fs");
 const { spawn } = require("child_process");
 const models = require('./models.js')
@@ -70,51 +81,75 @@ const boxPaths = new Array(numBoxes);
 const availableBoxes = new Array(numBoxes).fill(0).map((_, index) => index);
 
 /**
- * @private
- * @type {Result[]}
+ * Get submission by submission id
+ * @name submissions
+ * @type {Object<string, Submission>}
  * @memberof module:judge
  */
-const results = new Array(numBoxes).fill([]);
+const submissions = {};
 
 /**
- * Gets the ID of an available box
- * @name getBoxID
- * @function
+ * Saves a submission to be judged
+ * @name queueSubmission
  * @memberof module:judge
- * @returns {number} Available boxID, -1 if none available
+ * @function
+ * @param {string} submissionID 
+ * @param {string} code 
+ * @param {models.ProblemModel} problem 
  */
-module.exports.getBoxID = () => {
-    if (availableBoxes.length == 0) return -1;
-    results[availableBoxes.at(-1)] = [];
-    return availableBoxes.at(-1);
-};
+module.exports.queueSubmission = (submissionID, code, problem) => {
+    submissions[submissionID] = {
+        code,
+        problem,
+        boxID: -1,
+        results: [],
+        clients: []
+    };
+}
 
 /**
- * Gets the current results of an isolate box
- * @name getStatus
+ * @name getResults
+ * @memberof module:judge 
  * @function
- * @memberof module:judge
- * @param {number} boxID 
- * @returns {Result} Results
+ * @param {string} submissionID Submission ID
+ * @returns {Result[]} The results so far
  */
-module.exports.getStatus = (boxID) => results[boxID];
+module.exports.getResults = submissionID => submissions[submissionID].results;
+
+/**
+ * @name addClient 
+ * @memberof module:judge 
+ * @function
+ * @param {string} submissionID 
+ * @param {express.Response} res 
+ * @returns 
+ */
+module.exports.addClient = (submissionID, res) => submissions[submissionID].clients.push(res); 
 
 /**
  * Judges a code submission to a problem
  * @name judge
  * @function
  * @memberof module:judge
- * @param {string} code 
- * @param {models.ProblemModel} problem 
+ * @param {string} submissionID
  * @returns {Result} Results of the submission
  */
-module.exports.judge = async (code, problem) => {
-    if (availableBoxes.length == 0) {
-        console.error("No available grading server. Frontend should check if grading server is available before submitting!");
-        return ["Error with grading server. Please try submitting again!"];
+module.exports.judge = async (submissionID) => {
+    const submission = submissions[submissionID];
+    if (!submission) {
+        return ["Invalid submission ID!"];
     }
-    const boxID = availableBoxes.pop();
-    results[boxID] = [];
+    await new Promise((resolve) => {
+        const getBoxID = setInterval(() => {
+            if (availableBoxes.length > 0) {
+                submission.boxID = availableBoxes.pop();
+                clearInterval(getBoxID);
+                resolve();
+            }
+        }, 100);
+    });
+    
+    const { boxID, code, problem, results } = submission;
     // code must be less than 100,000 bytes
     if (code.length > 100000) {
         console.error("Code file too large!");
@@ -137,14 +172,26 @@ module.exports.judge = async (code, problem) => {
     }
 
     for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
-        results[boxID].push({ status: `...`, time: "...", mem: "..." });
-        results[boxID][testcase] = await runProgram(boxID, submissionDir, problem, testcase);
+        results.push({ status: `...`, time: "...", mem: "..." });
+        for (const client of submission.clients) {
+            client.write(`data: ${JSON.stringify(submission.results)}\n\n`);
+        }
+        results[testcase] = await runProgram(boxID, submissionDir, problem, testcase);
+        for (const client of submission.clients) {
+            client.write(`data: ${JSON.stringify(submission.results)}\n\n`);
+        }
     }
 
-    // return it back to the stack
-    availableBoxes.push(boxID);
+    const finalResults = [...results];
+    for (const client of submission.clients) {
+        client.write(`event: done\ndata: ${JSON.stringify(finalResults)}\n\n`);
+    }
 
-    return results[boxID];
+    // cleanup
+    availableBoxes.push(boxID);
+    delete submissions[submissionID];
+
+    return finalResults;
 }
 
 /**

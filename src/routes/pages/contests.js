@@ -66,7 +66,7 @@ router.get("/contests/:target", async (req, res) => {
         // redirect if the file doesn't exist
         return res.redirect("/contests");
     }
-    // res.send(createContestHtml(contest));
+    
     res.render("contest", {
         title: contest.name,
         backArrow: { href: "/contests", text: "Back to Contest List" },
