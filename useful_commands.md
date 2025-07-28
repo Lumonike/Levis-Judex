@@ -5,15 +5,36 @@
 ```bash
 systemctl start mongod
 systemctl start isolate
-systemctl start online-judge
 ```
+
+---
+
+## pm2
+
+start server:
+`sudo pm2 start ecosystem.config.js`
+
+stop server:
+`sudo pm2 stop ecosystem.config.js`
+
+reload server:
+`sudo pm2 reload ecosystem.config.js`
+
+check status:
+`sudo pm2 status`
 
 ---
 
 ## MongoDB
 
 db ssh:  
-`mongosh "mongodb://localhost:27017/authdb"`  
+`mongosh "mongodb://localhost:27017/authdb"`
+
+backup db:
+`mongodump --db authdb --out ./backup`
+
+restore from backup:
+`mongorestore --nsInclude="authdb.*" ./backup`
 
 get collections:  
 `show collections`  

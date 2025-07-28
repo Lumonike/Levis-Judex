@@ -27,28 +27,11 @@ BASE_URL=url for your webpage, e.g localhost:3000
 
 7. Edit the home page so the "About" link and contact us banner reflects you (or leave ours there if you don't mind)
 8. Run `sudo npm start` to initialize the server
-9. The test problem can be found in `localhost:3000/problems/1`
-10. [optional] make an online-judge service as shown (note: if npm is not stored in `/usr/bin/`, run `whereis npm` and use that instead):
-11. [optional] if you want to just check out the submission functionality and don't feel like setting up the email verification system, then:  
+9. [optional] if you want to just check out the submission functionality and don't feel like setting up the email verification system, then:  
     a. "sign up" on the frontend,  
     b. run `mongosh "mongodb://localhost:27017/authdb"` and then `db.users.find()`  
     c. get your verificationToken, and go to [webpage]/verify/{verificationToken}/ i.e <http://localhost:3000/verify/39rj84j9/>  
     d. after verifying, login and use the website as normal.  
-
-```
-[Unit]
-Description=Levis Judex Server
-
-[Service]
-Type=simple
-ExecStart=sudo /usr/bin/npm [this directory]/server.js
-Restart=always
-User=root
-WorkingDirectory=[this directory]
-
-[Install]
-WantedBy=multi-user.target
-```
 
 ## How to make a problem
 
@@ -58,6 +41,7 @@ Use the problem creator at `[url]/admin/add-problem/`. To add yourself as an adm
 2. copy and paste the `index.html` and `script.js` files from the `test` folder into that folder
 3. Modify `index.html` to change the problem statement  
 4. For each testcase, **name them in this format**: `[testcaseNumber].in` for input, `[testcaseNumber].out` for output. testcaseNumber is one-indexed -->
+
 ## How to make a contest (we have template contests already to help you)
 
 Coming soon™
@@ -65,6 +49,7 @@ Coming soon™
 1. Add a folder to `contests` folder
 2. Add `index.html` file and `getContestTime.mjs` file.
 3. Add problems in the same format as adding problems, but instead add into contest folder. -->
+
 ## Documentation
 
 - Run `npm run docs` to generate docs.
