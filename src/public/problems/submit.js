@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { server } from '/get-server.js';
 import { displayStatus } from './status.js';
 
 let alreadySubmitting = false;
@@ -56,7 +55,7 @@ export async function submitCode(code, problemID, contestID) {
 
 async function checkGradingServer() {
     try {
-        const response = await fetch(`${server}/available`, {
+        const response = await fetch(`/api/submit/available`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
         });
@@ -78,7 +77,7 @@ async function submit(code, problemID, contestID) {
         //     body: JSON.stringify({ code, problemID })
         // });
 
-        const response = await fetch(`${server}/submit`, {
+        const response = await fetch(`/api/submit`, {
             method: "POST",
             headers: { 
                 "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
@@ -98,7 +97,7 @@ async function submit(code, problemID, contestID) {
 
 async function getStatus(boxID) {
     try {
-        const response = await fetch(`${server}/sub-status`, {
+        const response = await fetch(`/api/submit/sub-status`, {
             method: "POST",
             headers: { 
                 "Authorization": `Bearer ${localStorage.getItem("authToken")}`,

@@ -29,8 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
             password: password
         };
 
-        // Send POST request to the backend login route
-        fetch('/reset-password', {
+        fetch('/api/user/reset-password', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

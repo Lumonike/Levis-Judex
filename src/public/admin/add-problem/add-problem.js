@@ -87,7 +87,7 @@ async function loadProblem() {
     const id = getId("problem-id-search").value.trim();
     if (!id) return alert("Please enter a problem ID.");
     try {
-        const res = await fetch(`/problem-json?id=${id}`);
+        const res = await fetch(`/api/problems/get-problem?id=${id}`);
         if (!res.ok) throw new Error("Problem not found");
         const data = await res.json();
         populateForm(data);
@@ -196,7 +196,7 @@ async function submitProblem(event) {
 
     try {
         const token = localStorage.getItem("authToken");
-        const res = await fetch(`/admin/save-problem`, {
+        const res = await fetch(`/api/admin/save-problem`, {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json",

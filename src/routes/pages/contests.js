@@ -17,17 +17,17 @@
 
 /**
  * Routing for contests
- * @module routes/contests
+ * @module pages/contests
  */
 
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { Contest } = require('../models.js');
+const { Contest } = require('../../models.js');
 
 /**
  * Contests Router
- * @memberof module:routes/contests
+ * @memberof module:pages/contests
  */
 const router = express.Router();
 module.exports = router;
@@ -36,7 +36,7 @@ module.exports = router;
  * Gets HTML file that lists contests
  * @name GET/contests 
  * @function
- * @memberof module:routes/contests
+ * @memberof module:pages/contests
  * @returns HTML file
  */
 router.get("/contests", async (req, res) => {
@@ -48,7 +48,7 @@ router.get("/contests", async (req, res) => {
  * Gets the contest page of a contest
  * @name GET/contests/:target
  * @function
- * @memberof module:routes/contests
+ * @memberof module:pages/contests
  * @param {string} req.params.target What contest to get, sometimes might be a file though so it may also return a file
  * @returns HTML file
  */
@@ -78,7 +78,7 @@ router.get("/contests/:target", async (req, res) => {
  * Gets the HTML for a problem of a contest, will prevent access if contest hasn't started/ended
  * @name GET/contests/:contestID/:problemID
  * @function
- * @memberof module:routes/contests
+ * @memberof module:pages/contests
  * @param {string} req.params.contestID What contest the problem is in
  * @param {string} req.params.problemID What problem it is
  * @returns HTML file

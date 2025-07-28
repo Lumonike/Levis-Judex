@@ -25,13 +25,11 @@ EMAIL_PASS=[enable 2FA on google, next make new app password in security setting
 BASE_URL=url for your webpage, e.g localhost:3000
 ```
 
-7. Create file `src/public/get-server.js` to be the server you're hosting on, i.e
-   `export const server = "http://localhost:3000/"`, or, for us, `export const server = "https://judge.codejoint.org/"` (<- do notice i use https:// for mine as it is configured that way in the nginx)
-8. Edit the home page so the "About" link and contact us banner reflects you (or leave ours there if you don't mind)
-9. Run `sudo npm start` to initialize the server
-10. The test problem can be found in `localhost:3000/problems/1`
-11. [optional] make an online-judge service as shown (note: if npm is not stored in `/usr/bin/`, run `whereis npm` and use that instead):
-12. [optional] if you want to just check out the submission functionality and don't feel like setting up the email verification system, then:  
+7. Edit the home page so the "About" link and contact us banner reflects you (or leave ours there if you don't mind)
+8. Run `sudo npm start` to initialize the server
+9. The test problem can be found in `localhost:3000/problems/1`
+10. [optional] make an online-judge service as shown (note: if npm is not stored in `/usr/bin/`, run `whereis npm` and use that instead):
+11. [optional] if you want to just check out the submission functionality and don't feel like setting up the email verification system, then:  
     a. "sign up" on the frontend,  
     b. run `mongosh "mongodb://localhost:27017/authdb"` and then `db.users.find()`  
     c. get your verificationToken, and go to [webpage]/verify/{verificationToken}/ i.e <http://localhost:3000/verify/39rj84j9/>  

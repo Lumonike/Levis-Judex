@@ -17,39 +17,30 @@
 
 /**
  * User routing
- * @module routes/user
+ * @module api/user
  */
 
 const express = require('express');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const judge = require("../judge.js");
+const judge = require("../../judge.js");
 const crypto = require('crypto');
-const transporter = require("../transporter.js");
-const { User } = require('../models.js');
-const authenticateToken = require('../authenticate.js');
+const transporter = require("../../transporter.js");
+const { User } = require('../../models.js');
+const authenticateToken = require('../../authenticate.js');
 
 /**
- * User router
- * @memberof module:routes/user 
+ * User api router
+ * @memberof module:pages/user 
 */
 const router = express.Router();
 module.exports = router;
 
-router.get("/register", (req, res) => {
-    res.render("register", {
-        title: "Register",
-        head: `<script type="module" src="/register/register.js" defer=""></script>`,
-        backArrow: { href: "/", text: "Back to home" },
-        mainSection: { width: "max-w-md" }
-    });
-});
-
 /**
  * Registers user
- * @name POST/register
+ * @name POST/api/user/register
  * @function
- * @memberof module:routes/user
+ * @memberof module:api/user
  * @param {string} req.body.name Name of user (only used for email)
  * @param {string} req.body.email Email of user
  * @param {string} req.body.password Password of user
@@ -92,45 +83,10 @@ router.post("/register", async (req, res) => {
 });
 
 /**
- * Verifies a user
- * @name GET/verify/:token 
- * @function 
- * @memberof module:routes/user 
- * @param {string} req.params.token Verification token
- * @returns Html that confirms user has been verified
- */
-router.get("/verify/:token", async (req, res) => {
-    const user = await User.findOne({ verificationToken: req.params.token });
-    if (!user) return res.render("verify", { success: false });
-
-    user.verified = true;
-    user.verificationToken = null;
-    await user.save();
-
-    res.render("verify", { success: true });
-});
-
-/**
- * Login page
- * @name GET/login 
- * @function
- * @memberof module:routes/user 
- * @returns html page
- */
-router.get("/login", (req, res) => {
-    res.render("login", {
-        title: "Login",
-        head: `<script type="module" src="/login/login.js" defer=""></script>`,
-        backArrow: { href: "/", text: "Back to home" },
-        mainSection: { width: "max-w-md" }
-    });
-});
-
-/**
  * Logs in user. TODO: refresh tokens or something, also make return less of a mess
- * @name POST/login
+ * @name POST/api/user/login
  * @function
- * @memberof module:routes/user 
+ * @memberof module:api/user 
  * @param {string} req.body.email User's email
  * @param {string} req.body.password User's password
  * @returns {Object.<string, *>} Either an error message (accessed through key "error") or an object with keys "success" (bool) and "token" (string)
@@ -151,27 +107,13 @@ router.post("/login", async (req, res) => {
     res.json({ success: true, token });
 });
 
-/**
- * Sends html page for /forgot-password
- * @name GET/forgot-password 
- * @function 
- * @memberof module:routes/user 
- * @returns Html page
- */
-router.get("/forgot-password", (req, res) => {
-    res.render("forgot-password", {
-        title: "Reset Password",
-        head: `<script type="module" src="/forgot-password/forgot-password.js" defer=""></script>`,
-        backArrow: { href: "/", text: "Back to home" },
-        mainSection: { width: "max-w-md" }
-    });
-});
+
 
 /**
  * Prepares to reset user's password. TODO: This system absolutely sucks
- * @name POST/reset-password 
+ * @name POST/api/user/reset-password 
  * @function 
- * @memberof module:routes/user 
+ * @memberof module:api/user 
  * @param {string} req.body.email User's email
  * @param {string} req.body.password New password that the user wants
  */
@@ -213,52 +155,13 @@ router.post("/reset-password", async (req, res) => {
     }, 1000*60);
 });
 
-/**
- * Resets the user's password. TODO: fix this system lmao
- * @name GET/reset/:token
- * @function 
- * @memberof module:routes/user 
- * @param {string} req.params.token  User's reset token
- * @returns Html confirming password has been reset
- */
-router.get("/reset/:token", async (req, res) => {
-    const user = await User.findOne({ resetToken: req.params.token });
-    if (!user) return res.status(400).json({ error: "Invalid token" });
 
-    user.password = user.possibleNewPassword;
-    user.resetToken = null;
-    user.possibleNewPassword = null;
-    await user.save();
-
-    // res.json({ message: `Email verified! You can now log in. Login: ${process.env.BASE_URL}/login` });
-    // TODO: replace in views
-    res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Password Reset</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-gray-900 text-gray-100">
-            <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
-                <h1 class="text-4xl font-bold text-center mb-6 text-green-400">Password Reset!</h1>
-                <p class="text-center text-2xl mb-6">Password successfully reset. Contact us at codejointcrew@gmail.com for any inquiries.</p>
-                <div class="text-center">
-                    <a href="/login/" class="text-blue-400 hover:underline">← Login</a>
-                </div>
-            </div>
-        </body>
-        </html>
-    `);
-});
 
 /**
  * Gets the code the user has submitted for a problem
- * @name POST/get-code 
+ * @name POST/api/user/get-code 
  * @function
- * @memberof module:routes/user
+ * @memberof module:api/user
  * @param {string} req.body.problemID Problem the code was from
  * @param {string | null} req.body.contestID Contest the problem was from, null if not part of contest
  * @returns {Object.<string, string>} The code written, accessed through key "result"
@@ -280,9 +183,9 @@ router.post("/get-code", authenticateToken, async (req, res) => {
 
 /**
  * Gets the results of the code the user has submitted
- * @name POST/get-result 
+ * @name POST/api/user/get-result 
  * @function 
- * @memberof module:routes/user 
+ * @memberof module:api/user 
  * @param {string} req.body.problemID Problem the code was from
  * @param {string | null} req.body.contestID Contest the problem was from, null if not part of contest
  * @returns {Object.<string, judge.Result[]>} The results, accessed through key "result"

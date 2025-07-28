@@ -15,11 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { server } from '/get-server.js';
 import { displayStatus } from './status.js'
 
 export async function fetchLastCode(problemID, contestID, editor) {
-    fetch(`${server}/get-code`, {
+    fetch(`/api/user/get-code`, {
         method: "POST",
         headers: { 
             "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
@@ -36,7 +35,7 @@ export async function fetchLastCode(problemID, contestID, editor) {
 }
 
 export async function displayPastResults(problemID, contestID) {
-    fetch(`${server}/get-result`, {
+    fetch(`/api/user/get-result`, {
         method: "POST",
         headers: { 
             "Authorization": `Bearer ${localStorage.getItem("authToken")}`,

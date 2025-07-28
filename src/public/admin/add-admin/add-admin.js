@@ -16,7 +16,7 @@
  */
 
 function setAdmin(email, status, token) {
-    fetch('/admin/set-admin-status', {
+    fetch('/api/admin/set-admin-status', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

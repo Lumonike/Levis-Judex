@@ -16,17 +16,17 @@
  */
 
 /**
- * @module routes/problems
+ * @module pages/problems
  */
 
 const express = require('express');
 const fs = require('fs');
 const path = require("path");
-const { Problem } = require('../models.js');
+const { Problem } = require('../../models.js');
 
 /**
  * Problem Router
- * @memberof problem-routes
+ * @memberof module:pages/problems
  */
 const router = express.Router();
 module.exports = router;
@@ -35,7 +35,7 @@ module.exports = router;
  * Sends HTML of a problem
  * @name GET/problems/:target
  * @function
- * @memberof module:routes/problems
+ * @memberof module:pages/problems
  * @returns HTML file
  */
 router.get("/problems/:target", async (req, res) => {
@@ -67,26 +67,10 @@ router.get("/problems/:target", async (req, res) => {
  * Sends HTML of the list of problems
  * @name GET/problems
  * @function
- * @memberof module:routes/problems
+ * @memberof module:pages/problems
  * @returns HTML file
  */
 router.get("/problems", async (req, res) => {
     const problems = await Problem.find();
     res.render("problems", { problems });
-});
-
-/**
- * Returns json of problem
- * @function
- * @memberof module:routes/problems
- * @param {string} req.query.id problem ID
- * @returns {ProblemModel} Problem as JSON, or error message
- */
-router.get("/problem-json", async (req, res) => {
-    const id = req.query.id;
-    const problem = await Problem.findOne({ id: id });
-    if (problem == null) {
-        return res.status(400).json({ message: "Invalid problem ID" });
-    }
-    res.json(problem);
 });

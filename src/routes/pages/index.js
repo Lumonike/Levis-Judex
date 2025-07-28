@@ -16,25 +16,22 @@
  */
 
 /**
- * Home page routing
- * @module routes/home
+ * Web page rendering
+ * @module pages
  */
 
 const express = require('express');
 
 /**
- * Router for home page
- * @memberof module:routes/home
+ * Pages router
+ * @name router
+ * @memberof module:pages
  */
 const router = express.Router();
 module.exports = router;
 
-/**
- * @name GET/
- * @function 
- * @memberof module:routes/home
- * @returns Html for home page
- */
-router.get('/', (req, res) => {
-    res.render("home", { mainSection: { centered: true } });
-});
+router.use("/", require("./admin.js"));
+router.use("/", require("./contests.js"));
+router.use("/", require("./home.js"));
+router.use("/", require("./problems.js"));
+router.use("/", require("./user.js"));

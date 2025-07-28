@@ -16,27 +16,32 @@
  */
 
 /**
- * @module routes/submit
+ * @module api/submit
  */
 
 const express = require('express');
-const authenticateToken = require('../authenticate.js')
-const { User, Problem, Contest } = require('../models.js');
-const judge = require('../judge.js');
+const authenticateToken = require('../../authenticate.js')
+const { User, Problem, Contest } = require('../../models.js');
+const judge = require('../../judge.js');
+
+/**
+ * Submission Router
+ * @memberof module:api/submit
+ */
 const router = express.Router();
 module.exports = router;
 
 /**
  * Submits code, requires login
- * @name POST/submit
+ * @name POST/api/submit/
  * @function
- * @memberof module:routes/submit
+ * @memberof module:api/submit
  * @param {string} req.body.code Code written by submitter
  * @param {string} req.body.problemID Problem the code is meant for
  * @param {string | null} req.body.contestID Contest the code is meant for, null is not part of any contest
  * @returns {judge.Result} Results of submitting
  */
-router.post("/submit", authenticateToken, async (req, res) => {
+router.post("/", authenticateToken, async (req, res) => {
     const { code, problemID, contestID } = req.body;
     const user = await User.findById(req.user.id);
     let problem = null;
@@ -65,17 +70,23 @@ router.post("/submit", authenticateToken, async (req, res) => {
     await user.save();
 });
 
-// TODO: fix /submit so that this doesn't need to exist
+/**
+ * Gets available box id (TODO: fix /submit so this doesn't need to exist)
+ * @name POST/api/submit/sub-status
+ * @function
+ * @memberof module:api/submit
+ * @returns {Number} Available box ID
+ */
 router.post("/available", (req, res) => {
     const result = judge.getBoxID();
     res.json({ result });
 });
 
 /**
- * Gets submission results while code is running (TODO: should be GET request lol)
- * @name POST/sub-status
+ * Gets submission results while code is running (TODO: this should be way more secure lmao)
+ * @name POST/api/submit/sub-status
  * @function
- * @memberof module:routes/submit
+ * @memberof module:api/submit
  * @param {number} req.body.boxID What box to get results so far
  * @returns {judge.Result} Current results of submission so far
  */

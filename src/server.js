@@ -25,7 +25,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const path = require("path");
-const ejsLayouts = require("express-ejs-layouts");
+const expressLayouts = require("express-ejs-layouts");
 
 /**
  * App
@@ -35,13 +35,13 @@ const app = express();
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use(ejsLayouts);
+app.use(expressLayouts);
 
 app.use(cors());
 app.use(bodyParser.json());
 
 mongoose.connect(process.env.MONGO_URI).then(() => console.log("✅ MongoDB Connected"))
-    .catch(err => console.error("❌ MongoDB Connection Error:", err));
+    .catch(err => console.error("MongoDB Connection Error:", err));
 
 // require('./PORTING.js')();
 
@@ -54,17 +54,8 @@ app.use('/', (req, res, next) => {
     next();
 });
 
-app.use("/", require("./routes/home.js"));
-app.use("/", require("./routes/user.js"));
-app.use("/", require("./routes/problems.js"));
-app.use("/", require("./routes/submit.js"));
-app.use("/", require("./routes/contests.js"));
-app.use("/admin", require("./routes/admin.js"));
+app.use("/", require("./routes/pages"));
+app.use("/api", require("./routes/api"));
 
-app.get("/ejstest", (req, res) => {
-    res.render("test", { name: "Bobby" });
-});
-
-// 🚀 **Start the Server**
 app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
 

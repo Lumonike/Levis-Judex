@@ -17,7 +17,6 @@
 
 document.addEventListener('DOMContentLoaded', function () {
     const loginForm = document.getElementById('login-form');
-    const loginButton = document.getElementById('login-button');
 
     loginForm.addEventListener('submit', function (event) {
         event.preventDefault();  // Prevent form submission
@@ -30,8 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
             password: password,
         };
 
-        // Send POST request to the backend login route
-        fetch('/login', {
+        fetch('/api/user/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -41,13 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Assuming the token is in data.token
                 const token = data.token;
-
-                // Store token in localStorage
                 localStorage.setItem('authToken', token);
-
-                // Redirect to dashboard on success
                 window.location.href = '/';
             } else {
                 alert('Invalid credentials. Please try again.');

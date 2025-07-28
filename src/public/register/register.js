@@ -32,8 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
             password: password,
         };
 
-        // Send POST request to the backend register route
-        fetch('/register', {
+        fetch('/api/user/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
