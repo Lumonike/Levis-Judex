@@ -37,10 +37,12 @@ module.exports = router;
  * @returns HTML page
  */
 router.get("/admin", (req, res) => {
+    console.log("HII");
     res.render("admin/admin-base", { 
         title: "Admin",
         mainSection: { centered: true },
-        head: `<script src="/admin/load-page.js"></script>`
+        head: `<script src="/admin/load-page.js"></script>`,
+        backArrow: { href: "/", text: "Back to Home" }
     });
 });
 
@@ -51,7 +53,8 @@ router.get("/admin", (req, res) => {
  * @memberof module:pages/admin
  * @returns HTML page
  */
-router.get("admin/:target", (req, res) => {
+router.get("/admin/:target", (req, res) => {
+    console.log("HII");
     res.render("admin/admin-base", { 
         title: "Admin",
         mainSection: { centered: true },

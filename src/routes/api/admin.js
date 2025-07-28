@@ -82,12 +82,12 @@ router.post("/set-admin-status", authenticateToken, requireAdmin, async (req, re
  */
 router.post("/get-admin-page", authenticateToken, requireAdmin, (req, res) => {
     const { folder } = req.body;
-    if (fs.existsSync(path.join(__dirname, "..", "views", "admin", `${folder}.ejs`))) {
+    if (fs.existsSync(path.join(__dirname, "..", "..", "views", "admin", `${folder}.ejs`))) {
         return res.render(`admin/${folder}`, {
             title: "Admin",
             mainSection: { centered: true },
             head: `<script src="${folder}.js" defer></script>`,
-            backArrow: folder != "admin" ? { href: "/admin", text: "Back to Admin" } : undefined
+            backArrow: folder != "admin" ? { href: "/admin", text: "Back to Admin" } : { href: "/", text: "Back to Home" }
         });
     }
     res.status(400).json({ message: "Page doesn't exist" });
