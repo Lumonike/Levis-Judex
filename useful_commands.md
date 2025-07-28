@@ -34,7 +34,7 @@ backup db:
 `mongodump --db authdb --out ./backup`
 
 restore from backup:
-`mongorestore --nsInclude="authdb.*" ./backup`
+`mongorestore --nsInclude="authdb.*" --drop ./backup`
 
 get collections:  
 `show collections`  
