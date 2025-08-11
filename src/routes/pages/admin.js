@@ -37,7 +37,6 @@ module.exports = router;
  * @returns HTML page
  */
 router.get("/admin", (req, res) => {
-    console.log("HII");
     res.render("admin/admin-base", { 
         title: "Admin",
         mainSection: { centered: true },
@@ -54,7 +53,6 @@ router.get("/admin", (req, res) => {
  * @returns HTML page
  */
 router.get("/admin/:target", (req, res) => {
-    console.log("HII");
     res.render("admin/admin-base", { 
         title: "Admin",
         mainSection: { centered: true },
