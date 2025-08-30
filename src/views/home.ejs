@@ -23,11 +23,28 @@
 </p>
 
 <script>
-    function loginStatus(){
+    async function loginStatus(){
         const authTokenContainer = document.getElementById('auth-token-container');
 
+        let isLoggedIn = false;
         const authToken = localStorage.getItem('authToken');
         if (authToken) {
+            const response = await fetch("/api/user/valid-token", {
+                method: "POST",
+                headers: { 
+                    "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
+                    "Content-Type": "application/json"
+                }
+            });
+            console.log(response);
+            if (response.ok) {
+                isLoggedIn = true;
+            } else {
+                localStorage.removeItem(authToken);
+            }
+        }
+
+        if (isLoggedIn) {
             authTokenContainer.textContent = `Logged In`;
         }
         else {

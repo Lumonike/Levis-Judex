@@ -204,3 +204,14 @@ router.post("/get-result", authenticateToken, async (req, res) => {
     const result = user.results[combinedID]
     res.json({ result });
 });
+
+/**
+ * Checks if a token is valid
+ * @name POST/api/user/valid-token
+ * @function
+ * @memberof module:api/user
+ * @returns status code
+ */
+router.post("/valid-token", authenticateToken, async (req, res) => {
+    return res.status(200).json({ success: "Token is valid" });
+});
