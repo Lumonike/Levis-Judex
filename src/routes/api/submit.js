@@ -20,6 +20,8 @@
  */
 
 const express = require('express');
+const { rateLimit } = require('express-rate-limit');
+const { slowDown } = require('express-slow-down');
 const authenticateToken = require('../../authenticate.js')
 const { User, Problem, Contest } = require('../../models.js');
 const judge = require('../../judge.js');
@@ -31,6 +33,24 @@ const judge = require('../../judge.js');
 const router = express.Router();
 module.exports = router;
 
+// 60 submissions per hour
+const submissionLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 60,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: "Too many submissions! Rate limit exceeded." },
+    keyGenerator: (req) => req.user.id,
+});
+
+const submissionSlowdown = slowDown({
+    windowMs: 60 * 1000,
+    delayAfter: 5,
+    delayMs: (hits) => (hits - delayAfter) * 2000,
+    maxDelayMs: 15000,
+    keyGenerator: (req) => req.user.id,
+});
+
 /**
  * Submits code, requires login
  * @name POST/api/submit/
@@ -41,7 +61,7 @@ module.exports = router;
  * @param {string | null} req.body.contestID Contest the code is meant for, null is not part of any contest
  * @returns {string} .submissionID for submission ID
  */
-router.post("/", authenticateToken, async (req, res) => {
+router.post("/", authenticateToken, submissionSlowdown, submissionLimiter, async (req, res) => {
     const { code, problemID, contestID } = req.body;
     const user = await User.findById(req.user.id);
     let problem = null;

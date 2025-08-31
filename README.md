@@ -23,6 +23,7 @@ MONGO_URI=mongodb://localhost:27017/authdb
 EMAIL_USER=(make your own email. This email is to send to other's email to verify. we use noreplycodejoint@gmail.com)
 EMAIL_PASS=[enable 2FA on google, next make new app password in security settings, use that here. It should look like "aaaa bbbb cccc dddd"]
 BASE_URL=url for your webpage, e.g localhost:3000
+TRUST_PROXY=number of proxies you're using. you can uncommment out the /ip endpoint in server.js to test it
 ```
 
 7. Edit the home page so the "About" link and contact us banner reflects you (or leave ours there if you don't mind)

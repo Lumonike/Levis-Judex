@@ -33,6 +33,21 @@ const expressLayouts = require("express-ejs-layouts");
  */
 const app = express();
 
+function parseTrustProxy(value) {
+    if (value === undefined) return true;
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    const n = Number(value);
+    if (!isNaN(n) && n >= 0) return n;
+    return true;
+}
+
+const trustProxy = parseTrustProxy(process.env.TRUST_PROXY);
+app.set('trust proxy', trustProxy);
+
+// used to test trust proxy
+// app.get('/ip', (request, response) => response.send(request.ip));
+
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);

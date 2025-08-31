@@ -21,6 +21,8 @@
  */
 
 const express = require('express');
+const { rateLimit } = require('express-rate-limit');
+const { appendFile } = require('fs');
 
 /**
  * API router
@@ -29,6 +31,16 @@ const express = require('express');
  */
 const router = express.Router();
 module.exports = router;
+
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 1000,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: "Too many api requests! Rate limit exceeded." }
+});
+
+router.use(apiLimiter);
 
 router.use("/admin", require("./admin.js"));
 router.use("/problems", require("./problems.js"));

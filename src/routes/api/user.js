@@ -21,6 +21,7 @@
  */
 
 const express = require('express');
+const { rateLimit } = require('express-rate-limit');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const judge = require("../../judge.js");
@@ -28,6 +29,8 @@ const crypto = require('crypto');
 const transporter = require("../../transporter.js");
 const { User } = require('../../models.js');
 const authenticateToken = require('../../authenticate.js');
+const validator = require("validator");
+const disposableDomains = require("disposable-email-domains");
 
 /**
  * User api router
@@ -35,6 +38,14 @@ const authenticateToken = require('../../authenticate.js');
 */
 const router = express.Router();
 module.exports = router;
+
+const registerLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 3,
+    message: { error: "Too many registrations from this IP. Rate limit exceeded" },
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+});
 
 /**
  * Registers user
@@ -46,13 +57,22 @@ module.exports = router;
  * @param {string} req.body.password Password of user
  * @returns {Object} Use key "message" to get message, either gives an error or asks users to verify
  */
-router.post("/register", async (req, res) => {
+router.post("/register", registerLimiter, async (req, res) => {
     const { name, email, password } = req.body;
-
+    
     // Check if the email already exists in the database
     const existingUser = await User.findOne({ email });
     if (existingUser) {
         return res.status(400).json({ error: "Email is already registered." });
+    }
+    
+    if (!validator.isEmail(email)) {
+        return res.status(400).json({ error: "Invalid email address." });
+    }
+
+    const emailDomain = email.split('@')[1].toLowerCase();
+    if (disposableDomains.includes(emailDomain)) {
+        return res.status(400).json({ error: "Disposable email address." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -82,6 +102,14 @@ router.post("/register", async (req, res) => {
     }, 1000*60);
 });
 
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: "Too many login requests! Rate limit exceeded" },
+});
+
 /**
  * Logs in user. TODO: refresh tokens or something, also make return less of a mess
  * @name POST/api/user/login
@@ -91,7 +119,7 @@ router.post("/register", async (req, res) => {
  * @param {string} req.body.password User's password
  * @returns {Object.<string, *>} Either an error message (accessed through key "error") or an object with keys "success" (bool) and "token" (string)
  */
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body;
     console.log("Login attempt:", email); // Debugging
 
@@ -107,7 +135,13 @@ router.post("/login", async (req, res) => {
     res.json({ success: true, token });
 });
 
-
+const resetPasswordLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 10,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: "Too many password reset attempts! Rate limit exceeded." },
+});
 
 /**
  * Prepares to reset user's password. TODO: This system absolutely sucks
@@ -117,7 +151,7 @@ router.post("/login", async (req, res) => {
  * @param {string} req.body.email User's email
  * @param {string} req.body.password New password that the user wants
  */
-router.post("/reset-password", async (req, res) => {
+router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
     const { email, password } = req.body;
 
     // Check if the email already exists in the database

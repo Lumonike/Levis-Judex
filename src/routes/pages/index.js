@@ -21,6 +21,7 @@
  */
 
 const express = require('express');
+const { rateLimit } = require('express-rate-limit');
 
 /**
  * Pages router
@@ -29,6 +30,16 @@ const express = require('express');
  */
 const router = express.Router();
 module.exports = router;
+
+const pageLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5000,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: "Too many page requests! Rate limit exceeded." },
+});
+
+router.use(pageLimiter);
 
 router.use("/", require("./admin.js"));
 router.use("/", require("./contests.js"));
