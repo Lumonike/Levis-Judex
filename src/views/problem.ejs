@@ -1,33 +1,47 @@
-<h2 class="text-3xl font-bold text-center mb-6"><%= problem.name %></h2>
+<h2 class="text-3xl font-bold text-center mb-6 text-white"><%= problem.name %></h2>
 
 <div id="result"></div>
 <br>
-<div class="space-y-4 bg-gray-700 p-4 rounded-lg">
-    <div>
+<div class="space-y-6 outline p-6 rounded-lg">
+    <div class="text-gray-100">
         <%- problem.problemStatement %>
     </div>
-    <h4 class="font-bold">INPUT FORMAT:</h4>
-    <span><%- problem.inputFormat %></span>
-    <h4 class="font-bold">OUTPUT FORMAT:</h4>
-    <span><%- problem.outputFormat %></span>
+    
+    <div>
+        <h4 class="font-bold text-white text-lg mb-2">INPUT FORMAT:</h4>
+        <div class="text-gray-200"><%- problem.inputFormat %></div>
+    </div>
+    
+    <div>
+        <h4 class="font-bold text-white text-lg mb-2">OUTPUT FORMAT:</h4>
+        <div class="text-gray-200"><%- problem.outputFormat %></div>
+    </div>
 
     <% for (let i = 0; i < problem.numSampleTestcases; i++) { %>
         <% if (i > 0) { %>
             <br><br>
         <% } %>
-        <h4 class="font-bold">SAMPLE INPUT:</h4>
-        <% for (const line of problem.inputTestcases[i].split("\n")) { %>
-            <span><%= line %></span>
-        <% } %>
-        <h4 class="font-bold">SAMPLE OUTPUT:</h4>
-        <% for (const line of problem.outputTestcases[i].split("\n")) { %>
-            <span><%= line %></span>
-        <% } %>
+        <div>
+            <h4 class="font-bold text-white text-lg mb-2">SAMPLE INPUT:</h4>
+            <div class="font-mono text-gray-200">
+                <% for (const line of problem.inputTestcases[i].split("\n")) { %>
+                    <div><%= line %></div>
+                <% } %>
+            </div>
+        </div>
+        
+        <div>
+            <h4 class="font-bold text-white text-lg mb-2">SAMPLE OUTPUT:</h4>
+            <div class="font-mono text-gray-200">
+                <% for (const line of problem.outputTestcases[i].split("\n")) { %>
+                    <div><%= line %></div>
+                <% } %>
+            </div>
+        </div>
     <% } %>
 </div>
 <br>
-<p>Write code below:</p>
-<br>
+<p class="text-white text-lg mb-4">Write code below:</p>
 <div id="container">
     <pre id="editor"></pre>
 </div><br>

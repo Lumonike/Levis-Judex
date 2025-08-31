@@ -1,9 +1,28 @@
-<% if (success) { %>
-    <h1 class="text-4xl font-bold text-center mb-6 text-green-400">Email Verified!</h1>
-    <p class="text-center text-2xl mb-6">Welcome to the community. Contact us at codejointcrew@gmail.com for any inquiries.</p>
-    <%- include("partials/back-arrow", { href: "/login", text: "Login", centered: true, noPadding: true}) %>
-<% } else { %>
-    <h1 class="text-4xl font-bold text-center mb-6 text-red-400">Invalid token!</h1>
-    <p class="text-center text-2xl mb-6">Please try to register again.</p>
-    <%- include("partials/back-arrow", { href: "/register", text: "Register", centered: true, noPadding: true}) %>
-<% } %>
+<div class="min-h-screen flex items-center justify-center">
+    <div class="text-center max-w-md mx-auto">
+        <% if (success) { %>
+            <div class="mb-8">
+                <svg class="w-24 h-24 mx-auto mb-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h1 class="text-4xl font-bold mb-4 text-green-400">Email Verified!</h1>
+                <p class="text-xl text-gray-300 leading-relaxed mb-2">Welcome to the community.</p>
+                <p class="text-sm text-gray-400">Contact us at codejointcrew@gmail.com for any inquiries.</p>
+            </div>
+            <div class="pt-6">
+                <%- include("partials/back-arrow", { href: "/login", text: "Login", centered: true, noPadding: true}) %>
+            </div>
+        <% } else { %>
+            <div class="mb-8">
+                <svg class="w-24 h-24 mx-auto mb-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h1 class="text-4xl font-bold mb-4 text-red-400">Invalid Token!</h1>
+                <p class="text-xl text-gray-300 leading-relaxed">Please try to register again.</p>
+            </div>
+            <div class="pt-6">
+                <%- include("partials/back-arrow", { href: "/register", text: "Register", centered: true, noPadding: true}) %>
+            </div>
+        <% } %>
+    </div>
+</div>

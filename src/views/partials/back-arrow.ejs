@@ -1,3 +1,8 @@
-<p class="<%= typeof noPadding != "undefined" && noPadding ? "" : "p-4" %> <%= typeof centered != "undefined" && centered ? "text-center" : "" %>">
-    <a class="hover:underline text-blue-400" href="<%= href %>">← <%= text %></a>
-</p>
+<div class="fixed top-0 left-0 <%= typeof noPadding != "undefined" && noPadding ? "" : "p-4" %> <%= typeof centered != "undefined" && centered ? "text-center" : "" %>">
+    <a class="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors duration-200 font-semibold group" href="<%= href %>">
+        <svg class="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>
+        <%= text %>
+    </a>
+</div>

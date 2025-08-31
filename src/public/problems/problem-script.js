@@ -22,7 +22,6 @@ const editor = ace.edit("editor");
 editor.setTheme('ace/theme/monokai');
 editor.session.setMode('ace/mode/python');
 
-
 const url = window.location.pathname.split("/");
 if (url.at(-1) == "") {
     url.pop();

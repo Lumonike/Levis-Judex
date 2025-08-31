@@ -1,26 +1,64 @@
-<div id="auth-token-container" class="absolute top-0 right-0 mt-4 mr-4 text-white text-xl font-bold"></div>
+<div id="auth-token-container" class="absolute top-0 right-0 mt-6 mr-6 text-white text-lg font-semibold bg-gray-700 px-4 py-2 rounded-full border border-gray-600"></div>
 
-<div class="absolute top-0 left-0 mt-4 ml-4 space-y-2">
-    <a href="/login" class="text-2xl font-bold hover:underline text-green-400">Login</a>
-    <span class="text-2xl font-bold" style="color:white; user-select: none;"> |  </span>
-    <a href="/register" class="text-2xl font-bold hover:underline text-green-400">Register</a>
-    <span class="text-2xl font-bold" style="color:white; user-select: none;"> |  </span>
-    <a onclick="localStorage.removeItem('authToken');loginStatus()" class="text-2xl font-bold hover:underline text-green-400">Logout</a>
+<div class="absolute top-0 left-0 mt-6 ml-6 flex items-center space-x-1">
+    <a href="/login" class="text-lg font-semibold hover:text-green-300 text-green-400 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-gray-700">Login</a>
+    <span class="text-gray-500">|</span>
+    <a href="/register" class="text-lg font-semibold hover:text-green-300 text-green-400 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-gray-700">Register</a>
+    <span class="text-gray-500">|</span>
+    <a onclick="localStorage.removeItem('authToken');loginStatus()" class="text-lg font-semibold hover:text-green-300 text-green-400 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer">Logout</a>
 </div>
 
-<!-- Main Title -->
-<h1 class="text-5xl font-bold text-center mb-6 text-white">Home</h1>
-<p class="font-bold text-center red text-sm" style="margin-bottom: -4px">
-    Note: currently the only language supported is Python    
-</p>
+<div class="text-center max-w-4xl mx-auto">
+    <h1 class="text-6xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-blue-600 bg-clip-text text-transparent">
+        Home
+    </h1>
+    
+    <div class="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 mb-8 inline-block">
+        <p class="text-yellow-300 text-sm font-medium">
+            Note: Currently only Python is supported
+        </p>
+    </div>
 
-<br>
-<a href="/problems" class="text-4xl font-bold text-center mb-6 hover:underline text-blue-400">Problems List</a><br>
-<a href="/contests" class="text-4xl font-bold text-center mb-6 hover:underline text-blue-400">Contests</a><br><br>
-<a href="https://codejoint.org/" class="text-2xl font-bold text-center mb-6 hover:underline text-blue-400">About</a><br><br>
-<p class="font-bold text-center white text-sm" style="margin-bottom: -4px">
-    Contact us (for support, to delete your account, feedback/suggestions, or out of curiousity) at codejointcrew@gmail.com
-</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 hover:from-blue-500 hover:to-blue-600 transition-all duration-300 transform hover:scale-105">
+            <a href="/problems" class="block text-white">
+                <div class="flex items-center justify-center mb-3">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h2 class="text-3xl font-bold">Problems</h2>
+                </div>
+                <p class="text-blue-100 mt-2">Solve coding challenges</p>
+            </a>
+        </div>
+
+        <div class="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 hover:from-purple-500 hover:to-purple-600 transition-all duration-300 transform hover:scale-105">
+            <a href="/contests" class="block text-white">
+                <div class="flex items-center justify-center mb-3">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 16 16">
+                        <rect height="3.5" width="6.5" y="10.75" x="4.75"/>
+                        <path d="m8 8.75v2m-3.25-9c-1.5 0-3 .5-3 2.25s1.5 2.25 3 2.25m6.5-4.5c1.5 0 3 .5 3 2.25s-1.5 2.25-3 2.25m-6.5-4.5h6.5v3.5c0 1.5-1 3-3.25 3s-3.25-1.5-3.25-3z"/>
+                    </svg>
+                    <h2 class="text-3xl font-bold">Contests</h2>
+                </div>
+                <p class="text-purple-100 mt-2">Compete with others</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="space-y-4">
+        <a href="https://codejoint.org/" class="inline-block text-blue-400 hover:text-blue-300 transition-colors duration-200 text-lg font-semibold">
+            About Code Joint →
+        </a>
+        
+        <div class="bg-gray-700 bg-opacity-50 rounded-lg p-4 max-w-2xl mx-auto">
+            <p class="text-gray-300 text-sm">
+                Need support, want to delete your account, have feedback, or just curious? 
+                <br>Reach out to us at <a class="text-blue-400 font-medium" href="mailto:codejointcrew@gmail.com" target="_blank">codejointcrew@gmail.com</span>
+            </p>
+        </div>
+    </div>
+</div>
 
 <script>
     async function loginStatus(){
@@ -40,15 +78,17 @@
             if (response.ok) {
                 isLoggedIn = true;
             } else {
-                localStorage.removeItem(authToken);
+                localStorage.removeItem('authToken');
             }
         }
 
         if (isLoggedIn) {
             authTokenContainer.textContent = `Logged In`;
+            authTokenContainer.classList.add('bg-green-700', 'border-green-600');
         }
         else {
             authTokenContainer.textContent = `Logged Out`;
+            authTokenContainer.classList.add('bg-gray-600', 'border-gray-500');
         }
     }
     loginStatus();

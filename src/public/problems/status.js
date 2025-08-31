@@ -22,103 +22,131 @@ export function displayStatus(outputArea, results, completed, err=undefined) {
         h4.textContent = err;
         h4.style.margin = "0 auto";
         h4.style.textAlign = "center";
+        h4.style.color = "#EF4444";
+        h4.style.fontSize = "18px";
+        h4.style.fontWeight = "600";
         outputArea.appendChild(h4);
         const boxContainer = document.createElement('div');
         boxContainer.className = 'box-container';
         outputArea.appendChild(boxContainer);
         return;
     }
+
     outputArea.innerHTML = "";
+    
     const h4 = document.createElement("h4");
     if (completed) {
         h4.textContent = "Submitted! View results below:";
+        h4.style.color = "#ffffff";
     } else if (results.length == 0) {
         h4.textContent = "Waiting for available grading server...";
+        h4.style.color = "#F59E0B";
     } else {
         h4.textContent = "Processing code...";
+        h4.style.color = "#3B82F6";
     }
     h4.style.margin = "0 auto";
     h4.style.textAlign = "center";
+    h4.style.fontSize = "18px";
+    h4.style.fontWeight = "600";
+    h4.style.marginBottom = "16px";
     outputArea.appendChild(h4);
+    
     const boxContainer = document.createElement('div');
     boxContainer.className = 'box-container';
+    
     results.forEach((line, index) => {
         const box = document.createElement('div');
-        const symbol = document.createElement('h1');
-        const bottom = document.createElement('div');
-        const testcase = document.createElement('span');
-        const info = document.createElement('div');
-        const time = document.createElement('p');
-        const mem = document.createElement('p');
-        box.className = 'box';
-        box.style.fontFamily = "Arial";
-        symbol.style.textAlign = 'center';
-        symbol.style.marginBottom = '-13px';
-        bottom.className = 'bottom';
-        testcase.innerText = `${index+1}`;
-        testcase.className = "bottom-left";
-        testcase.style.fontSize = "15px";
-        testcase.style.marginBottom = "-3px";
-        info.className = 'bottom-right';
-        time.innerText = line.time;
-        mem.innerText = line.mem;
-        time.style.fontSize = "12px";
-        mem.style.fontSize = "12px";
-        mem.style.marginTop = "8px";
-        mem.style.marginBottom = "-25px";
-        symbol.style.fontSize = "30px";
-        symbol.style.fontWeight = "bold";
-        info.appendChild(mem);
-        info.appendChild(document.createElement('br'));
-        info.appendChild(time);
-        bottom.appendChild(testcase);
-        bottom.appendChild(info);
-        setBox(box, symbol, line);
-        box.appendChild(symbol);
-        box.appendChild(bottom);
+        const statusSymbol = document.createElement('div');
+        const testcaseInfo = document.createElement('div');
+        const testcaseNumber = document.createElement('span');
+        const metrics = document.createElement('div');
+        const timeMetric = document.createElement('p');
+        const memMetric = document.createElement('p');
+        
+        box.className = 'modern-box';
+        statusSymbol.className = 'status-symbol';
+        testcaseInfo.className = 'testcase-info';
+        testcaseNumber.className = 'testcase-number';
+        metrics.className = 'metrics';
+        timeMetric.className = 'metric-text';
+        memMetric.className = 'metric-text';
+        
+        testcaseNumber.textContent = `${index + 1}`;
+        timeMetric.textContent = line.time;
+        memMetric.textContent = line.mem;
+        
+        metrics.appendChild(memMetric);
+        metrics.appendChild(timeMetric);
+        
+        testcaseInfo.appendChild(testcaseNumber);
+        testcaseInfo.appendChild(metrics);
+        
+        setModernBox(box, statusSymbol, line);
+        
+        box.appendChild(statusSymbol);
+        box.appendChild(testcaseInfo);
         boxContainer.appendChild(box);
     });
+    
     outputArea.appendChild(boxContainer);
 }
 
-function setBox(box, symbol, line) {
-    symbol.innerText = line.status;
+function setModernBox(box, statusSymbol, line) {
+    statusSymbol.textContent = line.status;
+    
     switch (line.status) {
-    case "AC":
-        box.style.outline = "1px solid green";
-        box.style.color = "green";
-        box.style.backgroundColor = "lightgreen";
-        box.title = "Accepted";
-        break;
-    case "WA":
-        box.style.outline = "1px solid red";
-        box.style.color = "red";
-        box.style.backgroundColor = "pink";
-        box.title = "Wrong Answer";
-        break;
-    case "TLE":
-        box.style.outline = "1px solid red";
-        box.style.color = "red";
-        box.style.backgroundColor = "pink";
-        box.title = "Time Limit Exceeded";
-        break;
-    case "RTE":
-        box.style.outline = "1px solid red";
-        box.style.color = "red";
-        box.style.backgroundColor = "pink";
-        box.title = "Runtime Error";
-        break;
-    case "MLE":
-        box.style.outline = "1px solid red";
-        box.style.color = "red";
-        box.style.backgroundColor = "pink";
-        box.title = "Memory Limit Exceeded";
-        break;
-    default:
-        symbol.innerText = "..."
-        box.style.outline = "1px solid gray";
-        box.style.backgroundColor = "lightgray";
-        box.title = line;
-        break;
+        case "AC":
+            box.className = 'modern-box accepted';
+            box.title = "Accepted";
+            statusSymbol.innerHTML = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                </svg>
+            `;
+            break;
+        case "WA":
+            box.className = 'modern-box wrong-answer';
+            box.title = "Wrong Answer";
+            statusSymbol.innerHTML = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            `;
+            break;
+        case "TLE":
+            box.className = 'modern-box time-limit';
+            box.title = "Time Limit Exceeded";
+            statusSymbol.innerHTML = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            `;
+            break;
+        case "RTE":
+            box.className = 'modern-box runtime-error';
+            box.title = "Runtime Error";
+            statusSymbol.innerHTML = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+            `;
+            break;
+        case "MLE":
+            box.className = 'modern-box memory-limit';
+            box.title = "Memory Limit Exceeded";
+            statusSymbol.innerHTML = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            `;
+            break;
+        default:
+            box.className = 'modern-box pending';
+            box.title = line;
+            statusSymbol.innerHTML = `
+                <div class="loading-spinner"></div>
+            `;
+            break;
     }
 }
