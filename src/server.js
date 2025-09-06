@@ -26,6 +26,8 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const path = require("path");
 const expressLayouts = require("express-ejs-layouts");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 /**
  * App
@@ -52,8 +54,70 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
 
-app.use(cors());
-app.use(bodyParser.json());
+// Add security helpers to EJS
+app.locals.escapeHtml = (text) => {
+    if (typeof text !== 'string') return text;
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/\//g, '&#x2F;');
+};
+
+app.locals.safeJson = (obj) => {
+    return JSON.stringify(obj).replace(/</g, '\\u003c');
+};
+
+// Security middleware
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdn.tailwindcss.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdn.tailwindcss.com", "https://ajaxorg.github.io/"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+        },
+    },
+    crossOriginEmbedderPolicy: false,
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    },
+    noSniff: true,
+    xssFilter: true,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" }
+}));
+
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 1000,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: "Too many requests from this IP, please try again later." }
+});
+
+app.use(generalLimiter);
+
+const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+const allowedOrigins = [baseUrl];
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
+
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 mongoose.connect(process.env.MONGO_URI).then(() => console.log("✅ MongoDB Connected"))
     .catch(err => console.error("MongoDB Connection Error:", err));
@@ -69,6 +133,10 @@ app.use('/', (req, res, next) => {
 
 app.use("/", require("./routes/pages"));
 app.use("/api", require("./routes/api"));
+
+app.use((req, res) => {
+    res.status(404).json({ error: 'Not found' });
+});
 
 app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
 

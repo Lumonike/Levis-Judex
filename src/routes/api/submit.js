@@ -22,6 +22,7 @@
 const express = require('express');
 const { rateLimit } = require('express-rate-limit');
 const { slowDown } = require('express-slow-down');
+const validator = require('validator');
 const authenticateToken = require('../../authenticate.js')
 const { User, Problem, Contest } = require('../../models.js');
 const judge = require('../../judge.js');
@@ -46,7 +47,7 @@ const submissionLimiter = rateLimit({
 const submissionSlowdown = slowDown({
     windowMs: 60 * 1000,
     delayAfter: 5,
-    delayMs: (hits) => (hits - delayAfter) * 2000,
+    delayMs: (hits) => (hits - 5) * 2000,
     maxDelayMs: 15000,
     keyGenerator: (req) => req.user.id,
 });
@@ -63,12 +64,40 @@ const submissionSlowdown = slowDown({
  */
 router.post("/", authenticateToken, submissionSlowdown, submissionLimiter, async (req, res) => {
     const { code, problemID, contestID } = req.body;
+    
+    if (!code || typeof code !== 'string') {
+        return res.status(400).json({ error: "Code is required and must be a string" });
+    }
+    
+    if (!problemID || typeof problemID !== 'string') {
+        return res.status(400).json({ error: "Problem ID is required and must be a string" });
+    }
+    
+    if (contestID && typeof contestID !== 'string') {
+        return res.status(400).json({ error: "Contest ID must be a string" });
+    }
+    
+    if (code.length > 100000) {
+        return res.status(400).json({ error: "Code is too long (max 100,000 characters)" });
+    }
+    
+    if (code.length === 0) {
+        return res.status(400).json({ error: "Code cannot be empty" });
+    }
+    
+    const sanitizedProblemID = validator.escape(problemID.trim());
+    const sanitizedContestID = contestID ? validator.escape(contestID.trim()) : null;
+    
     const user = await User.findById(req.user.id);
+    if (!user) {
+        return res.status(404).json({ error: "User not found" });
+    }
+    
     let problem = null;
-    if (!contestID) {
-        problem = await Problem.findOne({ id: problemID });
+    if (!sanitizedContestID) {
+        problem = await Problem.findOne({ id: sanitizedProblemID });
     } else {
-        const contest = await Contest.findOne({ id: contestID });
+        const contest = await Contest.findOne({ id: sanitizedContestID });
         if (!contest) {
             return res.status(400).json({ error: "Invalid Contest!" });
         }
@@ -78,7 +107,7 @@ router.post("/", authenticateToken, submissionSlowdown, submissionLimiter, async
         } else if (now >= contest.endTime) {
             return res.status(400).json({ error: "Contest has already ended!" });
         }
-        problem = contest.problems.find(problem => problem.id == problemID);
+        problem = contest.problems.find(problem => problem.id === sanitizedProblemID);
     }
     if (!problem) {
         return res.status(400).json({ error: "Invalid Problem!" });
@@ -90,9 +119,9 @@ router.post("/", authenticateToken, submissionSlowdown, submissionLimiter, async
 
     const result = await judge.judge(submissionID);
 
-    let combinedID = problemID;
-    if (contestID) {
-        combinedID = contestID.concat(":", problemID);
+    let combinedID = sanitizedProblemID;
+    if (sanitizedContestID) {
+        combinedID = sanitizedContestID.concat(":", sanitizedProblemID);
     }
     user.results[combinedID] = result;
     user.markModified('results'); // if i don't do this, the data won't save
@@ -110,14 +139,22 @@ router.post("/", authenticateToken, submissionSlowdown, submissionLimiter, async
  */
 router.get("/sub-status", (req, res) => {
     const submissionID = req.query.submissionID;
+    
     if (!submissionID) {
-        return res.status(400).json("No submission ID provided");
+        return res.status(400).json({ error: "No submission ID provided" });
     }
+    
+    if (typeof submissionID !== 'string') {
+        return res.status(400).json({ error: "Submission ID must be a string" });
+    }
+    
+    const sanitizedSubmissionID = validator.escape(submissionID.trim());
+    
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
 
-    judge.addClient(submissionID, res);
-    res.write(`data: ${JSON.stringify(judge.getResults(submissionID))}\n\n`);
+    judge.addClient(sanitizedSubmissionID, res);
+    res.write(`data: ${JSON.stringify(judge.getResults(sanitizedSubmissionID))}\n\n`);
 });

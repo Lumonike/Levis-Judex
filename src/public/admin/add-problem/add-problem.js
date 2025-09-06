@@ -41,6 +41,7 @@ quillScript.onload = () => {
             window.inputFormatContainer = new Quill('#input-format', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
             window.outputFormatContainer = new Quill('#output-format', { modules: { toolbar: toolbarOptions }, theme: 'snow' });
             addSymbolButtons();
+            setupEventListeners();
         }
     }, 100);
 };
@@ -209,5 +210,49 @@ async function submitProblem(event) {
         alert("Problem saved successfully!");
     } catch (err) {
         alert("Error: " + err.message);
+    }
+}
+
+function setupEventListeners() {
+    const loadProblemButton = document.getElementById('load-problem-button');
+    if (loadProblemButton) {
+        loadProblemButton.addEventListener('click', loadProblem);
+    }
+
+    const problemForm = document.getElementById('problem-form');
+    if (problemForm) {
+        problemForm.addEventListener('submit', submitProblem);
+    }
+
+    const numTestcases = document.getElementById('num-testcases');
+    const numSampleTestcases = document.getElementById('num-sample-testcases');
+    if (numTestcases) {
+        numTestcases.addEventListener('change', fillDropdown);
+    }
+    if (numSampleTestcases) {
+        numSampleTestcases.addEventListener('change', fillDropdown);
+    }
+
+    const testcaseSelector = document.getElementById('testcase-selector');
+    if (testcaseSelector) {
+        testcaseSelector.addEventListener('change', onSelectTestcase);
+    }
+
+    const inputTestcaseEditor = document.getElementById('input-testcase-editor');
+    const outputTestcaseEditor = document.getElementById('output-testcase-editor');
+    if (inputTestcaseEditor) {
+        inputTestcaseEditor.addEventListener('change', saveTestcase);
+    }
+    if (outputTestcaseEditor) {
+        outputTestcaseEditor.addEventListener('change', saveTestcase);
+    }
+
+    const inputFileUpload = document.getElementById('input-file-upload');
+    const outputFileUpload = document.getElementById('output-file-upload');
+    if (inputFileUpload) {
+        inputFileUpload.addEventListener('change', (event) => loadTestcaseFromFile(event, 'input'));
+    }
+    if (outputFileUpload) {
+        outputFileUpload.addEventListener('change', (event) => loadTestcaseFromFile(event, 'output'));
     }
 }

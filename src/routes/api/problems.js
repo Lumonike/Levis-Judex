@@ -20,6 +20,7 @@
  */
 
 const express = require('express');
+const validator = require('validator');
 const { Problem } = require('../../models.js');
 
 /**
@@ -39,9 +40,25 @@ module.exports = router;
  */
 router.get("/get-problem", async (req, res) => {
     const id = req.query.id;
-    const problem = await Problem.findOne({ id: id });
-    if (problem == null) {
-        return res.status(400).json({ message: "Invalid problem ID" });
+    
+    if (!id) {
+        return res.status(400).json({ message: "Problem ID is required" });
     }
-    res.json(problem);
+    
+    if (typeof id !== 'string') {
+        return res.status(400).json({ message: "Problem ID must be a string" });
+    }
+    
+    const sanitizedId = validator.escape(id.trim());
+    
+    try {
+        const problem = await Problem.findOne({ id: sanitizedId });
+        if (problem == null) {
+            return res.status(404).json({ message: "Problem not found" });
+        }
+        res.json(problem);
+    } catch (error) {
+        console.error("Error fetching problem:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 });

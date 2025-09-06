@@ -23,6 +23,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const validator = require('validator');
 const { User, Problem } = require('../../models.js');
 const authenticateToken = require('../../authenticate.js');
 
@@ -61,10 +62,24 @@ async function requireAdmin(req, res, next) {
  */
 router.post("/set-admin-status", authenticateToken, requireAdmin, async (req, res) => {
     const { email, status } = req.body;
-    console.log("attempting to change status of ", email);
-    const user = await User.findOne( { email: email });
+    
+    if (!email || typeof email !== 'string') {
+        return res.status(400).json({ error: "Valid email is required" });
+    }
+    
+    if (typeof status !== 'boolean') {
+        return res.status(400).json({ error: "Status must be a boolean" });
+    }
+    
+    const sanitizedEmail = validator.normalizeEmail(email.trim());
+    if (!sanitizedEmail || !validator.isEmail(sanitizedEmail)) {
+        return res.status(400).json({ error: "Invalid email address" });
+    }
+    
+    console.log("attempting to change status of ", sanitizedEmail);
+    const user = await User.findOne({ email: sanitizedEmail });
     if (!user) {
-        return res.status(400).send("Failed to find user");
+        return res.status(400).json({ error: "Failed to find user" });
     }
     user.admin = status;
     user.markModified("admin");
@@ -82,16 +97,32 @@ router.post("/set-admin-status", authenticateToken, requireAdmin, async (req, re
  */
 router.post("/get-admin-page", authenticateToken, requireAdmin, (req, res) => {
     const { folder } = req.body;
-    if (fs.existsSync(path.join(__dirname, "..", "..", "views", "admin", `${folder}.ejs`))) {
-        return res.render(`admin/${folder}`, {
+    
+    if (!folder || typeof folder !== 'string') {
+        return res.status(400).json({ message: "Invalid folder parameter" });
+    }
+    
+    const sanitizedFolder = validator.escape(folder.trim());
+    if (!/^[a-zA-Z0-9_-]+$/.test(sanitizedFolder)) {
+        return res.status(400).json({ message: "Invalid folder name" });
+    }
+    
+    const filePath = path.join(__dirname, "..", "..", "views", "admin", `${sanitizedFolder}.ejs`);
+    
+    const expectedDir = path.join(__dirname, "..", "..", "views", "admin");
+    if (!filePath.startsWith(expectedDir)) {
+        return res.status(400).json({ message: "Invalid path" });
+    }
+    
+    if (fs.existsSync(filePath)) {
+        return res.render(`admin/${sanitizedFolder}`, {
             title: "Admin",
             mainSection: { centered: true },
-            head: `<script src="${folder}.js" defer></script>`,
-            backArrow: folder != "admin" ? { href: "/admin", text: "Back to Admin" } : { href: "/", text: "Back to Home" }
+            head: `<script src="${sanitizedFolder}.js" defer></script>`,
+            backArrow: sanitizedFolder != "admin" ? { href: "/admin", text: "Back to Admin" } : { href: "/", text: "Back to Home" }
         });
     }
     res.status(400).json({ message: "Page doesn't exist" });
-    // res.sendFile(path.join(__dirname, "..", "templates", "partials", `${folder}.html`));
 });
 
 /**
@@ -104,19 +135,65 @@ router.post("/get-admin-page", authenticateToken, requireAdmin, (req, res) => {
  */
 router.post("/save-problem", authenticateToken, requireAdmin, async (req, res) => {
     const update = {...req.body};
-    const response = await Problem.findOneAndUpdate(
-        { id: update.id },
-        update,
-        {
-            upsert: true,
-            new: true,
-            setDefaultsOnInsert: true
+    
+    if (!update.id || typeof update.id !== 'string') {
+        return res.status(400).json({ message: "Problem ID is required and must be a string" });
+    }
+    
+    if (!update.name || typeof update.name !== 'string') {
+        return res.status(400).json({ message: "Problem name is required and must be a string" });
+    }
+    
+    if (update.name.length > 200) {
+        return res.status(400).json({ message: "Problem name must be less than 200 characters" });
+    }
+    
+    if (update.problemStatement && typeof update.problemStatement !== 'string') {
+        return res.status(400).json({ message: "Problem statement must be a string" });
+    }
+    
+    if (update.inputFormat && typeof update.inputFormat !== 'string') {
+        return res.status(400).json({ message: "Input format must be a string" });
+    }
+    
+    if (update.outputFormat && typeof update.outputFormat !== 'string') {
+        return res.status(400).json({ message: "Output format must be a string" });
+    }
+    
+    if (update.numSampleTestcases && (typeof update.numSampleTestcases !== 'number' || update.numSampleTestcases < 0)) {
+        return res.status(400).json({ message: "Number of sample testcases must be a non-negative number" });
+    }
+    
+    if (update.inputTestcases && (!Array.isArray(update.inputTestcases) || !update.inputTestcases.every(tc => typeof tc === 'string'))) {
+        return res.status(400).json({ message: "Input testcases must be an array of strings" });
+    }
+    
+    if (update.outputTestcases && (!Array.isArray(update.outputTestcases) || !update.outputTestcases.every(tc => typeof tc === 'string'))) {
+        return res.status(400).json({ message: "Output testcases must be an array of strings" });
+    }
+    
+    if (update.contestID && typeof update.contestID !== 'string') {
+        return res.status(400).json({ message: "Contest ID must be a string" });
+    }
+    
+    try {
+        const response = await Problem.findOneAndUpdate(
+            { id: update.id },
+            update,
+            {
+                upsert: true,
+                new: true,
+                setDefaultsOnInsert: true
+            }
+        );
+        console.log(response);
+        if (response) {
+            res.status(200).json({ message: "Successfully updated problem!" });
+        } else {
+            res.status(400).json({ message: "Failed to update problem!" });
         }
-    );
-    console.log(response);
-    if (response) {
-        res.status(200).json({ message: "Successfully updated problem!" });
-    } else {
-        res.status(400).json({ message: "Failed to update problem!" });
+    } catch (error) {
+        console.error("Error saving problem:", error);
+        res.status(500).json({ message: "Internal server error while saving problem" });
     }
 });

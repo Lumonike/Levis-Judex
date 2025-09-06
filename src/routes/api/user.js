@@ -60,32 +60,51 @@ const registerLimiter = rateLimit({
 router.post("/register", registerLimiter, async (req, res) => {
     const { name, email, password } = req.body;
     
-    // Check if the email already exists in the database
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-        return res.status(400).json({ error: "Email is already registered." });
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: "Name, email, and password are required." });
     }
     
-    if (!validator.isEmail(email)) {
+    if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string') {
+        return res.status(400).json({ error: "Invalid input types." });
+    }
+    
+    const sanitizedName = validator.escape(name.trim());
+    const sanitizedEmail = validator.normalizeEmail(email.trim());
+    
+    if (!sanitizedEmail) {
+        return res.status(400).json({ error: "Invalid email address." });
+    }
+    
+    if (!validator.isEmail(sanitizedEmail)) {
         return res.status(400).json({ error: "Invalid email address." });
     }
 
-    const emailDomain = email.split('@')[1].toLowerCase();
+    const emailDomain = sanitizedEmail.split('@')[1].toLowerCase();
     if (disposableDomains.includes(emailDomain)) {
         return res.status(400).json({ error: "Disposable email address." });
+    }
+    
+    if (password.length > 128) {
+        return res.status(400).json({ error: "Password must be less than 128 characters." });
+    }
+    
+    // Check if the email already exists in the database
+    const existingUser = await User.findOne({ email: sanitizedEmail });
+    if (existingUser) {
+        return res.status(400).json({ error: "Email is already registered." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const token = crypto.randomBytes(8).toString('base64url');
 
-    const user = new User({ email, password: hashedPassword, verificationToken: token });
+    const user = new User({ email: sanitizedEmail, password: hashedPassword, verificationToken: token });
     await user.save();
 
     const link = `${process.env.BASE_URL}/verify/${token}`;
     await transporter.sendMail({
         from: process.env.EMAIL_USER,
-        to: email,
-        subject: `${name}: Verify Your Email`,
+        to: sanitizedEmail,
+        subject: `${sanitizedName}: Verify Your Email`,
         text: `Click here to verify: ${link}\n(Link expires in one minute)`
     });
 
@@ -94,9 +113,9 @@ router.post("/register", registerLimiter, async (req, res) => {
     // delete unverified accounts after a minute
     setTimeout(async () => {
         console.log("checking for unverified account");
-        const updatedUser = await User.findOne({ email });
-        if (!updatedUser.verified) {
-            await User.deleteOne({ email });
+        const updatedUser = await User.findOne({ email: sanitizedEmail });
+        if (updatedUser && !updatedUser.verified) {
+            await User.deleteOne({ email: sanitizedEmail });
             console.log("Deleted unverified account");
         }
     }, 1000*60);
@@ -121,12 +140,26 @@ const loginLimiter = rateLimit({
  */
 router.post("/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body;
-    console.log("Login attempt:", email); // Debugging
+    
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required." });
+    }
+    
+    if (typeof email !== 'string' || typeof password !== 'string') {
+        return res.status(400).json({ error: "Invalid input types." });
+    }
+    
+    const sanitizedEmail = validator.normalizeEmail(email.trim());
+    if (!sanitizedEmail || !validator.isEmail(sanitizedEmail)) {
+        return res.status(400).json({ error: "Invalid email address." });
+    }
+    
+    console.log("Login attempt:", sanitizedEmail);
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: sanitizedEmail });
     if (!user) return res.status(400).json({ error: "User not found" });
 
-    const isMatch = bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "Incorrect password" });
 
     if (!user.verified) return res.status(400).json({ error: "Please verify your email first" });
@@ -153,9 +186,25 @@ const resetPasswordLimiter = rateLimit({
  */
 router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
     const { email, password } = req.body;
+    
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required." });
+    }
+    
+    if (typeof email !== 'string' || typeof password !== 'string') {
+        return res.status(400).json({ error: "Invalid input types." });
+    }
+    
+    const sanitizedEmail = validator.normalizeEmail(email.trim());
+    if (!sanitizedEmail || !validator.isEmail(sanitizedEmail)) {
+        return res.status(400).json({ error: "Invalid email address." });
+    }
+    
+    if (password.length > 128) {
+        return res.status(400).json({ error: "Password must be less than 128 characters." });
+    }
 
-    // Check if the email already exists in the database
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: sanitizedEmail });
     if (!user) {
         return res.status(400).json({ error: "Email is not registered" });
     }
@@ -171,7 +220,7 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
     const link = `${process.env.BASE_URL}/reset/${token}`;
     await transporter.sendMail({
         from: process.env.EMAIL_USER,
-        to: email,
+        to: sanitizedEmail,
         subject: `Reset your password`,
         text: `If you did NOT request this email, do NOT click the link and instead IGNORE this email so you don't give access to your account to an unknown third-party.\n\nClick here to confirm reset: ${link}\n(Link expires in one minute)`
     });
@@ -180,12 +229,14 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
 
     // delete reset tokens after one minute
     setTimeout(async () => {
-        const updatedUser = await User.findOne({ email });
-        updatedUser.resetToken = null;
-        updatedUser.possibleNewPassword = null;
-        updatedUser.markModified("resetToken");
-        updatedUser.markModified("possibleNewPassword");
-        await updatedUser.save();
+        const updatedUser = await User.findOne({ email: sanitizedEmail });
+        if (updatedUser) {
+            updatedUser.resetToken = null;
+            updatedUser.possibleNewPassword = null;
+            updatedUser.markModified("resetToken");
+            updatedUser.markModified("possibleNewPassword");
+            await updatedUser.save();
+        }
     }, 1000*60);
 });
 
@@ -202,14 +253,30 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
  */
 router.post("/get-code", authenticateToken, async (req, res) => {
     const { problemID, contestID } = req.body;
-    const user = await User.findById(req.user.id);
-    // console.log("User requesting code:", user);
-    if (!user) {
-        console.error("WTF NO USER FOUND");
+    
+    if (!problemID) {
+        return res.status(400).json({ error: "Problem ID is required." });
     }
-    let combinedID = problemID;
-    if (contestID) {
-        combinedID = contestID.concat(":", problemID);
+    
+    if (typeof problemID !== 'string') {
+        return res.status(400).json({ error: "Invalid problem ID type." });
+    }
+    
+    if (contestID && typeof contestID !== 'string') {
+        return res.status(400).json({ error: "Invalid contest ID type." });
+    }
+    
+    const sanitizedProblemID = validator.escape(problemID.trim());
+    const sanitizedContestID = contestID ? validator.escape(contestID.trim()) : null;
+    
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return res.status(404).json({ error: "User not found" });
+    }
+    
+    let combinedID = sanitizedProblemID;
+    if (sanitizedContestID) {
+        combinedID = sanitizedContestID.concat(":", sanitizedProblemID);
     }
     const result = user.code[combinedID];
     res.json({ result });
@@ -226,16 +293,32 @@ router.post("/get-code", authenticateToken, async (req, res) => {
  */
 router.post("/get-result", authenticateToken, async (req, res) => {
     const { problemID, contestID } = req.body;
+    
+    if (!problemID) {
+        return res.status(400).json({ error: "Problem ID is required." });
+    }
+    
+    if (typeof problemID !== 'string') {
+        return res.status(400).json({ error: "Invalid problem ID type." });
+    }
+    
+    if (contestID && typeof contestID !== 'string') {
+        return res.status(400).json({ error: "Invalid contest ID type." });
+    }
+    
+    const sanitizedProblemID = validator.escape(problemID.trim());
+    const sanitizedContestID = contestID ? validator.escape(contestID.trim()) : null;
+    
     const user = await User.findById(req.user.id);
-    // console.log("User requesting result:", user);
     if (!user) {
-        console.error("WTF NO USER FOUND");
+        return res.status(404).json({ error: "User not found" });
     }
-    let combinedID = problemID;
-    if (contestID) {
-        combinedID = contestID.concat(":", problemID);
+    
+    let combinedID = sanitizedProblemID;
+    if (sanitizedContestID) {
+        combinedID = sanitizedContestID.concat(":", sanitizedProblemID);
     }
-    const result = user.results[combinedID]
+    const result = user.results[combinedID];
     res.json({ result });
 });
 

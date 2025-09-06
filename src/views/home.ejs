@@ -5,7 +5,7 @@
     <span class="text-gray-500">|</span>
     <a href="/register" class="text-lg font-semibold hover:text-green-300 text-green-400 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-gray-700">Register</a>
     <span class="text-gray-500">|</span>
-    <a onclick="localStorage.removeItem('authToken');loginStatus()" class="text-lg font-semibold hover:text-green-300 text-green-400 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer">Logout</a>
+    <a id="logout-button" class="text-lg font-semibold hover:text-green-300 text-green-400 transition-colors duration-200 px-3 py-2 rounded-lg hover:bg-gray-700 cursor-pointer">Logout</a>
 </div>
 
 <div class="text-center max-w-4xl mx-auto">
@@ -54,7 +54,7 @@
         <div class="bg-gray-700 bg-opacity-50 rounded-lg p-4 max-w-2xl mx-auto">
             <p class="text-gray-300 text-sm">
                 Need support, want to delete your account, have feedback, or just curious? 
-                <br>Reach out to us at <a class="text-blue-400 font-medium" href="mailto:codejointcrew@gmail.com" target="_blank">codejointcrew@gmail.com</span>
+                <br>Reach out to us at <a class="text-blue-400 font-medium" href="mailto:codejointcrew@gmail.com" target="_blank">codejointcrew@gmail.com</a>
             </p>
         </div>
     </div>
@@ -91,5 +91,15 @@
             authTokenContainer.classList.add('bg-gray-600', 'border-gray-500');
         }
     }
-    loginStatus();
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const logoutButton = document.getElementById('logout-button');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', function() {
+                localStorage.removeItem('authToken');
+                location.reload();
+            });
+        }
+        loginStatus();
+    });
 </script>

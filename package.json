@@ -1,6 +1,6 @@
 {
   "name": "levis-judex",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "description": "Self-hosted platform running on Express.js (prettified with tailwind css) for creating contests/problems like codeforces & usaco.org that uses ioi's isolate software to sandbox submissions.",
   "main": "src/server.js",
   "scripts": {
@@ -23,6 +23,7 @@
     "express-rate-limit": "^8.0.1",
     "express-slow-down": "^3.0.0",
     "fs": "^0.0.1-security",
+    "helmet": "^7.1.0",
     "jsdom": "^26.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongod": "^2.0.0",

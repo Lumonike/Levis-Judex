@@ -114,7 +114,12 @@ module.exports.queueSubmission = (submissionID, code, problem) => {
  * @param {string} submissionID Submission ID
  * @returns {Result[]} The results so far
  */
-module.exports.getResults = submissionID => submissions[submissionID].results;
+module.exports.getResults = submissionID => {
+    if (!submissions[submissionID]) {
+        return [];
+    }
+    return submissions[submissionID].results;
+};
 
 /**
  * @name addClient 
@@ -124,7 +129,11 @@ module.exports.getResults = submissionID => submissions[submissionID].results;
  * @param {express.Response} res 
  * @returns 
  */
-module.exports.addClient = (submissionID, res) => submissions[submissionID].clients.push(res); 
+module.exports.addClient = (submissionID, res) => {
+    if (submissions[submissionID]) {
+        submissions[submissionID].clients.push(res);
+    }
+}; 
 
 /**
  * Judges a code submission to a problem
@@ -168,7 +177,8 @@ module.exports.judge = async (submissionID) => {
         fs.writeFileSync(codeFile, code);
         fs.copyFileSync(codeFile, path.join(boxPaths[boxID], "code.py"));
     } catch (error) {
-        console.log("Error writing code file:", error);
+        console.error("Error writing code file:", error);
+        return [{status: "RTE", time: "0s", mem:"0 MB"}];
     }
 
     for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
@@ -273,12 +283,17 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
  * @returns {Object<string, string>} Metafile as a map
  */
 function parseMetafile(submissionDir) {
-    const metadataArr = fs.readFileSync(path.join(submissionDir, "meta.txt")).toString().split(":").join("\n").split("\n");
-    const metadata = {};
-    for (let i = 0; i < metadataArr.length-2 /*ignore last two characters*/; i += 2) {
-        metadata[metadataArr[i]] = metadataArr[i+1];
+    try {
+        const metadataArr = fs.readFileSync(path.join(submissionDir, "meta.txt")).toString().split(":").join("\n").split("\n");
+        const metadata = {};
+        for (let i = 0; i < metadataArr.length-2 /*ignore last two characters*/; i += 2) {
+            metadata[metadataArr[i]] = metadataArr[i+1];
+        }
+        return metadata;
+    } catch (error) {
+        console.error("Error parsing metafile:", error);
+        return { status: "RTE", time: "0s", "max-rss": "0" };
     }
-    return metadata;
 }
 
 /**
@@ -295,13 +310,13 @@ async function closeIsolate() {
     console.log("Closed Isolate!");
 }
 
-process.on("SIGINT", async (code) => {
+process.on("SIGINT", async () => {
     await closeIsolate();
-    process.exit(code);
+    process.exit(0);
 });
 
-process.on("SIGTERM", async (code) => {
+process.on("SIGTERM", async () => {
     await closeIsolate();
-    process.exit(code);
+    process.exit(0);
 });
 

@@ -8,13 +8,13 @@
 
     <div class="bg-gray-700 rounded-lg p-6 mb-6 border border-gray-600">
         <%- include("../partials/input", { id: "problem-id-search", label: "Problem ID to Edit", type: "text", placeholder: "e.g. 3" }) %>
-        <button onclick="loadProblem()" class="text-lg p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 focus:outline-none transition-colors duration-200 h-fit">
+        <button id="load-problem-button" class="text-lg p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 focus:outline-none transition-colors duration-200 h-fit">
             Load Problem
         </button>
     </div>
 
     <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
-        <form id="problem-form" onsubmit="submitProblem(event)" class="space-y-6">
+        <form id="problem-form" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <%- include("../partials/input", { id: "id", label: "Problem ID", type: "text" }) %>
                 <%- include("../partials/input", { id: "name", label: "Problem Name", type: "text" }) %>
@@ -39,12 +39,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label for="num-testcases" class="text-lg font-semibold text-white mb-2 block">Number of Testcases</label>
-                    <input type="number" id="num-testcases" min="0" required onchange="fillDropdown()"
+                    <input type="number" id="num-testcases" min="0" required
                         class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500"/>
                 </div>
                 <div>
                     <label for="num-sample-testcases" class="text-lg font-semibold text-white mb-2 block">Number of Sample Testcases</label>
-                    <input type="number" id="num-sample-testcases" min="0" required onchange="fillDropdown()"
+                    <input type="number" id="num-sample-testcases" min="0" required
                         class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500"/>
                 </div>
             </div>
@@ -52,24 +52,24 @@
             <!-- Testcase Editor -->
             <div class="border-t border-gray-600 pt-6">
                 <label class="text-lg font-semibold text-white mb-3 block">Testcase Editor</label>
-                <select id="testcase-selector" onchange="onSelectTestcase()" 
+                <select id="testcase-selector" 
                     class="w-full p-3 mb-4 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500">
                 </select>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-3">
                         <label for="input-testcase-editor" class="text-lg font-semibold text-green-400 block">Input</label>
-                        <textarea id="input-testcase-editor" rows="6" onchange="saveTestcase()" 
+                        <textarea id="input-testcase-editor" rows="6" 
                             class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 border border-gray-500 font-mono"></textarea>
-                        <input type="file" onchange="loadTestcaseFromFile(event, 'input')" 
+                        <input type="file" id="input-file-upload" 
                             class="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                     </div>
                     
                     <div class="space-y-3">
                         <label for="output-testcase-editor" class="text-lg font-semibold text-blue-400 block">Output</label>
-                        <textarea id="output-testcase-editor" rows="6" onchange="saveTestcase()" 
+                        <textarea id="output-testcase-editor" rows="6" 
                             class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500 font-mono"></textarea>
-                        <input type="file" onchange="loadTestcaseFromFile(event, 'output')" 
+                        <input type="file" id="output-file-upload" 
                             class="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                     </div>
                 </div>
