@@ -16,23 +16,32 @@
  */
 
 /**
- * @module transporter
+ * API
+ * @module api
  */
 
-const nodemailer = require("nodemailer");
+const express = require("express");
+const { rateLimit } = require("express-rate-limit");
 
 /**
- * Nodemailer transporter
- * @memberof module:transporter
+ * API router
+ * @name router
+ * @memberof module:api
  */
-const transporter = nodemailer.createTransport({
-    auth: {
-        pass: process.env.EMAIL_PASS,
-        user: process.env.EMAIL_USER,
-    },
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // true for 465, false for 587
+const router = express.Router();
+module.exports = router;
+
+const apiLimiter = rateLimit({
+    legacyHeaders: false,
+    limit: 1000,
+    message: { error: "Too many api requests! Rate limit exceeded." },
+    standardHeaders: "draft-8",
+    windowMs: 15 * 60 * 1000,
 });
 
-module.exports = transporter;
+router.use(apiLimiter);
+
+router.use("/admin", require("./admin.js"));
+router.use("/problems", require("./problems.js"));
+router.use("/submit", require("./submit.js"));
+router.use("/user", require("./user.js"));

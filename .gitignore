@@ -5,3 +5,4 @@ isolate/
 docs/
 .env
 problem_maker
+.vscode/

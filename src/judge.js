@@ -29,7 +29,7 @@
  */
 
 /**
- * @typedef {Object} Submission 
+ * @typedef {Object} Submission
  * @property {string} code The code submitted
  * @property {models.ProblemModel} problem The problem the code is submitted to
  * @property {number} boxID What box ID the submission is occurring
@@ -38,11 +38,12 @@
  * @memberof module:judge
  */
 
+const { spawn } = require("child_process");
 const express = require("express");
 const fs = require("fs");
-const { spawn } = require("child_process");
-const models = require('./models.js')
 const path = require("path");
+
+const models = require("./models.js");
 
 let initializedIsolate = false;
 
@@ -93,28 +94,28 @@ const submissions = {};
  * @name queueSubmission
  * @memberof module:judge
  * @function
- * @param {string} submissionID 
- * @param {string} code 
- * @param {models.ProblemModel} problem 
+ * @param {string} submissionID
+ * @param {string} code
+ * @param {models.ProblemModel} problem
  */
 module.exports.queueSubmission = (submissionID, code, problem) => {
     submissions[submissionID] = {
+        boxID: -1,
+        clients: [],
         code,
         problem,
-        boxID: -1,
         results: [],
-        clients: []
     };
-}
+};
 
 /**
  * @name getResults
- * @memberof module:judge 
+ * @memberof module:judge
  * @function
  * @param {string} submissionID Submission ID
  * @returns {Result[]} The results so far
  */
-module.exports.getResults = submissionID => {
+module.exports.getResults = (submissionID) => {
     if (!submissions[submissionID]) {
         return [];
     }
@@ -122,18 +123,18 @@ module.exports.getResults = submissionID => {
 };
 
 /**
- * @name addClient 
- * @memberof module:judge 
+ * @name addClient
+ * @memberof module:judge
  * @function
- * @param {string} submissionID 
- * @param {express.Response} res 
- * @returns 
+ * @param {string} submissionID
+ * @param {express.Response} res
+ * @returns
  */
 module.exports.addClient = (submissionID, res) => {
     if (submissions[submissionID]) {
         submissions[submissionID].clients.push(res);
     }
-}; 
+};
 
 /**
  * Judges a code submission to a problem
@@ -157,17 +158,17 @@ module.exports.judge = async (submissionID) => {
             }
         }, 100);
     });
-    
+
     const { boxID, code, problem, results } = submission;
     // code must be less than 100,000 bytes
     if (code.length > 100000) {
         console.error("Code file too large!");
-        return [{status: "RTE", time: "0s", mem:"0 MB"}];
+        return [{ mem: "0 MB", status: "RTE", time: "0s" }];
     }
 
     const submissionDir = path.join(__dirname, "..", "isolate", boxID.toString());
     const codeFile = path.join(submissionDir, "code.py");
-    
+
     if (!initializedIsolate) {
         await initIsolate();
         initializedIsolate = true;
@@ -178,11 +179,11 @@ module.exports.judge = async (submissionID) => {
         fs.copyFileSync(codeFile, path.join(boxPaths[boxID], "code.py"));
     } catch (error) {
         console.error("Error writing code file:", error);
-        return [{status: "RTE", time: "0s", mem:"0 MB"}];
+        return [{ mem: "0 MB", status: "RTE", time: "0s" }];
     }
 
     for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
-        results.push({ status: `...`, time: "...", mem: "..." });
+        results.push({ mem: "...", status: `...`, time: "..." });
         for (const client of submission.clients) {
             client.write(`data: ${JSON.stringify(submission.results)}\n\n`);
         }
@@ -202,6 +203,23 @@ module.exports.judge = async (submissionID) => {
     delete submissions[submissionID];
 
     return finalResults;
+};
+
+/**
+ * @private
+ * @memberof module:judge
+ * Shuts down isolate
+ */
+async function closeIsolate() {
+    console.log("Attempting to close Isolate!");
+    const promises = new Array(numBoxes).fill(0).map(
+        (_, boxID) =>
+            new Promise((resolve) => {
+                spawn(`isolate`, [`--cg`, `--box-id=${boxID}`, `--cleanup`]).on("close", resolve);
+            }),
+    );
+    await Promise.all(promises);
+    console.log("Closed Isolate!");
 }
 
 /**
@@ -211,18 +229,40 @@ module.exports.judge = async (submissionID) => {
  */
 async function initIsolate() {
     // run commands concurrently
-    const promises = new Array(numBoxes).fill(0).map((_, boxID) =>
-        new Promise((resolve) => {
-            const child = spawn(`isolate`, [`--cg`, `--box-id=${boxID}`, `--init`]); 
-            child.stdout.on('data', (data) => { 
-                let stdout = data.toString();
-                boxPaths[boxID] = `${stdout.trim()}/box/`;
-            });
-            child.on('close', resolve);
-        })
+    const promises = new Array(numBoxes).fill(0).map(
+        (_, boxID) =>
+            new Promise((resolve) => {
+                const child = spawn(`isolate`, [`--cg`, `--box-id=${boxID}`, `--init`]);
+                child.stdout.on("data", (data) => {
+                    let stdout = data.toString();
+                    boxPaths[boxID] = `${stdout.trim()}/box/`;
+                });
+                child.on("close", resolve);
+            }),
     );
     await Promise.all(promises);
     console.log("Initialized Isolate boxes!");
+}
+
+/**
+ * Parses the metafile of the program we ran in isolate
+ * @private
+ * @memberof module:judge
+ * @param {string} submissionDir - where the metafile is
+ * @returns {Object<string, string>} Metafile as a map
+ */
+function parseMetafile(submissionDir) {
+    try {
+        const metadataArr = fs.readFileSync(path.join(submissionDir, "meta.txt")).toString().split(":").join("\n").split("\n");
+        const metadata = {};
+        for (let i = 0; i < metadataArr.length - 2 /*ignore last two characters*/; i += 2) {
+            metadata[metadataArr[i]] = metadataArr[i + 1];
+        }
+        return metadata;
+    } catch (error) {
+        console.error("Error parsing metafile:", error);
+        return { "max-rss": "0", status: "RTE", time: "0s" };
+    }
 }
 
 /**
@@ -237,16 +277,30 @@ async function initIsolate() {
  */
 async function runProgram(boxID, submissionDir, problem, testcase) {
     const timeLimit = 4;
-    const timeWall = 2*timeLimit; // used to prevent sleeping
+    const timeWall = 2 * timeLimit; // used to prevent sleeping
     const memLimit = 256 * 1024; // 256 MB is the USACO limit. could lower to allow more control groups
-    const args = [`--cg`, `--dir=${submissionDir}`, `--meta=${path.join(submissionDir, "meta.txt")}`, `--time=${timeLimit}`, `--wall-time=${timeWall}`, `--cg-mem=${memLimit}`, `--box-id=${boxID}`, `--run`, `--`, `/bin/python3`, `-O`, `code.py`];
+    const args = [
+        `--cg`,
+        `--dir=${submissionDir}`,
+        `--meta=${path.join(submissionDir, "meta.txt")}`,
+        `--time=${timeLimit}`,
+        `--wall-time=${timeWall}`,
+        `--cg-mem=${memLimit}`,
+        `--box-id=${boxID}`,
+        `--run`,
+        `--`,
+        `/bin/python3`,
+        `-O`,
+        `code.py`,
+    ];
     const expected = problem.outputTestcases[testcase].trim();
-    let result = {status: "", time: "", mem: ""};
+    let result = { mem: "", status: "", time: "" };
     const checkOutput = (stdout) => {
         const metadata = parseMetafile(submissionDir);
         if (metadata.status == "TO") {
             result.status = "TLE";
-        } else if (metadata['exitsig'] == 9) { // exit signal 9 is memory limit exceeded i think
+        } else if (metadata["exitsig"] == 9) {
+            // exit signal 9 is memory limit exceeded i think
             result.status = "MLE";
         } else if (metadata.status != undefined) {
             result.status = "RTE";
@@ -254,17 +308,17 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
             result.status = stdout.trim() == expected ? "AC" : "WA";
         }
         result.time = `${metadata.time}s`;
-        result.mem = `${(metadata['max-rss']/1024.0).toFixed(2)} MB`;
-    }
+        result.mem = `${(metadata["max-rss"] / 1024.0).toFixed(2)} MB`;
+    };
     try {
-        await new Promise(async (resolve) => { 
+        await new Promise(async (resolve) => {
             const child = spawn(`isolate`, args);
             child.stdin.write(problem.inputTestcases[testcase]);
             child.stdin.end();
-            child.on('error', err => console.error(err));
+            child.on("error", (err) => console.error(err));
             let stdout = "";
-            child.stdout.on('data', data => stdout += data.toString());
-            child.on('close', () => {
+            child.stdout.on("data", (data) => (stdout += data.toString()));
+            child.on("close", () => {
                 checkOutput(stdout);
                 resolve();
             });
@@ -273,41 +327,6 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
         console.error("Error running isolate:", error);
     }
     return result;
-}
-
-/**
- * Parses the metafile of the program we ran in isolate
- * @private
- * @memberof module:judge
- * @param {string} submissionDir - where the metafile is
- * @returns {Object<string, string>} Metafile as a map
- */
-function parseMetafile(submissionDir) {
-    try {
-        const metadataArr = fs.readFileSync(path.join(submissionDir, "meta.txt")).toString().split(":").join("\n").split("\n");
-        const metadata = {};
-        for (let i = 0; i < metadataArr.length-2 /*ignore last two characters*/; i += 2) {
-            metadata[metadataArr[i]] = metadataArr[i+1];
-        }
-        return metadata;
-    } catch (error) {
-        console.error("Error parsing metafile:", error);
-        return { status: "RTE", time: "0s", "max-rss": "0" };
-    }
-}
-
-/**
- * @private
- * @memberof module:judge
- * Shuts down isolate
- */
-async function closeIsolate() {
-    console.log("Attempting to close Isolate!");
-    const promises = new Array(numBoxes).fill(0).map((_, boxID) =>
-        new Promise((resolve) => { spawn(`isolate`, [`--cg`, `--box-id=${boxID}`, `--cleanup`]).on('close', resolve); })
-    );
-    await Promise.all(promises);
-    console.log("Closed Isolate!");
 }
 
 process.on("SIGINT", async () => {
@@ -319,4 +338,3 @@ process.on("SIGTERM", async () => {
     await closeIsolate();
     process.exit(0);
 });
-

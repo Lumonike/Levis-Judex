@@ -16,32 +16,25 @@
  */
 
 /**
- * @module authenticate
+ * Home page
+ * @memberof module:pages
+ * @module pages/home
  */
 
 const express = require("express");
-const jwt = require("jsonwebtoken");
 
 /**
- * Ensures user is using a valid token
- * @memberof module:authenticate
- * @param {express.Request} req
- * @param {express.Response} res
- * @param {express.NextFunction} next
- * @returns 403 if invalid token, otherwise calls next
+ * Router for home page
  */
-function authenticateToken(req, res, next) {
-    const token = req.headers["authorization"]?.split(" ")[1]; // The token is usually passed as Bearer <token>
-    if (!token) {
-        return res.status(403).json({ error: "Access denied. No token provided." });
-    }
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ error: "Invalid or expired token." });
-        }
-        req.user = user;
-        next();
-    });
-}
+const router = express.Router();
+module.exports = router;
 
-module.exports = authenticateToken;
+/**
+ * Renders home page
+ * @name GET/
+ * @function
+ * @returns Html for home page
+ */
+router.get("/", (req, res) => {
+    res.render("home", { mainSection: { centered: true } });
+});

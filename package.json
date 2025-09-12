@@ -33,7 +33,10 @@
   },
   "devDependencies": {
     "clean-jsdoc-theme": "^4.3.0",
+    "eslint": "^9.35.0",
+    "eslint-plugin-perfectionist": "^4.15.0",
     "jsdoc": "^4.0.4",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "prettier": "^3.6.2"
   }
 }

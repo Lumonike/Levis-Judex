@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= "title" in locals ? title : "Levis Judex by CodeJoint" %></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <% if ("head" in locals) {%>
+        <%- head %>
+    <% }%>
+</head>
+<body class="m-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 min-h-screen">
+    <% if ("backArrow" in locals) { %>
+        <%- include("partials/back-arrow", backArrow) %>
+    <% } %>
+
+    <div class="<% if ("mainSection" in locals && "width" in mainSection) { %>
+        <%= mainSection.width %>
+    <% } else { %>
+        <%= "max-w-4xl" %>
+    <% } %> mx-auto mt-10 p-8 bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-2xl rounded-2xl border border-gray-700 
+    <% if ("mainSection" in locals && "centered" in mainSection && mainSection.centered) { %>
+        <%= "text-center relative" %>
+    <% } %>" id="main-section">
+        <%- body %>
+    </div>
+</body>
+</html>

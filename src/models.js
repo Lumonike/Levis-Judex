@@ -23,7 +23,7 @@
 /**
  * Properties of User model
  * @typedef {Object} UserModel
- * @property {string} email 
+ * @property {string} email
  * @property {string} password encrypted
  * @property {boolean} [verified=false]
  * @property {string} verificationToken
@@ -63,38 +63,44 @@
 
 const mongoose = require("mongoose");
 
-const User = mongoose.model("User", new mongoose.Schema({
-    email: String,
-    password: String,
-    verified: { type: Boolean, default: false },
-    verificationToken: String,
-    resetToken: String,
-    possibleNewPassword: String,
-    results: { type: Object, default: {} },
-    code: { type: Object, default: {} },
-    admin: { type: Boolean, default: false }
-}));
+const User = mongoose.model(
+    "User",
+    new mongoose.Schema({
+        admin: { default: false, type: Boolean },
+        code: { default: {}, type: Object },
+        email: String,
+        password: String,
+        possibleNewPassword: String,
+        resetToken: String,
+        results: { default: {}, type: Object },
+        verificationToken: String,
+        verified: { default: false, type: Boolean },
+    }),
+);
 
 const ProblemSchema = new mongoose.Schema({
+    contestID: { default: null, type: String }, // null if not a contest problem
     id: String, // in case we want to do stuff like 5B like codeforces. CANNOT HAVE COLONS
-    name: String,
-    problemStatement: String,
     inputFormat: String,
-    outputFormat: String,
+    inputTestcases: [String],
+    name: String,
     numSampleTestcases: Number,
-    inputTestcases: [ String ],
-    outputTestcases: [ String ],
-    contestID: { type: String, default: null } // null if not a contest problem
+    outputFormat: String,
+    outputTestcases: [String],
+    problemStatement: String,
 });
 
 const Problem = mongoose.model("Problem", ProblemSchema);
 
-const Contest = mongoose.model("Contest", new mongoose.Schema({
-    id: String,
-    name: String,
-    problems: [ ProblemSchema ],
-    startTime: Date,
-    endTime: Date
-}));
+const Contest = mongoose.model(
+    "Contest",
+    new mongoose.Schema({
+        endTime: Date,
+        id: String,
+        name: String,
+        problems: [ProblemSchema],
+        startTime: Date,
+    }),
+);
 
-module.exports = { User, Problem, Contest }
+module.exports = { Contest, Problem, User };

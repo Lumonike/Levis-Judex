@@ -16,23 +16,33 @@
  */
 
 /**
- * @module transporter
+ * Web page rendering
+ * @module pages
  */
 
-const nodemailer = require("nodemailer");
+const express = require("express");
+const { rateLimit } = require("express-rate-limit");
 
 /**
- * Nodemailer transporter
- * @memberof module:transporter
+ * Pages router
+ * @name router
+ * @memberof module:pages
  */
-const transporter = nodemailer.createTransport({
-    auth: {
-        pass: process.env.EMAIL_PASS,
-        user: process.env.EMAIL_USER,
-    },
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // true for 465, false for 587
+const router = express.Router();
+module.exports = router;
+
+const pageLimiter = rateLimit({
+    legacyHeaders: false,
+    limit: 5000,
+    message: { error: "Too many page requests! Rate limit exceeded." },
+    standardHeaders: "draft-8",
+    windowMs: 15 * 60 * 1000,
 });
 
-module.exports = transporter;
+router.use(pageLimiter);
+
+router.use("/", require("./admin.js"));
+router.use("/", require("./contests.js"));
+router.use("/", require("./home.js"));
+router.use("/", require("./problems.js"));
+router.use("/", require("./user.js"));
