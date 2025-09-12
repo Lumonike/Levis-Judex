@@ -22,6 +22,7 @@
 const express = require("express");
 const validator = require("validator");
 
+const models = require("../models.js");
 const { Problem } = require("../models.js");
 
 /**
@@ -37,7 +38,7 @@ module.exports = router;
  * @function
  * @memberof module:api/problems
  * @param {string} req.query.id problem ID
- * @returns {ProblemModel} Problem as JSON, or error message
+ * @returns {models.ProblemType} Problem as JSON, or error message
  */
 router.get("/get-problem", async (req, res) => {
     const id = req.query.id;

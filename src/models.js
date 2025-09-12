@@ -21,23 +21,33 @@
  */
 
 /**
+ * @typedef {Object} ResultType
+ * @memberof module:models
+ * @property {string} status
+ * @property {string} mem
+ * @property {string} time
+ */
+
+/**
  * Properties of User model
- * @typedef {Object} UserModel
+ * @typedef {Object} UserType
+ * @memberof module:models
  * @property {string} email
  * @property {string} password encrypted
  * @property {boolean} [verified=false]
  * @property {string} verificationToken
  * @property {string} resetToken
  * @property {string} possibleNewPassword
- * @property {Object.<string, any>} results a map with the problems to the results
- * @property {Object.<string, any>} code a map with the problems to the code
+ * @property {Map<string, ResultType[]>} results a map with the problems to the results
+ * @property {Map<string, string>} code a map with the problems to the code
  * @property {boolean} [admin=false]
  * @memberof module:models
  */
 
 /**
  * Properties of Problem model
- * @typedef {Object} ProblemModel
+ * @typedef {Object} ProblemType
+ * @memberof module:models
  * @property {string} id didn't know _id existed, CANNOT HAVE COLONS
  * @property {string} name
  * @property {string} problemStatement
@@ -52,10 +62,11 @@
 
 /**
  * Properties of Contest model
- * @typedef {Object} ContestModel
+ * @typedef {Object} ContestType
+ * @memberof module:models
  * @property {string} id - didn't know _id existed
  * @property {string} name
- * @property {ProblemModel[]} problems
+ * @property {ProblemType[]} problems
  * @property {Date} startTime
  * @property {Date} endTime
  * @memberof module:models
@@ -63,42 +74,69 @@
 
 const mongoose = require("mongoose");
 
+/**
+ * User model
+ * @memberof module:models
+ * @type {mongoose.Model<UserType>}
+ */
 const User = mongoose.model(
     "User",
     new mongoose.Schema({
         admin: { default: false, type: Boolean },
-        code: { default: {}, type: Object },
+        code: { default: new Map(), of: String, type: Map },
         email: String,
         password: String,
         possibleNewPassword: String,
         resetToken: String,
-        results: { default: {}, type: Object },
+        results: {
+            default: new Map(),
+            of: [
+                {
+                    _id: false,
+                    mem: { required: true, type: String },
+                    status: { required: true, type: String },
+                    time: { required: true, type: String },
+                },
+            ],
+            type: Map,
+        },
         verificationToken: String,
         verified: { default: false, type: Boolean },
     }),
 );
 
-const ProblemSchema = new mongoose.Schema({
-    contestID: { default: null, type: String }, // null if not a contest problem
-    id: String, // in case we want to do stuff like 5B like codeforces. CANNOT HAVE COLONS
-    inputFormat: String,
-    inputTestcases: [String],
-    name: String,
-    numSampleTestcases: Number,
-    outputFormat: String,
-    outputTestcases: [String],
-    problemStatement: String,
-});
+/**
+ * Problem model
+ * @memberof module:models
+ * @type {mongoose.Model<ProblemType>}
+ */
+const Problem = mongoose.model(
+    "Problem",
+    new mongoose.Schema({
+        contestID: { default: null, type: String }, // null if not a contest problem
+        id: String, // in case we want to do stuff like 5B like codeforces. CANNOT HAVE COLONS
+        inputFormat: String,
+        inputTestcases: [String],
+        name: String,
+        numSampleTestcases: Number,
+        outputFormat: String,
+        outputTestcases: [String],
+        problemStatement: String,
+    }),
+);
 
-const Problem = mongoose.model("Problem", ProblemSchema);
-
+/**
+ * Contest model
+ * @memberof module:models
+ * @type {mongoose.Model<ContestType>}
+ */
 const Contest = mongoose.model(
     "Contest",
     new mongoose.Schema({
         endTime: Date,
         id: String,
         name: String,
-        problems: [ProblemSchema],
+        problems: [Problem.schema],
         startTime: Date,
     }),
 );

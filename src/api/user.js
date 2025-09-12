@@ -29,8 +29,8 @@ const jwt = require("jsonwebtoken");
 const validator = require("validator");
 
 const authenticateToken = require("../authenticate.js");
-const judge = require("../judge.js");
 const { User } = require("../models.js");
+const models = require("../models.js");
 const transporter = require("../transporter.js");
 
 /**
@@ -277,7 +277,7 @@ router.post("/get-code", authenticateToken, async (req, res) => {
     if (sanitizedContestID) {
         combinedID = sanitizedContestID.concat(":", sanitizedProblemID);
     }
-    const result = user.code[combinedID];
+    const result = user.code.get(combinedID);
     res.json({ result });
 });
 
@@ -288,7 +288,7 @@ router.post("/get-code", authenticateToken, async (req, res) => {
  * @memberof module:api/user
  * @param {string} req.body.problemID Problem the code was from
  * @param {string | null} req.body.contestID Contest the problem was from, null if not part of contest
- * @returns {Object.<string, judge.Result[]>} The results, accessed through key "result"
+ * @returns {Object.<string, models.ResultType[]>} The results, accessed through key "result"
  */
 router.post("/get-result", authenticateToken, async (req, res) => {
     const { contestID, problemID } = req.body;
@@ -317,7 +317,7 @@ router.post("/get-result", authenticateToken, async (req, res) => {
     if (sanitizedContestID) {
         combinedID = sanitizedContestID.concat(":", sanitizedProblemID);
     }
-    const result = user.results[combinedID];
+    const result = user.results.get(combinedID);
     res.json({ result });
 });
 

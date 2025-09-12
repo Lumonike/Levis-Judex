@@ -20,30 +20,22 @@
  * @module judge
  */
 
-/**
- * @typedef {Object} Result
- * @property {string} status AC, WA, TLE, etc.
- * @property {string} time How many seconds it took
- * @property {string} mem MB of space used
- * @memberof module:judge
- */
-
-/**
- * @typedef {Object} Submission
- * @property {string} code The code submitted
- * @property {models.ProblemModel} problem The problem the code is submitted to
- * @property {number} boxID What box ID the submission is occurring
- * @property {Result[]} results List of results
- * @property {express.Response[] | null} clients Clients to send updates to
- * @memberof module:judge
- */
-
 const { spawn } = require("child_process");
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
 
 const models = require("./models.js");
+
+/**
+ * @typedef {Object} Submission
+ * @property {string} code The code submitted
+ * @property {models.ProblemType} problem The problem the code is submitted to
+ * @property {number} boxID What box ID the submission is occurring
+ * @property {models.ResultType[]} results List of results
+ * @property {express.Response[] | null} clients Clients to send updates to
+ * @memberof module:judge
+ */
 
 let initializedIsolate = false;
 
@@ -96,7 +88,7 @@ const submissions = {};
  * @function
  * @param {string} submissionID
  * @param {string} code
- * @param {models.ProblemModel} problem
+ * @param {models.ProblemType} problem
  */
 module.exports.queueSubmission = (submissionID, code, problem) => {
     submissions[submissionID] = {
@@ -113,7 +105,7 @@ module.exports.queueSubmission = (submissionID, code, problem) => {
  * @memberof module:judge
  * @function
  * @param {string} submissionID Submission ID
- * @returns {Result[]} The results so far
+ * @returns {models.ResultType[]} The results so far
  */
 module.exports.getResults = (submissionID) => {
     if (!submissions[submissionID]) {
@@ -128,7 +120,6 @@ module.exports.getResults = (submissionID) => {
  * @function
  * @param {string} submissionID
  * @param {express.Response} res
- * @returns
  */
 module.exports.addClient = (submissionID, res) => {
     if (submissions[submissionID]) {
@@ -142,7 +133,7 @@ module.exports.addClient = (submissionID, res) => {
  * @function
  * @memberof module:judge
  * @param {string} submissionID
- * @returns {Result} Results of the submission
+ * @returns {models.ResultType} Results of the submission
  */
 module.exports.judge = async (submissionID) => {
     const submission = submissions[submissionID];
@@ -271,9 +262,9 @@ function parseMetafile(submissionDir) {
  * @memberof module:judge
  * @param {number} boxID What box it is
  * @param {string} submissionDir Where the submission is being stored
- * @param {models.ProblemModel} problem The problem
+ * @param {models.ProblemType} problem The problem
  * @param {number} testcase What testcase number it is
- * @returns {Result} What were the results of the code
+ * @returns {models.ResultType} What were the results of the code
  */
 async function runProgram(boxID, submissionDir, problem, testcase) {
     const timeLimit = 4;

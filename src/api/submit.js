@@ -124,9 +124,9 @@ router.post("/", authenticateToken, submissionSlowdown, submissionLimiter, async
     if (sanitizedContestID) {
         combinedID = sanitizedContestID.concat(":", sanitizedProblemID);
     }
-    user.results[combinedID] = result;
+    user.results.set(combinedID, result);
     user.markModified("results"); // if i don't do this, the data won't save
-    user.code[combinedID] = code;
+    user.code.set(combinedID, code);
     user.markModified("code"); // same here
     await user.save();
 });
