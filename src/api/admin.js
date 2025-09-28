@@ -126,6 +126,31 @@ router.post("/get-admin-page", authenticateToken, requireAdmin, (req, res) => {
     res.status(400).json({ message: "Page doesn't exist" });
 });
 
+router.delete("/delete-problem", async (req, res) => {
+    const id = req.query.id;
+
+    if (!id) {
+        return res.status(400).json({ message: "Problem ID is required" });
+    }
+
+    if (typeof id != "string") {
+        return res.status(400).json({ message: "Problem ID must be a string" });
+    }
+
+    const sanitizedId = validator.escape(id.trim());
+
+    try {
+        const problem = await Problem.findOne({ id: sanitizedId });
+        if (problem == null) {
+            return res.status(404).json({ message: "Problem not found" });
+        }
+        await problem.deleteOne();
+        return res.status(200).json({ message: "Successfully deleted problem" });
+    } catch (err) {
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+
 /**
  * Fetches admin page
  * @name POST/api/admin/save-problem

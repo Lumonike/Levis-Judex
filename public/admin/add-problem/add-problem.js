@@ -97,6 +97,27 @@ async function loadProblem() {
     }
 }
 
+async function deleteProblem() {
+    if (!confirm("Are you sure you want to delete this problem?")) {
+        return;
+    }
+    const id = getId("problem-id-search").value.trim();
+    if (!id) return alert("Please enter a problem ID.");
+    try {
+        const res = await fetch(`/api/admin/delete-problem?id=${id}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        alert("Successfully deleted problem");
+    } catch (err) {
+        alert("Failed to delete problem: " + err.message);
+    }
+}
+
 function populateForm(data) {
     getId("id").value = data.id;
     getId("name").value = data.name;
@@ -217,6 +238,11 @@ function setupEventListeners() {
     const loadProblemButton = document.getElementById("load-problem-button");
     if (loadProblemButton) {
         loadProblemButton.addEventListener("click", loadProblem);
+    }
+
+    const deleteProblemButton = document.getElementById("delete-problem-button");
+    if (deleteProblemButton) {
+        deleteProblemButton.addEventListener("click", deleteProblem);
     }
 
     const problemForm = document.getElementById("problem-form");
