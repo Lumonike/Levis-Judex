@@ -106,9 +106,6 @@ async function deleteProblem() {
     try {
         const res = await fetch(`/api/admin/delete-problem?id=${id}`, {
             method: "DELETE",
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-            },
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
@@ -217,12 +214,10 @@ async function submitProblem(event) {
     // console.log(problem);
 
     try {
-        const token = localStorage.getItem("authToken");
         const res = await fetch(`/api/admin/save-problem`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(problem),
         });

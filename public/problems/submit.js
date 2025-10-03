@@ -33,7 +33,6 @@ export async function submitCode(code, problemID, contestID) {
     await fetch(`/api/submit`, {
         method: "POST",
         headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({ code, problemID, contestID }),

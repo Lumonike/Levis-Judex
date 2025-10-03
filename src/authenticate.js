@@ -31,7 +31,7 @@ const jwt = require("jsonwebtoken");
  * @returns 403 if invalid token, otherwise calls next
  */
 function authenticateToken(req, res, next) {
-    const token = req.headers["authorization"]?.split(" ")[1]; // The token is usually passed as Bearer <token>
+    const token = req.cookies.authToken;
     if (!token) {
         return res.status(403).json({ error: "Access denied. No token provided." });
     }

@@ -21,6 +21,7 @@
 
 require("dotenv").config();
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const express = require("express");
 const expressLayouts = require("express-ejs-layouts");
@@ -122,6 +123,8 @@ app.use(
 
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+
+app.use(cookieParser());
 
 mongoose
     .connect(process.env.MONGO_URI)

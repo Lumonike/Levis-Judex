@@ -166,7 +166,24 @@ router.post("/login", loginLimiter, async (req, res) => {
     if (!user.verified) return res.status(400).json({ error: "Please verify your email first" });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "48h" });
-    res.json({ success: true, token });
+    res.cookie("authToken", token, {
+        httpOnly: true,
+        maxAge: 48 * 60 * 60 * 1000,
+        sameSite: "strict",
+        secure: true,
+    });
+    res.json({ success: true });
+});
+
+/**
+ * Logs out user
+ * @name POST/api/user/logout
+ * @function
+ * @memberof module:api/user
+ */
+router.post("/logout", (req, res) => {
+    res.clearCookie("authToken");
+    res.json({ message: "Logged out" });
 });
 
 const resetPasswordLimiter = rateLimit({
@@ -323,11 +340,11 @@ router.post("/get-result", authenticateToken, async (req, res) => {
 
 /**
  * Checks if a token is valid
- * @name POST/api/user/valid-token
+ * @name GET/api/user/valid-token
  * @function
  * @memberof module:api/user
  * @returns status code
  */
-router.post("/valid-token", authenticateToken, async (req, res) => {
+router.get("/valid-token", authenticateToken, async (req, res) => {
     return res.status(200).json({ success: "Token is valid" });
 });

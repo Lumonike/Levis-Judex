@@ -15,12 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-function setAdmin(email, status, token) {
+function setAdmin(email, status) {
     fetch("/api/admin/set-admin-status", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ email, status }),
     })
@@ -46,8 +45,7 @@ function setupButtons() {
 
         const email = document.getElementById("user-to-add").value;
         const status = true;
-        const token = localStorage.getItem("authToken");
-        setAdmin(email, status, token);
+        setAdmin(email, status);
     });
 
     removeButton.addEventListener("click", (event) => {
@@ -55,8 +53,7 @@ function setupButtons() {
 
         const email = document.getElementById("user-to-remove").value;
         const status = false;
-        const token = localStorage.getItem("authToken");
-        setAdmin(email, status, token);
+        setAdmin(email, status);
     });
 }
 

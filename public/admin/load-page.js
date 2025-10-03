@@ -16,8 +16,8 @@
  */
 
 async function loadAdminHTML() {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
+    const validToken = (await fetch("/api/user/valid-token")).ok;
+    if (!validToken) {
         window.location.href = "/login";
         return;
     }
@@ -31,7 +31,6 @@ async function loadAdminHTML() {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ folder }),
     });

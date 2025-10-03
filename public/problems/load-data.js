@@ -21,7 +21,6 @@ export async function fetchLastCode(problemID, contestID, editor) {
     fetch(`/api/user/get-code`, {
         method: "POST",
         headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({ problemID, contestID }),
@@ -38,7 +37,6 @@ export async function displayPastResults(problemID, contestID) {
     fetch(`/api/user/get-result`, {
         method: "POST",
         headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({ problemID, contestID }),

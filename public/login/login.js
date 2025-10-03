@@ -39,8 +39,6 @@ document.addEventListener("DOMContentLoaded", function () {
             .then((response) => response.json())
             .then((data) => {
                 if (data.success) {
-                    const token = data.token;
-                    localStorage.setItem("authToken", token);
                     window.location.href = "/";
                 } else {
                     alert("Invalid credentials. Please try again.");

@@ -65,21 +65,15 @@
         const authTokenContainer = document.getElementById('auth-token-container');
 
         let isLoggedIn = false;
-        const authToken = localStorage.getItem('authToken');
-        if (authToken) {
-            const response = await fetch("/api/user/valid-token", {
-                method: "POST",
-                headers: { 
-                    "Authorization": `Bearer ${localStorage.getItem("authToken")}`,
-                    "Content-Type": "application/json"
-                }
-            });
-            console.log(response);
-            if (response.ok) {
-                isLoggedIn = true;
-            } else {
-                localStorage.removeItem('authToken');
+        const response = await fetch("/api/user/valid-token", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json"
             }
+        });
+        console.log(response);
+        if (response.ok) {
+            isLoggedIn = true;
         }
 
         if (isLoggedIn) {
@@ -95,8 +89,10 @@
     document.addEventListener('DOMContentLoaded', function() {
         const logoutButton = document.getElementById('logout-button');
         if (logoutButton) {
-            logoutButton.addEventListener('click', function() {
-                localStorage.removeItem('authToken');
+            logoutButton.addEventListener('click', async function() {
+                await fetch("/api/user/logout", {
+                    method: "POST",
+                });
                 location.reload();
             });
         }
