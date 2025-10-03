@@ -26,6 +26,7 @@ const path = require("path");
 const validator = require("validator");
 
 const authenticateToken = require("../authenticate.js");
+const { requireAdmin } = require("../authorize.js");
 const { Problem, User } = require("../models.js");
 
 /**
@@ -34,23 +35,6 @@ const { Problem, User } = require("../models.js");
  */
 const router = express.Router();
 module.exports = router;
-
-/**
- * Ensures user is admin
- * @memberof module:api/admin
- * @param {express.Request} req
- * @param {express.Response} res
- * @param {express.NextFunction} next
- * @returns 403 error if not admin, otherwise calls next
- */
-async function requireAdmin(req, res, next) {
-    const user = await User.findById(req.user.id);
-    if (user.admin) {
-        next();
-    } else {
-        res.status(403).json("Invalid access");
-    }
-}
 
 /**
  * Sets the admin status

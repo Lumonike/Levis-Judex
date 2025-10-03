@@ -77,7 +77,7 @@ app.use(
         contentSecurityPolicy: {
             directives: {
                 baseUri: ["'self'"],
-                connectSrc: ["'self'"],
+                connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
                 defaultSrc: ["'self'"],
                 fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
                 formAction: ["'self'"],

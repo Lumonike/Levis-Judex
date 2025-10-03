@@ -22,6 +22,9 @@
 
 const express = require("express");
 
+const authenticateToken = require("../authenticate.js");
+const { requireAdmin } = require("../authorize.js");
+
 /**
  * Router for admin pages
  * @memberof module:pages/admin
@@ -36,27 +39,57 @@ module.exports = router;
  * @memberof module:pages/admin
  * @returns HTML page
  */
-router.get("/admin", (req, res) => {
-    res.render("admin/admin-base", {
+router.get("/admin", authenticateToken, requireAdmin, (req, res) => {
+    res.render("admin/admin", {
         backArrow: { href: "/", text: "Back to Home" },
-        head: `<script src="/admin/load-page.js"></script>`,
         mainSection: { centered: true },
         title: "Admin",
     });
 });
 
 /**
- * Basic admin page
- * @name GET/:target
+ * Add admin admin page
+ * @name GET/
  * @function
  * @memberof module:pages/admin
  * @returns HTML page
  */
-router.get("/admin/:target", (req, res) => {
-    res.render("admin/admin-base", {
+router.get("/admin/add-admin", authenticateToken, requireAdmin, (req, res) => {
+    res.render("admin/add-admin", {
         backArrow: { href: "/admin", text: "Back to Admin" },
-        head: `<script src="/admin/load-page.js"></script>`,
+        head: `<script src="/admin/add-admin/add-admin.js" defer></script>`,
         mainSection: { centered: true },
-        title: "Admin",
+        title: "Add Admin",
+    });
+});
+
+/**
+ * Add problem page for admins
+ * @name GET/
+ * @function
+ * @memberof module:pages/admin
+ * @returns HTML page
+ */
+router.get("/admin/add-problem", authenticateToken, requireAdmin, (req, res) => {
+    res.render("admin/add-problem", {
+        backArrow: { href: "/admin", text: "Back to Admin" },
+        head: `<script src="/admin/add-problem/add-problem.js" defer></script>`,
+        mainSection: { centered: true },
+        title: "Add Problem",
+    });
+});
+
+/**
+ * Add contests page for admins
+ * @name GET/
+ * @function
+ * @memberof module:pages/admin
+ * @returns HTML page
+ */
+router.get("/admin/add-contest", authenticateToken, requireAdmin, (req, res) => {
+    res.render("admin/add-contest", {
+        backArrow: { href: "/admin", text: "Back to Admin" },
+        mainSection: { centered: true },
+        title: "Add Contest",
     });
 });
