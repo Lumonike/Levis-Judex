@@ -6,3 +6,4 @@ docs/
 .env
 problem_maker
 .vscode/
+dist/
