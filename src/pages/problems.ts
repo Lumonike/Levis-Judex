@@ -16,9 +16,8 @@
  */
 
 import express from "express";
-import fs from "fs";
-import path from "path";
 
+import { problemMiddleware } from "../middleware/problem.js";
 import { Problem } from "../models.js";
 
 /**
@@ -27,18 +26,9 @@ import { Problem } from "../models.js";
 const router = express.Router();
 export default router;
 
-router.get("/problems/:target", async (req, res) => {
-    const target = req.params.target;
-    const targetPath = path.join(__dirname, "..", "public", "problems", target);
-    // send files if they exist
-    if (fs.existsSync(targetPath)) {
-        if (fs.statSync(targetPath).isFile()) {
-            res.sendFile(targetPath);
-            return;
-        }
-    }
-    const problem = await Problem.findOne({ id: target });
-    if (problem == null) {
+router.get("/problems/:problemId", problemMiddleware((req) => req.params.problemId, "redirect"), (req, res) => {
+    const problem = req.problem;
+    if (!problem) {
         // redirect if the file doesn't exist
         res.redirect("/problems");
         return;
@@ -55,6 +45,6 @@ router.get("/problems/:target", async (req, res) => {
 });
 
 router.get("/problems", async (req, res) => {
-    const problems = await Problem.find();
+    const problems = await Problem.find({ isPrivate: { $ne: true } });
     res.render("problems", { problems });
 });

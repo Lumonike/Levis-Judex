@@ -78,6 +78,14 @@
                 </div>
             </div>
 
+            <label for="private-checkbox">Is Private?</label>
+            <input type="checkbox" id="private-checkbox">
+
+            <label for="whitelist" id="whitelist-label" class="hidden text-lg font-semibold text-white mb-2 block">Whitelist (comma separated)</label>
+            <input id="whitelist" type="text" 
+                class="hidden w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-gray-500 border border-gray-500 transition-all duration-200" 
+                placeholder="(e.g. ZhongXina@1234.com, example@example.com)">
+
             <!-- Submit Button -->
             <div class="text-center pt-6">
                 <%- include("../partials/button", { small: true, text: "Save Problem", id: "" }) %>

@@ -17,7 +17,7 @@
 
 import { NextFunction, Request, Response } from "express";
 
-import { User } from "./models";
+import { User } from "../models";
 
 export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
     if (!req.user) {

@@ -17,8 +17,8 @@
 
 import express from "express";
 
-import authenticateToken from "../authenticate.js";
-import { requireAdmin } from "../authorize.js";
+import authenticateToken from "../middleware/authenticate.js";
+import { requireAdmin } from "../middleware/authorize.js";
 
 /**
  * Router for admin pages

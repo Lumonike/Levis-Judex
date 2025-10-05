@@ -16,9 +16,8 @@
  */
 
 import express from "express";
-import validator from "validator";
 
-import { Problem } from "../models";
+import { problemMiddleware } from "../middleware/problem";
 
 /**
  * Problem Router
@@ -30,27 +29,9 @@ export default router;
  * @swagger
  * TODO
  */
-router.get("/get-problem", async (req, res) => {
-    const id = req.query.id;
-
-    if (!id) {
-        return res.status(400).json({ message: "Problem ID is required" });
+router.get("/get-problem", problemMiddleware((req) => req.query.id as string), (req, res) => {
+    if (!req.problem) {
+        return res.status(404).json({ error: "Couldn't get problem" });
     }
-
-    if (typeof id !== "string") {
-        return res.status(400).json({ message: "Problem ID must be a string" });
-    }
-
-    const sanitizedId = validator.escape(id.trim());
-
-    try {
-        const problem = await Problem.findOne({ id: sanitizedId });
-        if (problem == null) {
-            return res.status(404).json({ message: "Problem not found" });
-        }
-        res.json(problem);
-    } catch (error) {
-        console.error("Error fetching problem:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
+    return res.json(req.problem);
 });

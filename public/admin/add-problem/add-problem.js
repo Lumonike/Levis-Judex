@@ -181,6 +181,24 @@ function loadTestcaseFromFile(event, type) {
     };
 }
 
+function toggleWhitelist() {
+    const whitelistLabel = document.getElementById("whitelist-label");
+    const whitelist = document.getElementById("whitelist");
+
+    if (!whitelistLabel || !whitelist) {
+        return;
+    }
+
+    if (whitelist.className.indexOf("hidden") !== -1) {
+        whitelist.classList.remove("hidden");
+        whitelistLabel.classList.remove("hidden");
+    } else {
+        whitelist.classList.add("hidden");
+        whitelistLabel.classList.add("hidden");
+        whitelist.value = "";
+    }
+}
+
 async function submitProblem(event) {
     event.preventDefault();
 
@@ -191,7 +209,8 @@ async function submitProblem(event) {
     const outputFormat = outputFormatContainer.root.innerHTML;
     const numTestcases = parseInt(getId("num-testcases").value.trim());
     const numSampleTestcases = parseInt(getId("num-sample-testcases").value.trim());
-    // const contestID = $("contest-id").value.trim() || null;
+    const isPrivate = getId("private-checkbox").checked;
+    const whitelist = isPrivate ? getId("whitelist").value.replace(" ", "").split(",") : [];
     const contestID = null;
 
     inputTestcases.length = numTestcases;
@@ -209,6 +228,8 @@ async function submitProblem(event) {
         inputTestcases,
         outputTestcases,
         contestID,
+        isPrivate,
+        whitelist,
     };
 
     // console.log(problem);
@@ -228,6 +249,7 @@ async function submitProblem(event) {
         alert("Error: " + err.message);
     }
 }
+
 
 function setupEventListeners() {
     const loadProblemButton = document.getElementById("load-problem-button");
@@ -275,5 +297,13 @@ function setupEventListeners() {
     }
     if (outputFileUpload) {
         outputFileUpload.addEventListener("change", (event) => loadTestcaseFromFile(event, "output"));
+    }
+
+    const privateCheckbox = document.getElementById("private-checkbox");
+    if (privateCheckbox) {
+        if (privateCheckbox.checked) {
+            toggleWhitelist();
+        }
+        privateCheckbox.addEventListener("click", toggleWhitelist);
     }
 }

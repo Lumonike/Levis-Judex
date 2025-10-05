@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { Types } from "mongoose";
+
 /**
  * Contest interface
  * @remarks used for mongoose stuff
@@ -45,6 +47,8 @@ export interface IProblem {
     inputFormat: string;
     /** Input testcases */
     inputTestcases: string[];
+    /** Is the problem private */
+    isPrivate?: boolean;
     /** problem name */
     name: string;
     /** Number of sample testcases */
@@ -55,6 +59,8 @@ export interface IProblem {
     outputTestcases: string[];
     /** Describes the problem */
     problemStatement: string;
+    /** Whitelist if the problem is private */
+    whitelist?: Types.ObjectId[];
 }
 
 /**

@@ -21,7 +21,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 export default function authenticateToken(req: Request, res: Response, next: NextFunction): void {
     const token: unknown = req.cookies.authToken;
     if (typeof token !== "string") {
-        res.status(403).json({ error: "Invalid token" });
+        res.status(403).json({ error: "Invalid token, try logging in again" });
         return;
     }
     if (!token) {

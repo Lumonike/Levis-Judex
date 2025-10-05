@@ -60,11 +60,13 @@ export const Problem = mongoose.model<IProblem>(
         id: { required: true, type: String }, // in case we want to do stuff like 5B like codeforces. CANNOT HAVE COLONS
         inputFormat: { required: true, type: String },
         inputTestcases: { required: true, type: [String] },
+        isPrivate: Boolean,
         name: { required: true, type: String },
         numSampleTestcases: { required: true, type: Number },
         outputFormat: { required: true, type: String },
         outputTestcases: { required: true, type: [String] },
         problemStatement: { required: true, type: String },
+        whitelist: [{ ref: "User", type: mongoose.Types.ObjectId }],
     }),
 );
 

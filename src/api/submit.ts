@@ -21,9 +21,10 @@ import { rateLimit } from "express-rate-limit";
 import { slowDown } from "express-slow-down";
 import validator from "validator";
 
-import authenticateToken from "../authenticate";
 import * as judge from "../judge";
-import { Contest, Problem, User } from "../models";
+import authenticateToken from "../middleware/authenticate";
+import { submitMiddleware } from "../middleware/problem";
+import { Contest, User } from "../models";
 import { ApiError } from "../types/api";
 
 /**
@@ -59,6 +60,11 @@ router.post(
     authenticateToken,
     submissionSlowdown,
     submissionLimiter,
+    submitMiddleware((req: Request<unknown, unknown, { problemID: string }>) => {
+        const problemID = req.body.problemID;
+        if (typeof problemID == "string") return problemID;
+        return undefined;
+    }),
     async (req: Request<unknown, ApiError, { code: string; contestID?: string; problemID?: string }>, res: Response) => {
         const { code, contestID, problemID } = req.body;
 
@@ -82,7 +88,6 @@ router.post(
             return res.status(400).json({ error: "Code cannot be empty" });
         }
 
-        const sanitizedProblemID = validator.escape(problemID.trim());
         const sanitizedContestID = contestID ? validator.escape(contestID.trim()) : null;
 
         const user = await User.findById(req.user?.id);
@@ -92,7 +97,7 @@ router.post(
 
         let problem = null;
         if (!sanitizedContestID) {
-            problem = await Problem.findOne({ id: sanitizedProblemID });
+            problem = req.problem ?? null;
         } else {
             const contest = await Contest.findOne({ id: sanitizedContestID });
             if (!contest) {
@@ -104,7 +109,7 @@ router.post(
             } else if (now >= contest.endTime) {
                 return res.status(400).json({ error: "Contest has already ended!" });
             }
-            problem = contest.problems.find((problem) => problem.id === sanitizedProblemID);
+            problem = contest.problems.find((problem) => problem.id === problemID);
         }
         if (!problem) {
             return res.status(400).json({ error: "Invalid Problem!" });
@@ -116,9 +121,9 @@ router.post(
 
         const result = await judge.judge(submissionID);
 
-        let combinedID = sanitizedProblemID;
+        let combinedID = problemID;
         if (sanitizedContestID) {
-            combinedID = sanitizedContestID.concat(":", sanitizedProblemID);
+            combinedID = sanitizedContestID.concat(":", problemID);
         }
         user.results.set(combinedID, result);
         user.markModified("results"); // if i don't do this, the data won't save

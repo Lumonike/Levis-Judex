@@ -116,14 +116,6 @@ mongoose
 
 app.use(express.static(path.join(__dirname, "..", "public")));
 
-app.use("/", (req, res, next) => {
-    if (req.url.endsWith(".html")) {
-        res.redirect(req.url.slice(0, -"index.html".length));
-        return;
-    }
-    next();
-});
-
 app.use(pageRouter);
 app.use(apiRouter);
 

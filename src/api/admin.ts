@@ -16,12 +16,11 @@
  */
 
 import express, { Request, Response } from "express";
-import fs from "fs";
-import path from "path";
+import { Types } from "mongoose";
 import validator from "validator";
 
-import authenticateToken from "../authenticate";
-import { requireAdmin } from "../authorize";
+import authenticateToken from "../middleware/authenticate";
+import { requireAdmin } from "../middleware/authorize";
 import { Problem, User } from "../models";
 import { ApiError, ApiMessage, ApiSuccess } from "../types/api";
 import { IProblem } from "../types/models";
@@ -69,42 +68,6 @@ router.post(
 );
 
 /**
- * Fetches admin page
- * @swagger
- * TODO
- */
-router.post("/get-admin-page", authenticateToken, requireAdmin, (req: Request<unknown, ApiMessage, { folder: string }>, res: Response) => {
-    const { folder } = req.body;
-
-    if (!folder || typeof folder !== "string") {
-        return res.status(400).json({ message: "Invalid folder parameter" });
-    }
-
-    const sanitizedFolder = validator.escape(folder.trim());
-    if (!/^[a-zA-Z0-9_-]+$/.test(sanitizedFolder)) {
-        return res.status(400).json({ message: "Invalid folder name" });
-    }
-
-    const filePath = path.join(__dirname, "..", "..", "views", "admin", `${sanitizedFolder}.ejs`);
-
-    const expectedDir = path.join(__dirname, "..", "..", "views", "admin");
-    if (!filePath.startsWith(expectedDir)) {
-        return res.status(400).json({ message: "Invalid path" });
-    }
-
-    if (fs.existsSync(filePath)) {
-        res.render(`admin/${sanitizedFolder}`, {
-            backArrow: sanitizedFolder != "admin" ? { href: "/admin", text: "Back to Admin" } : { href: "/", text: "Back to Home" },
-            head: `<script src="${sanitizedFolder}.js" defer></script>`,
-            mainSection: { centered: true },
-            title: "Admin",
-        });
-        return;
-    }
-    res.status(400).json({ message: "Page doesn't exist" });
-});
-
-/**
  * @swagger
  * TODO
  */
@@ -139,7 +102,7 @@ router.delete("/delete-problem", async (req, res) => {
  * @swagger
  * TODO
  */
-router.post("/save-problem", authenticateToken, requireAdmin, async (req: Request<unknown, ApiMessage, IProblem>, res: Response) => {
+router.post("/save-problem", authenticateToken, requireAdmin, async (req: Request<unknown, ApiMessage, Omit<IProblem, "whitelist"> & { whitelist?: (string | Types.ObjectId)[] }>, res: Response) => {
     const update = { ...req.body };
 
     if (!update.id || typeof update.id !== "string") {
@@ -183,6 +146,32 @@ router.post("/save-problem", authenticateToken, requireAdmin, async (req: Reques
     if (update.contestID && typeof update.contestID !== "string") {
         return res.status(400).json({ message: "Contest ID must be a string" });
     }
+
+    if (typeof update.isPrivate == "undefined" || !update.isPrivate) {
+        update.isPrivate = false;
+        update.whitelist = [];
+    } else if (!Array.isArray(update.whitelist) || !update.whitelist.every((email) => typeof email === "string" && validator.isEmail(email))) {
+        return res.status(400).json({ message: "Invalid whitelist" });
+    }
+
+    update.whitelist ??= [];
+
+    for (let i = update.whitelist.length - 1; i >= 0; i--) {
+        const email = update.whitelist[i];
+        if (typeof email !== "string") {
+            update.whitelist.splice(i, 1);
+            continue;
+        }
+        const normalizedEmail = validator.normalizeEmail(email);
+        const userId = (await User.findOne({ email: normalizedEmail }).select("_id"))?._id;
+        if (userId) {
+            update.whitelist[i] = userId;
+        } else {
+            update.whitelist.splice(i, 1);
+        }
+    }
+
+    // console.log(update);
 
     try {
         const response = await Problem.findOneAndUpdate({ id: update.id }, update, {
