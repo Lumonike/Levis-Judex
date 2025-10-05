@@ -23,14 +23,14 @@ import authenticateToken from "./authenticate";
 
 export function problemMiddleware(getProblemId: (req: Request) => string | undefined, action?: "redirect") {
     return async (req: Request, res: Response, next: NextFunction) => {
-        const problem: IProblem | null = await Problem.findOne({ id: getProblemId(req) });
+        const problem: IProblem | null = await Problem.findOne({ id: getProblemId(req) }).lean();
 
-        if (!problem) { 
+        if (!problem) {
             if (action == "redirect") {
                 res.redirect("/problems");
                 return;
             }
-            return res.status(404).json({ error: "Not found" }); 
+            return res.status(404).json({ error: "Not found" });
         }
 
         req.problem = problem;
@@ -79,7 +79,7 @@ export function problemMiddleware(getProblemId: (req: Request) => string | undef
                 res.status(403).json({ error: "Unauthorized" });
             })(err);
         });
-    }
+    };
 }
 
 export function submitMiddleware(getProblemId: (req: Request) => string | undefined) {
@@ -87,7 +87,7 @@ export function submitMiddleware(getProblemId: (req: Request) => string | undefi
         const problem: IProblem | null = await Problem.findOne({ id: getProblemId(req) });
 
         if (!problem) {
-            return res.status(404).json({ error: "Not found" }); 
+            return res.status(404).json({ error: "Not found" });
         }
 
         req.problem = problem;
@@ -112,5 +112,5 @@ export function submitMiddleware(getProblemId: (req: Request) => string | undefi
             return;
         }
         res.status(403).json({ error: "Unauthorized" });
-    }
+    };
 }

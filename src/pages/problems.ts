@@ -26,23 +26,27 @@ import { Problem } from "../models.js";
 const router = express.Router();
 export default router;
 
-router.get("/problems/:problemId", problemMiddleware((req) => req.params.problemId, "redirect"), (req, res) => {
-    const problem = req.problem;
-    if (!problem) {
-        // redirect if the file doesn't exist
-        res.redirect("/problems");
-        return;
-    }
+router.get(
+    "/problems/:problemId",
+    problemMiddleware((req) => req.params.problemId, "redirect"),
+    (req, res) => {
+        const problem = req.problem;
+        if (!problem) {
+            // redirect if the file doesn't exist
+            res.redirect("/problems");
+            return;
+        }
 
-    res.render("problem", {
-        backArrow: { href: "/problems", text: "Back to Problem List" },
-        head: `<script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+        res.render("problem", {
+            backArrow: { href: "/problems", text: "Back to Problem List" },
+            head: `<script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
                <script type="module" src="/problems/problem-script.js" defer></script>
                <link rel="stylesheet" href="/problems/problem-style.css"></link>`,
-        problem,
-        title: problem.name,
-    });
-});
+            problem,
+            title: problem.name,
+        });
+    },
+);
 
 router.get("/problems", async (req, res) => {
     const problems = await Problem.find({ isPrivate: { $ne: true } });

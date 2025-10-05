@@ -124,6 +124,19 @@ function populateForm(data) {
     outputFormatContainer.clipboard.dangerouslyPasteHTML(data.outputFormat);
     getId("num-testcases").value = data.inputTestcases.length;
     getId("num-sample-testcases").value = data.numSampleTestcases;
+    const privateCheckbox = getId("private-checkbox");
+    privateCheckbox.checked = data.isPrivate;
+    const whitelistLabel = document.getElementById("whitelist-label");
+    const whitelist = document.getElementById("whitelist");
+    if (privateCheckbox.checked) {
+        whitelist.classList.remove("hidden");
+        whitelistLabel.classList.remove("hidden");
+        whitelist.value = data.whitelist.join(", ");
+    } else {
+        whitelist.classList.add("hidden");
+        whitelistLabel.classList.add("hidden");
+        whitelist.value = "";
+    }
 
     inputTestcases = [...data.inputTestcases];
     outputTestcases = [...data.outputTestcases];
@@ -249,7 +262,6 @@ async function submitProblem(event) {
         alert("Error: " + err.message);
     }
 }
-
 
 function setupEventListeners() {
     const loadProblemButton = document.getElementById("load-problem-button");

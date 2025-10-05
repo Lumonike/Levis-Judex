@@ -16,8 +16,11 @@
  */
 
 import express from "express";
+import { Types } from "mongoose";
 
 import { problemMiddleware } from "../middleware/problem";
+import { User } from "../models";
+import { IProblem } from "../types/models";
 
 /**
  * Problem Router
@@ -29,9 +32,34 @@ export default router;
  * @swagger
  * TODO
  */
-router.get("/get-problem", problemMiddleware((req) => req.query.id as string), (req, res) => {
-    if (!req.problem) {
-        return res.status(404).json({ error: "Couldn't get problem" });
-    }
-    return res.json(req.problem);
-});
+router.get(
+    "/get-problem",
+    problemMiddleware((req) => req.query.id as string),
+    async (req, res) => {
+        if (!req.problem) {
+            return res.status(404).json({ error: "Couldn't get problem" });
+        }
+
+        const problem: Omit<IProblem, "whitelist"> & { whitelist?: (string | Types.ObjectId)[] } = req.problem;
+        problem.whitelist ??= [] as string[];
+
+        if (!req.user) {
+            problem.whitelist = [] as string[];
+        } else {
+            const isAdmin = (await User.findById(req.user.id).select("admin"))?.admin ?? false;
+            if (!isAdmin) {
+                problem.whitelist = [] as string[];
+            } else {
+                for (let i = problem.whitelist.length - 1; i >= 0; i--) {
+                    const userEmail = (await User.findById(problem.whitelist[i]).select("email"))?.email;
+                    if (!userEmail) {
+                        problem.whitelist.splice(i, 1);
+                        continue;
+                    }
+                    problem.whitelist[i] = userEmail;
+                }
+            }
+        }
+        return res.json(problem);
+    },
+);

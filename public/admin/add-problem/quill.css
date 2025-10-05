@@ -18,7 +18,7 @@
 .ql-container {
     width: 100%;
     border-radius: 0.5rem;
-    background-color: #4B5563;
+    background-color: #4b5563;
     outline: none !important;
     border: none !important;
     box-shadow: none;
@@ -33,7 +33,7 @@
     font-size: 1.125rem;
     padding: 0.5rem;
     border-radius: 0.5rem;
-    background-color: #4B5563;
+    background-color: #4b5563;
     color: #d1d5db;
     outline: none;
     font-weight: 400;
@@ -47,7 +47,7 @@
 
 .ql-toolbar {
     border-radius: 0.5rem;
-    background-color: #4B5563;
+    background-color: #4b5563;
     outline: none !important;
     border: none !important;
     margin-bottom: 3px;
