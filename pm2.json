@@ -1,7 +1,7 @@
 {
     "apps": [
         {
-            "name": "code-joint-course",
+            "name": "online-judge",
             "script": "npm",
             "args": "start",
             "watch": ["src"],
