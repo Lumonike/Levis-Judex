@@ -15,30 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * Admin pages
- * @module pages/admin
- */
+import express from "express";
 
-const express = require("express");
-
-const authenticateToken = require("../authenticate.js");
-const { requireAdmin } = require("../authorize.js");
+import authenticateToken from "../authenticate.js";
+import { requireAdmin } from "../authorize.js";
 
 /**
  * Router for admin pages
- * @memberof module:pages/admin
  */
 const router = express.Router();
-module.exports = router;
+export default router;
 
-/**
- * Basic admin page
- * @name GET/
- * @function
- * @memberof module:pages/admin
- * @returns HTML page
- */
 router.get("/admin", authenticateToken, requireAdmin, (req, res) => {
     res.render("admin/admin", {
         backArrow: { href: "/", text: "Back to Home" },
@@ -47,13 +34,6 @@ router.get("/admin", authenticateToken, requireAdmin, (req, res) => {
     });
 });
 
-/**
- * Add admin admin page
- * @name GET/
- * @function
- * @memberof module:pages/admin
- * @returns HTML page
- */
 router.get("/admin/add-admin", authenticateToken, requireAdmin, (req, res) => {
     res.render("admin/add-admin", {
         backArrow: { href: "/admin", text: "Back to Admin" },
@@ -63,13 +43,6 @@ router.get("/admin/add-admin", authenticateToken, requireAdmin, (req, res) => {
     });
 });
 
-/**
- * Add problem page for admins
- * @name GET/
- * @function
- * @memberof module:pages/admin
- * @returns HTML page
- */
 router.get("/admin/add-problem", authenticateToken, requireAdmin, (req, res) => {
     res.render("admin/add-problem", {
         backArrow: { href: "/admin", text: "Back to Admin" },
@@ -79,13 +52,6 @@ router.get("/admin/add-problem", authenticateToken, requireAdmin, (req, res) => 
     });
 });
 
-/**
- * Add contests page for admins
- * @name GET/
- * @function
- * @memberof module:pages/admin
- * @returns HTML page
- */
 router.get("/admin/add-contest", authenticateToken, requireAdmin, (req, res) => {
     res.render("admin/add-contest", {
         backArrow: { href: "/admin", text: "Back to Admin" },

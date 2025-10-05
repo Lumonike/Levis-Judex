@@ -15,28 +15,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/** Main module
- * @module server
- */
+import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
+import expressLayouts from "express-ejs-layouts";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import mongoose from "mongoose";
+import path from "path";
 
-require("dotenv").config();
-const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
-const cors = require("cors");
-const express = require("express");
-const expressLayouts = require("express-ejs-layouts");
-const rateLimit = require("express-rate-limit");
-const helmet = require("helmet");
-const mongoose = require("mongoose");
-const path = require("path");
+import apiRouter from "./api/router";
+import pageRouter from "./pages/router";
 
-/**
- * App
- * @memberof module:server
- */
 const app = express();
+const port = process.env.PORT ?? "3000";
 
-function parseTrustProxy(value) {
+function parseTrustProxy(value: string | undefined): boolean | number {
     if (value === undefined) return true;
     if (value === "true") return true;
     if (value === "false") return false;
@@ -54,22 +49,6 @@ app.set("trust proxy", trustProxy);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "..", "views"));
 app.use(expressLayouts);
-
-// Add security helpers to EJS
-app.locals.escapeHtml = (text) => {
-    if (typeof text !== "string") return text;
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#x27;")
-        .replace(/\//g, "&#x2F;");
-};
-
-app.locals.safeJson = (obj) => {
-    return JSON.stringify(obj).replace(/</g, "\\u003c");
-};
 
 // Security middleware
 app.use(
@@ -111,7 +90,7 @@ const generalLimiter = rateLimit({
 
 app.use(generalLimiter);
 
-const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
 const allowedOrigins = [baseUrl];
 
 app.use(
@@ -127,24 +106,27 @@ app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
 mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() => console.log("✅ MongoDB Connected"))
-    .catch((err) => console.error("MongoDB Connection Error:", err));
+    .connect(process.env.MONGO_URI ?? "mongodb://localhost:27017/authdb")
+    .then(() => {
+        console.log("✅ MongoDB Connected");
+    })
+    .catch((err: unknown) => {
+        console.error("MongoDB Connection Error:", err);
+    });
 
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.use("/", (req, res, next) => {
     if (req.url.endsWith(".html")) {
-        return res.redirect(req.url.slice(0, -"index.html".length));
+        res.redirect(req.url.slice(0, -"index.html".length));
+        return;
     }
     next();
 });
 
-app.use("/", require("./pages"));
-app.use("/api", require("./api"));
+app.use(pageRouter);
+app.use(apiRouter);
 
-app.use((req, res) => {
-    res.status(404).json({ error: "Not found" });
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
-
-app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));

@@ -15,29 +15,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * @module authorize
- */
+import { NextFunction, Request, Response } from "express";
 
-const express = require("express");
+import { User } from "./models";
 
-const { User } = require("./models.js");
-
-/**
- * Ensures user is admin
- * @memberof module:authorize
- * @param {express.Request} req
- * @param {express.Response} res
- * @param {express.NextFunction} next
- * @returns 403 error if not admin, otherwise calls next
- */
-async function requireAdmin(req, res, next) {
+export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    if (!req.user) {
+        res.status(403).json("Undefined user");
+        return;
+    }
     const user = await User.findById(req.user.id);
+    if (!user) {
+        res.status(403).json("Undefined user");
+        return;
+    }
     if (user.admin) {
         next();
     } else {
         res.status(403).json("Invalid access");
     }
 }
-
-module.exports = { requireAdmin };

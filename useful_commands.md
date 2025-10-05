@@ -12,16 +12,16 @@ systemctl start isolate
 ## pm2
 
 start server:
-`sudo pm2 start ecosystem.config.js`
+`pm2 start pm2.json`
 
 stop server:
-`sudo pm2 stop ecosystem.config.js`
+`pm2 stop pm2.json`
 
 reload server:
-`sudo pm2 reload ecosystem.config.js`
+`pm2 reload pm2.json`
 
 check status:
-`sudo pm2 status`
+`pm2 status`
 
 ---
 
@@ -37,13 +37,13 @@ restore from backup:
 `mongorestore --nsInclude="authdb.*" --drop ./backup`
 
 get collections:  
-`show collections`  
+`show collections`
 
 get users:  
 `db.users.find()`
 
 delete user:  
-`db.users.deleteOne({ email: "user@example.com" })`  
+`db.users.deleteOne({ email: "user@example.com" })`
 
 delete all users:  
 `db.users.deleteMany({});`
@@ -57,7 +57,7 @@ Same stuff from above applies to problems and contests: just replace `users` wit
 
 ## run server to see debug console in terminal
 
-`sudo npm start`
+`sudo npm dev`
 
 ---
 

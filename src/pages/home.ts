@@ -15,26 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * Home page
- * @memberof module:pages
- * @module pages/home
- */
-
-const express = require("express");
+import express from "express";
 
 /**
  * Router for home page
  */
 const router = express.Router();
-module.exports = router;
+export default router;
 
-/**
- * Renders home page
- * @name GET/
- * @function
- * @returns Html for home page
- */
 router.get("/", (req, res) => {
     res.render("home", { mainSection: { centered: true } });
 });

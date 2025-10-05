@@ -15,57 +15,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * Routing for contests
- * @module pages/contests
- */
+import express from "express";
+import fs from "fs";
+import path from "path";
 
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-
-const { Contest } = require("../models.js");
+import { Contest } from "../models.js";
+import { IContest, IProblem } from "../types/models.js";
 
 /**
  * Contests Router
- * @memberof module:pages/contests
  */
 const router = express.Router();
-module.exports = router;
+export default router;
 
-/**
- * Gets HTML file that lists contests
- * @name GET/contests
- * @function
- * @memberof module:pages/contests
- * @returns HTML file
- */
 router.get("/contests", async (req, res) => {
     const contests = await Contest.find();
     res.render("contests", { contests });
 });
 
-/**
- * Gets the contest page of a contest
- * @name GET/contests/:target
- * @function
- * @memberof module:pages/contests
- * @param {string} req.params.target What contest to get, sometimes might be a file though so it may also return a file
- * @returns HTML file
- */
 router.get("/contests/:target", async (req, res) => {
     const target = req.params.target;
     const targetPath = path.join(__dirname, "..", "public", "contests", target);
     // send files if they exist
     if (fs.existsSync(targetPath)) {
         if (fs.statSync(targetPath).isFile()) {
-            return res.sendFile(targetPath);
+            res.sendFile(targetPath);
+            return;
         }
     }
     const contest = await Contest.findOne({ id: target });
     if (!contest) {
         // redirect if the file doesn't exist
-        return res.redirect("/contests");
+        res.redirect("/contests");
+        return;
     }
 
     res.render("contest", {
@@ -75,48 +57,44 @@ router.get("/contests/:target", async (req, res) => {
     });
 });
 
-/**
- * Gets the HTML for a problem of a contest, will prevent access if contest hasn't started/ended
- * @name GET/contests/:contestID/:problemID
- * @function
- * @memberof module:pages/contests
- * @param {string} req.params.contestID What contest the problem is in
- * @param {string} req.params.problemID What problem it is
- * @returns HTML file
- */
 router.get("/contests/:contestID/:problemID", async (req, res) => {
     const { contestID, problemID } = req.params;
     const contestDir = path.join(__dirname, "..", "public", "contests", contestID);
     if (fs.existsSync(path.join(contestDir, problemID))) {
         if (fs.statSync(path.join(contestDir, problemID)).isFile()) {
-            return res.sendFile(path.join(contestDir, problemID));
+            res.sendFile(path.join(contestDir, problemID));
+            return;
         }
     }
-    const contest = await Contest.findOne({ id: contestID });
+    const contest: IContest | null = await Contest.findOne({ id: contestID });
     if (!contest) {
-        return res.redirect("/contests");
+        res.redirect("/contests");
+        return;
     }
-    const problem = contest.problems.find((problem) => problem.id == problemID);
-    if (!problem) {
-        return res.redirect("../");
+    const problem: IProblem | null | undefined = contest.problems.find((problem) => problem.id == problemID);
+    if (!problem?.contestID) {
+        res.redirect("../");
+        return;
     }
     const now = new Date();
 
     // Check if contest is active
     if (now < contest.startTime) {
-        return res.render("contest-unavailable", {
+        res.render("contest-unavailable", {
             contestID: contest.id,
             reason: { text: `The contest is scheduled to start at ${contest.startTime.toLocaleString()}`, title: "Contest Not Started" },
             title: "Contest Not Started",
         });
+        return;
     } else if (now >= contest.endTime) {
-        return res.render("contest-unavailable", {
+        res.render("contest-unavailable", {
             contestID: contest.id,
             reason: { text: `The contest ended on ${contest.endTime.toLocaleString()}`, title: "Contest Ended" },
             title: "Contest Ended",
         });
+        return;
     } else {
-        return res.render("problem", {
+        res.render("problem", {
             backArrow: { href: `/contests/${problem.contestID}`, text: "Back to Contest" },
             head: `<script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
                    <script type="module" src="/problems/problem-script.js" defer></script>
@@ -124,5 +102,6 @@ router.get("/contests/:contestID/:problemID", async (req, res) => {
             problem,
             title: problem.name,
         });
+        return;
     }
 });

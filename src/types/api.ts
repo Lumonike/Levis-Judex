@@ -15,34 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * Web page rendering
- * @module pages
- */
+/** Api error object */
+export interface ApiError {
+    /** message */
+    error: string;
+}
 
-const express = require("express");
-const { rateLimit } = require("express-rate-limit");
+/** message object */
+export interface ApiMessage {
+    /** message */
+    message: string;
+}
 
-/**
- * Pages router
- * @name router
- * @memberof module:pages
- */
-const router = express.Router();
-module.exports = router;
-
-const pageLimiter = rateLimit({
-    legacyHeaders: false,
-    limit: 5000,
-    message: { error: "Too many page requests! Rate limit exceeded." },
-    standardHeaders: "draft-8",
-    windowMs: 15 * 60 * 1000,
-});
-
-router.use(pageLimiter);
-
-router.use("/", require("./admin.js"));
-router.use("/", require("./contests.js"));
-router.use("/", require("./home.js"));
-router.use("/", require("./problems.js"));
-router.use("/", require("./user.js"));
+/** Success object */
+export interface ApiSuccess {
+    /** success message */
+    success: string;
+}

@@ -15,30 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * @module api/problems
- */
+import express from "express";
+import validator from "validator";
 
-const express = require("express");
-const validator = require("validator");
-
-const models = require("../models.js");
-const { Problem } = require("../models.js");
+import { Problem } from "../models";
 
 /**
  * Problem Router
- * @memberof module:api/problems
  */
 const router = express.Router();
-module.exports = router;
+export default router;
 
 /**
- * Returns json of problem
- * @name GET/api/problems/get-problem
- * @function
- * @memberof module:api/problems
- * @param {string} req.query.id problem ID
- * @returns {models.ProblemType} Problem as JSON, or error message
+ * @swagger
+ * TODO
  */
 router.get("/get-problem", async (req, res) => {
     const id = req.query.id;

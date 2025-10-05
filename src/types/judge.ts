@@ -15,24 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * @module transporter
- */
+import { Response } from "express";
 
-const nodemailer = require("nodemailer");
+import { IProblem, IResult } from "./models";
 
-/**
- * Nodemailer transporter
- * @memberof module:transporter
- */
-const transporter = nodemailer.createTransport({
-    auth: {
-        pass: process.env.EMAIL_PASS,
-        user: process.env.EMAIL_USER,
-    },
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // true for 465, false for 587
-});
-
-module.exports = transporter;
+/** submission interface */
+export interface JudgeSubmission {
+    boxID: number;
+    clients?: null | Response[];
+    code: string;
+    problem: IProblem;
+    results: IResult[];
+}

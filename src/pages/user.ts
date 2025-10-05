@@ -15,21 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * User routing
- * @module pages/user
- */
+import express from "express";
 
-const express = require("express");
-
-const { User } = require("../models.js");
+import { User } from "../models.js";
 
 /**
  * User pages router
- * @memberof module:pages/user
  */
 const router = express.Router();
-module.exports = router;
+export default router;
 
 router.get("/register", (req, res) => {
     res.render("register", {
@@ -39,32 +33,21 @@ router.get("/register", (req, res) => {
         title: "Register",
     });
 });
-/**
- * Verifies a user
- * @name GET/verify/:token
- * @function
- * @memberof module:pages/user
- * @param {string} req.params.token Verification token
- * @returns Html that confirms user has been verified
- */
+
 router.get("/verify/:token", async (req, res) => {
     const user = await User.findOne({ verificationToken: req.params.token });
-    if (!user) return res.render("verify", { success: false });
+    if (!user) {
+        res.render("verify", { success: false });
+        return;
+    }
 
     user.verified = true;
-    user.verificationToken = null;
+    user.verificationToken = undefined;
     await user.save();
 
     res.render("verify", { success: true });
 });
 
-/**
- * Login page
- * @name GET/login
- * @function
- * @memberof module:pages/user
- * @returns html page
- */
 router.get("/login", (req, res) => {
     res.render("login", {
         backArrow: { href: "/", text: "Back to home" },
@@ -73,13 +56,7 @@ router.get("/login", (req, res) => {
         title: "Login",
     });
 });
-/**
- * Sends html page for /forgot-password
- * @name GET/forgot-password
- * @function
- * @memberof module:pages/user
- * @returns Html page
- */
+
 router.get("/forgot-password", (req, res) => {
     res.render("forgot-password", {
         backArrow: { href: "/", text: "Back to home" },
@@ -88,21 +65,17 @@ router.get("/forgot-password", (req, res) => {
         title: "Reset Password",
     });
 });
-/**
- * Resets the user's password. TODO: fix this system lmao
- * @name GET/reset/:token
- * @function
- * @memberof module:pages/user
- * @param {string} req.params.token  User's reset token
- * @returns Html confirming password has been reset
- */
+
+// TODO fix this system lol
 router.get("/reset/:token", async (req, res) => {
     const user = await User.findOne({ resetToken: req.params.token });
     if (!user) return res.status(400).json({ error: "Invalid token" });
 
+    if (!user.possibleNewPassword) return res.status(400).json({ error: "Invalid new password" });
+
     user.password = user.possibleNewPassword;
-    user.resetToken = null;
-    user.possibleNewPassword = null;
+    user.resetToken = undefined;
+    user.possibleNewPassword = undefined;
     await user.save();
 
     // res.json({ message: `Email verified! You can now log in. Login: ${process.env.BASE_URL}/login` });

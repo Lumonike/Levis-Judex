@@ -15,135 +15,67 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * Module for judging code
- * @module judge
- */
+import { spawn } from "child_process";
+import { Response } from "express";
+import fs from "fs";
+import path from "path";
 
-const { spawn } = require("child_process");
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-
-const models = require("./models.js");
-
-/**
- * @typedef {Object} Submission
- * @property {string} code The code submitted
- * @property {models.ProblemType} problem The problem the code is submitted to
- * @property {number} boxID What box ID the submission is occurring
- * @property {models.ResultType[]} results List of results
- * @property {express.Response[] | null} clients Clients to send updates to
- * @memberof module:judge
- */
+import { JudgeSubmission } from "./types/judge";
+import { IProblem, IResult } from "./types/models";
 
 let initializedIsolate = false;
 
-/**
- * Number of isolate boxes
- * @private
- * @type {number}
- * @readonly
- * @memberof module:judge
- */
 const numBoxes = 5;
 
 /**
  * Maximum number of testcases a problem can have
- * @name maxTestcases
- * @type {number}
- * @readonly
- * @memberof module:judge
  */
-module.exports.maxTestcases = 50;
+export const maxTestcases = 50;
+
+const boxPaths = new Array<string>(numBoxes);
+
+const availableBoxes = new Array<number>(numBoxes).fill(0).map((_, index) => index);
+
+const submissions: Record<string, JudgeSubmission | undefined> = {};
 
 /**
- * Paths of all the isolate boxes
- * @private
- * @type {string[]}
- * @memberof module:judge
+ * Adds client to watch submission
+ * @param submissionID Id of submission
+ * @param res client
  */
-const boxPaths = new Array(numBoxes);
+export function addClient(submissionID: string, res: Response) {
+    if (submissions[submissionID]?.clients) {
+        submissions[submissionID].clients.push(res);
+    }
+}
 
 /**
- * Available isolate boxes
- * @private
- * @type {number[]}
- * @memberof module:judge
+ * Gets results of submission
+ * @param submissionID Submission ID
+ * @returns The results so far
  */
-const availableBoxes = new Array(numBoxes).fill(0).map((_, index) => index);
-
-/**
- * Get submission by submission id
- * @name submissions
- * @type {Object<string, Submission>}
- * @memberof module:judge
- */
-const submissions = {};
-
-/**
- * Saves a submission to be judged
- * @name queueSubmission
- * @memberof module:judge
- * @function
- * @param {string} submissionID
- * @param {string} code
- * @param {models.ProblemType} problem
- */
-module.exports.queueSubmission = (submissionID, code, problem) => {
-    submissions[submissionID] = {
-        boxID: -1,
-        clients: [],
-        code,
-        problem,
-        results: [],
-    };
-};
-
-/**
- * @name getResults
- * @memberof module:judge
- * @function
- * @param {string} submissionID Submission ID
- * @returns {models.ResultType[]} The results so far
- */
-module.exports.getResults = (submissionID) => {
+export function getResults(submissionID: string): IResult[] {
     if (!submissions[submissionID]) {
         return [];
     }
     return submissions[submissionID].results;
-};
-
-/**
- * @name addClient
- * @memberof module:judge
- * @function
- * @param {string} submissionID
- * @param {express.Response} res
- */
-module.exports.addClient = (submissionID, res) => {
-    if (submissions[submissionID]) {
-        submissions[submissionID].clients.push(res);
-    }
-};
+}
 
 /**
  * Judges a code submission to a problem
- * @name judge
- * @function
- * @memberof module:judge
- * @param {string} submissionID
- * @returns {models.ResultType} Results of the submission
+ * @param submissionID id of submission
+ * @returns Results of the submission
  */
-module.exports.judge = async (submissionID) => {
+export async function judge(submissionID: string): Promise<IResult[]> {
     const submission = submissions[submissionID];
     if (!submission) {
-        return ["Invalid submission ID!"];
+        return [{ mem: "...", status: "RTE", time: "..." }];
     }
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
         const getBoxID = setInterval(() => {
             if (availableBoxes.length > 0) {
-                submission.boxID = availableBoxes.pop();
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                submission.boxID = availableBoxes.pop()!;
                 clearInterval(getBoxID);
                 resolve();
             }
@@ -175,26 +107,43 @@ module.exports.judge = async (submissionID) => {
 
     for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
         results.push({ mem: "...", status: `...`, time: "..." });
-        for (const client of submission.clients) {
+        for (const client of submission.clients ?? []) {
             client.write(`data: ${JSON.stringify(submission.results)}\n\n`);
         }
         results[testcase] = await runProgram(boxID, submissionDir, problem, testcase);
-        for (const client of submission.clients) {
+        for (const client of submission.clients ?? []) {
             client.write(`data: ${JSON.stringify(submission.results)}\n\n`);
         }
     }
 
     const finalResults = [...results];
-    for (const client of submission.clients) {
+    for (const client of submission.clients ?? []) {
         client.write(`event: done\ndata: ${JSON.stringify(finalResults)}\n\n`);
     }
 
     // cleanup
     availableBoxes.push(boxID);
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete submissions[submissionID];
 
     return finalResults;
-};
+}
+
+/**
+ * Saves a submission to be judged
+ * @param submissionID Id of submission
+ * @param code Code of submission
+ * @param problem Problem being submitted
+ */
+export function queueSubmission(submissionID: string, code: string, problem: IProblem) {
+    submissions[submissionID] = {
+        boxID: -1,
+        clients: [],
+        code,
+        problem,
+        results: [],
+    };
+}
 
 /**
  * @private
@@ -206,7 +155,7 @@ async function closeIsolate() {
     const promises = new Array(numBoxes).fill(0).map(
         (_, boxID) =>
             new Promise((resolve) => {
-                spawn(`isolate`, [`--cg`, `--box-id=${boxID}`, `--cleanup`]).on("close", resolve);
+                spawn(`isolate`, [`--cg`, `--box-id=${boxID.toString()}`, `--cleanup`]).on("close", resolve);
             }),
     );
     await Promise.all(promises);
@@ -223,9 +172,9 @@ async function initIsolate() {
     const promises = new Array(numBoxes).fill(0).map(
         (_, boxID) =>
             new Promise((resolve) => {
-                const child = spawn(`isolate`, [`--cg`, `--box-id=${boxID}`, `--init`]);
-                child.stdout.on("data", (data) => {
-                    let stdout = data.toString();
+                const child = spawn(`isolate`, [`--cg`, `--box-id=${boxID.toString()}`, `--init`]);
+                child.stdout.on("data", (data: Buffer) => {
+                    const stdout = data.toString();
                     boxPaths[boxID] = `${stdout.trim()}/box/`;
                 });
                 child.on("close", resolve);
@@ -238,14 +187,13 @@ async function initIsolate() {
 /**
  * Parses the metafile of the program we ran in isolate
  * @private
- * @memberof module:judge
- * @param {string} submissionDir - where the metafile is
- * @returns {Object<string, string>} Metafile as a map
+ * @param submissionDir - where the metafile is
+ * @returns Metafile as a map
  */
-function parseMetafile(submissionDir) {
+function parseMetafile(submissionDir: string): Record<string, string | undefined> {
     try {
         const metadataArr = fs.readFileSync(path.join(submissionDir, "meta.txt")).toString().split(":").join("\n").split("\n");
-        const metadata = {};
+        const metadata: Record<string, string | undefined> = {};
         for (let i = 0; i < metadataArr.length - 2 /*ignore last two characters*/; i += 2) {
             metadata[metadataArr[i]] = metadataArr[i + 1];
         }
@@ -259,14 +207,13 @@ function parseMetafile(submissionDir) {
 /**
  * Runs the code inside a box and compares the results to the testcase
  * @private
- * @memberof module:judge
- * @param {number} boxID What box it is
- * @param {string} submissionDir Where the submission is being stored
- * @param {models.ProblemType} problem The problem
- * @param {number} testcase What testcase number it is
- * @returns {models.ResultType} What were the results of the code
+ * @param boxID What box it is
+ * @param submissionDir Where the submission is being stored
+ * @param problem The problem
+ * @param testcase What testcase number it is
+ * @returns What were the results of the code
  */
-async function runProgram(boxID, submissionDir, problem, testcase) {
+async function runProgram(boxID: number, submissionDir: string, problem: IProblem, testcase: number): Promise<IResult> {
     const timeLimit = 4;
     const timeWall = 2 * timeLimit; // used to prevent sleeping
     const memLimit = 256 * 1024; // 256 MB is the USACO limit. could lower to allow more control groups
@@ -274,10 +221,10 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
         `--cg`,
         `--dir=${submissionDir}`,
         `--meta=${path.join(submissionDir, "meta.txt")}`,
-        `--time=${timeLimit}`,
-        `--wall-time=${timeWall}`,
-        `--cg-mem=${memLimit}`,
-        `--box-id=${boxID}`,
+        `--time=${timeLimit.toString()}`,
+        `--wall-time=${timeWall.toString()}`,
+        `--cg-mem=${memLimit.toString()}`,
+        `--box-id=${boxID.toString()}`,
         `--run`,
         `--`,
         `/bin/python3`,
@@ -285,12 +232,13 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
         `code.py`,
     ];
     const expected = problem.outputTestcases[testcase].trim();
-    let result = { mem: "", status: "", time: "" };
-    const checkOutput = (stdout) => {
+    const result: IResult = { mem: "", status: "...", time: "" };
+
+    const checkOutput = (stdout: string) => {
         const metadata = parseMetafile(submissionDir);
         if (metadata.status == "TO") {
             result.status = "TLE";
-        } else if (metadata["exitsig"] == 9) {
+        } else if (metadata.exitsig == "9") {
             // exit signal 9 is memory limit exceeded i think
             result.status = "MLE";
         } else if (metadata.status != undefined) {
@@ -298,17 +246,19 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
         } else {
             result.status = stdout.trim() == expected ? "AC" : "WA";
         }
-        result.time = `${metadata.time}s`;
-        result.mem = `${(metadata["max-rss"] / 1024.0).toFixed(2)} MB`;
+        result.time = `${metadata.time ?? "0"}s`;
+        result.mem = `${(parseInt(metadata["max-rss"] ?? "0") / 1024.0).toFixed(2)} MB`;
     };
     try {
-        await new Promise(async (resolve) => {
+        await new Promise<void>((resolve) => {
             const child = spawn(`isolate`, args);
             child.stdin.write(problem.inputTestcases[testcase]);
             child.stdin.end();
-            child.on("error", (err) => console.error(err));
+            child.on("error", (err) => {
+                console.error(err);
+            });
             let stdout = "";
-            child.stdout.on("data", (data) => (stdout += data.toString()));
+            child.stdout.on("data", (data: Buffer) => (stdout += data.toString()));
             child.on("close", () => {
                 checkOutput(stdout);
                 resolve();
@@ -320,12 +270,14 @@ async function runProgram(boxID, submissionDir, problem, testcase) {
     return result;
 }
 
-process.on("SIGINT", async () => {
-    await closeIsolate();
-    process.exit(0);
+process.on("SIGINT", () => {
+    void closeIsolate().then(() => {
+        process.exit(0);
+    });
 });
 
-process.on("SIGTERM", async () => {
-    await closeIsolate();
-    process.exit(0);
+process.on("SIGTERM", () => {
+    void closeIsolate().then(() => {
+        process.exit(0);
+    });
 });

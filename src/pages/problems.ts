@@ -15,43 +15,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * @module pages/problems
- */
+import express from "express";
+import fs from "fs";
+import path from "path";
 
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-
-const { Problem } = require("../models.js");
+import { Problem } from "../models.js";
 
 /**
  * Problem Router
- * @memberof module:pages/problems
  */
 const router = express.Router();
-module.exports = router;
+export default router;
 
-/**
- * Sends HTML of a problem
- * @name GET/problems/:target
- * @function
- * @memberof module:pages/problems
- * @returns HTML file
- */
 router.get("/problems/:target", async (req, res) => {
     const target = req.params.target;
     const targetPath = path.join(__dirname, "..", "public", "problems", target);
     // send files if they exist
     if (fs.existsSync(targetPath)) {
         if (fs.statSync(targetPath).isFile()) {
-            return res.sendFile(targetPath);
+            res.sendFile(targetPath);
+            return;
         }
     }
     const problem = await Problem.findOne({ id: target });
     if (problem == null) {
         // redirect if the file doesn't exist
-        return res.redirect("/problems");
+        res.redirect("/problems");
+        return;
     }
 
     res.render("problem", {
@@ -64,13 +54,6 @@ router.get("/problems/:target", async (req, res) => {
     });
 });
 
-/**
- * Sends HTML of the list of problems
- * @name GET/problems
- * @function
- * @memberof module:pages/problems
- * @returns HTML file
- */
 router.get("/problems", async (req, res) => {
     const problems = await Problem.find();
     res.render("problems", { problems });
