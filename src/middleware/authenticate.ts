@@ -64,7 +64,8 @@ export function authenticateTokenOptional(req: Request, res: Response, next: Nex
         try {
             const user = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
             req.user = user;
-        } finally {
+            next();
+        } catch {
             next();
         }
     } else {
