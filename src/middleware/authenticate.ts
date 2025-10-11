@@ -18,7 +18,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 
-export default function authenticateToken(req: Request, res: Response, next: NextFunction): void {
+export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
     const token: unknown = req.cookies.authToken;
     if (typeof token !== "string") {
         res.status(403).json({ error: "Invalid token, try logging in again" });
@@ -41,5 +41,33 @@ export default function authenticateToken(req: Request, res: Response, next: Nex
         res.status(500).json({ error: "Internal server error." });
         console.error("JWT_SECRET not defined!");
         return;
+    }
+}
+
+/**
+ * authenticate token if possible, but not required
+ * @param req
+ * @param res
+ * @param next
+ */
+export function authenticateTokenOptional(req: Request, res: Response, next: NextFunction): void {
+    const token: unknown = req.cookies.authToken;
+    if (typeof token !== "string") {
+        next();
+        return;
+    }
+    if (!token) {
+        next();
+        return;
+    }
+    if (typeof process.env.JWT_SECRET === "string") {
+        try {
+            const user = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
+            req.user = user;
+        } finally {
+            next();
+        }
+    } else {
+        next();
     }
 }

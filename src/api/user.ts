@@ -28,7 +28,7 @@ import { rateLimit } from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 
-import authenticateToken from "../middleware/authenticate";
+import { authenticateToken } from "../middleware/authenticate";
 import { User } from "../models";
 import { transporter } from "../transporter";
 import { ApiError, ApiMessage, ApiSuccess } from "../types/api";

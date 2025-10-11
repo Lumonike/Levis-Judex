@@ -19,7 +19,7 @@ import express, { Request, Response } from "express";
 import { Types } from "mongoose";
 import validator from "validator";
 
-import authenticateToken from "../middleware/authenticate";
+import { authenticateToken } from "../middleware/authenticate";
 import { requireAdmin } from "../middleware/authorize";
 import { Problem, User } from "../models";
 import { ApiError, ApiMessage, ApiSuccess } from "../types/api";

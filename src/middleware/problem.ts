@@ -19,7 +19,7 @@ import { NextFunction, Request, Response } from "express";
 
 import { Problem, User } from "../models";
 import { IProblem } from "../types/models";
-import authenticateToken from "./authenticate";
+import { authenticateToken } from "./authenticate";
 
 export function problemMiddleware(getProblemId: (req: Request) => string | undefined, action?: "redirect") {
     return async (req: Request, res: Response, next: NextFunction) => {

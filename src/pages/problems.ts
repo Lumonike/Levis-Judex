@@ -16,9 +16,11 @@
  */
 
 import express from "express";
+import { FilterQuery } from "mongoose";
 
+import { authenticateTokenOptional } from "../middleware/authenticate.js";
 import { problemMiddleware } from "../middleware/problem.js";
-import { Problem } from "../models.js";
+import { Problem, User } from "../models.js";
 
 /**
  * Problem Router
@@ -48,7 +50,25 @@ router.get(
     },
 );
 
-router.get("/problems", async (req, res) => {
-    const problems = await Problem.find({ isPrivate: { $ne: true } });
+router.get("/problems", authenticateTokenOptional, async (req, res) => {
+    let query: FilterQuery<typeof Problem> = {
+        $or: [
+            { isPrivate: { $ne: true } }, // always include non-private
+        ],
+    };
+
+    if (req.user?.id) {
+        const isAdmin = (await User.findById(req.user.id).select("admin"))?.admin ?? false;
+        if (isAdmin) {
+            query = {};
+        } else {
+            query.$or?.push({
+                isPrivate: true,
+                whitelist: { $in: [req.user.id] }, // include private only if userId is in whitelist
+            });
+        }
+    }
+
+    const problems = await Problem.find(query);
     res.render("problems", { problems });
 });

@@ -22,7 +22,7 @@ import { slowDown } from "express-slow-down";
 import validator from "validator";
 
 import * as judge from "../judge";
-import authenticateToken from "../middleware/authenticate";
+import { authenticateToken } from "../middleware/authenticate";
 import { submitMiddleware } from "../middleware/problem";
 import { Contest, User } from "../models";
 import { ApiError } from "../types/api";
