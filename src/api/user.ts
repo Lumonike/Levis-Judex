@@ -42,7 +42,7 @@ export default router;
 
 const registerLimiter = rateLimit({
     legacyHeaders: false,
-    limit: 3,
+    limit: 10,
     message: { error: "Too many registrations from this IP. Rate limit exceeded" },
     standardHeaders: "draft-8",
     windowMs: 60 * 60 * 1000,
@@ -104,14 +104,14 @@ router.post(
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             subject: `${sanitizedName}: Verify Your Email`,
-            text: `Click here to verify: ${link}\n(Link expires in one minute)`,
+            text: `Click here to verify: ${link}\n(Link expires in ten minutes)`,
             to: sanitizedEmail,
         });
 
         res.json({ message: "Check your email to verify your account!" });
 
-        // delete unverified accounts after a minute
-        await new Promise((resolve) => setTimeout(resolve, 1000 * 60));
+        // delete unverified accounts after 10 minutes
+        await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 10));
         await User.findOne({ email: sanitizedEmail }).then(async (updatedUser) => {
             if (updatedUser && !updatedUser.verified) {
                 console.log("Deleted unverified account");
