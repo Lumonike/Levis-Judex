@@ -223,7 +223,12 @@ async function submitProblem(event) {
     const numTestcases = parseInt(getId("num-testcases").value.trim());
     const numSampleTestcases = parseInt(getId("num-sample-testcases").value.trim());
     const isPrivate = getId("private-checkbox").checked;
-    const whitelist = isPrivate ? getId("whitelist").value.replace(" ", "").split(",") : [];
+    const whitelist = isPrivate
+        ? getId("whitelist")
+              .value.replace(" ", "")
+              .split(",")
+              .filter((value) => value != "")
+        : [];
     const contestID = null;
 
     inputTestcases.length = numTestcases;
