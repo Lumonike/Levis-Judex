@@ -69,6 +69,6 @@ router.get("/problems", authenticateTokenOptional, async (req, res) => {
         }
     }
 
-    const problems = await Problem.find(query);
+    const problems = (await Problem.find(query)).reverse();
     res.render("problems", { problems });
 });
