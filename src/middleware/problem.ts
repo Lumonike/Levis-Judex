@@ -68,7 +68,7 @@ export function problemMiddleware(getProblemId: (req: Request) => string | undef
                     res.status(403).json({ error: "Unauthorized" });
                     return;
                 }
-                if (user.admin || problem.whitelist?.includes(user._id)) {
+                if (user.admin || problem.whitelist?.some((id) => id.equals(user._id))) {
                     next();
                     return;
                 }
