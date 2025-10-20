@@ -42,7 +42,7 @@ export default router;
 
 const registerLimiter = rateLimit({
     legacyHeaders: false,
-    limit: 10,
+    limit: 30,
     message: { error: "Too many registrations from this IP. Rate limit exceeded" },
     standardHeaders: "draft-8",
     windowMs: 60 * 60 * 1000,
@@ -123,7 +123,7 @@ router.post(
 
 const loginLimiter = rateLimit({
     legacyHeaders: false,
-    limit: 10,
+    limit: 60,
     message: { error: "Too many login requests! Rate limit exceeded" },
     standardHeaders: "draft-8",
     windowMs: 15 * 60 * 1000,
