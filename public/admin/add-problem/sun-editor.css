@@ -1,0 +1,105 @@
+.sun-editor {
+    width: 100%;
+    background-color: #4b5563;
+    border: 1px solid #6a7282;
+    border-radius: 0.5rem;
+}
+
+/* Editor content area */
+.sun-editor .se-wrapper {
+    background-color: #4b5563;
+}
+
+.sun-editor .se-wrapper .se-wrapper-inner {
+    background-color: #4b5563;
+}
+
+/* Editor text area */
+.sun-editor .se-wrapper .se-wrapper-inner .se-wrapper-wysiwyg {
+    background-color: #4b5563;
+}
+
+.sun-editor-editable {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    padding: 0.5rem;
+    background-color: #4b5563;
+    color: #d1d5db;
+    font-weight: 400;
+    font-family:
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        Arial,
+        sans-serif;
+    text-align: left !important;
+}
+
+.sun-editor-editable p {
+    margin: 0;
+}
+
+.sun-editor-editable ul {
+    margin-block-start: 0;
+    margin-block-end: 0;
+    margin-left: 2.5rem;
+    margin-inline-start: 0rem;
+}
+
+.sun-editor .se-resizing-bar {
+    background-color: #4b5563 !important;
+    border-top: 1px solid #6a7282;
+}
+
+.sun-editor-editable:focus {
+    background-color: #6b7280;
+    outline: none;
+}
+
+/* Toolbar */
+.sun-editor .se-toolbar {
+    background-color: #4b5563;
+    margin-bottom: 3px;
+    padding: 4px;
+    outline: 1px solid #6a7282;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+/* Toolbar buttons */
+.sun-editor .se-toolbar .se-btn {
+    color: #fff;
+}
+
+.sun-editor .se-toolbar .se-btn:hover {
+    background-color: #6b7280;
+}
+
+.sun-editor .se-toolbar .se-btn-list {
+    border: none;
+}
+
+/* Toolbar SVG icons */
+.sun-editor .se-toolbar .se-svg {
+    fill: #fff;
+}
+
+.sun-editor .se-btn-module-border {
+    border: 1px solid #6a7282;
+}
+
+/* Focus state */
+.sun-editor:focus-within .se-wrapper-wysiwyg {
+    background-color: #6b7280;
+}
+
+/* Ensure all content is left-aligned by default */
+.sun-editor-editable p,
+.sun-editor-editable div,
+.sun-editor-editable span {
+    text-align: left !important;
+}
