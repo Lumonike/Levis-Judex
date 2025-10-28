@@ -52,31 +52,6 @@ sunEditorScript.onload = () => {
                         ["list"],
                         ["subscript", "superscript"],
                         ["link", "math"],
-                        ["lessEqual", "greaterEqual"],
-                    ],
-                    plugins: [
-                        {
-                            name: "lessEqual",
-                            display: "command",
-                            title: "Insert ≤",
-                            buttonClass: "",
-                            innerHTML: '<span style="font-size: 18px;">≤</span>',
-                            add: function (core, targetElement) {},
-                            action: function () {
-                                editor.insertHTML("≤");
-                            },
-                        },
-                        {
-                            name: "greaterEqual",
-                            display: "command",
-                            title: "Insert ≥",
-                            buttonClass: "",
-                            innerHTML: '<span style="font-size: 18px;">≥</span>',
-                            add: function (core, targetElement) {},
-                            action: function () {
-                                editor.insertHTML("≥");
-                            },
-                        },
                     ],
                     katex: katex,
                 });
