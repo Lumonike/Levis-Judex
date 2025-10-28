@@ -30,6 +30,15 @@ const sunEditorScript = document.createElement("script");
 sunEditorScript.src = "https://cdn.jsdelivr.net/npm/suneditor@2.47.8/dist/suneditor.min.js";
 document.head.appendChild(sunEditorScript);
 
+const katexCSS = document.createElement("link");
+katexCSS.rel = "stylesheet";
+katexCSS.href = "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css";
+document.head.appendChild(katexCSS);
+
+const katexScript = document.createElement("script");
+katexScript.src = "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js";
+document.head.appendChild(katexScript);
+
 sunEditorScript.onload = () => {
     const interval = setInterval(() => {
         if (getId("problem-statement") && getId("input-format") && getId("output-format")) {
@@ -42,7 +51,7 @@ sunEditorScript.onload = () => {
                         ["bold", "italic", "underline", "strike"],
                         ["list"],
                         ["subscript", "superscript"],
-                        ["link"],
+                        ["link", "math"],
                         ["lessEqual", "greaterEqual"],
                     ],
                     plugins: [
@@ -70,6 +79,7 @@ sunEditorScript.onload = () => {
                         },
                     ],
                     defaultStyle: "text-align: left;",
+                    katex: katex,
                 });
 
                 window[id + "Container"] = editor;
