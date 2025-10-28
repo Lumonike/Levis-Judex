@@ -78,7 +78,6 @@ sunEditorScript.onload = () => {
                             },
                         },
                     ],
-                    defaultStyle: "text-align: left;",
                     katex: katex,
                 });
 

@@ -100,7 +100,10 @@
         "Helvetica Neue",
         Arial,
         sans-serif;
-    text-align: left !important;
+}
+
+.sun-editor-editable:not(.katex) {
+    text-align: left;
 }
 
 .sun-editor-editable p {
@@ -163,14 +166,10 @@
     border: 1px solid #6a7282;
 }
 
-/* Focus state */
 .sun-editor:focus-within .se-wrapper-wysiwyg {
     background-color: #6b7280;
 }
 
-/* Ensure all content is left-aligned by default */
-.sun-editor-editable p,
-.sun-editor-editable div,
-.sun-editor-editable span {
-    text-align: left !important;
+.sun-editor-editable .katex {
+    text-align: center;
 }
