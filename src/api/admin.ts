@@ -178,12 +178,12 @@ router.post(
         // console.log(update);
 
         try {
-            const response = await Problem.findOneAndUpdate({ id: update.id }, update, {
+            const response: IProblem = await Problem.findOneAndUpdate({ id: update.id }, update, {
                 new: true,
                 setDefaultsOnInsert: true,
                 upsert: true,
             });
-            console.log(response);
+            console.log(`Saved problem ${response.id}`);
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (response) {
                 res.status(200).json({ message: "Successfully updated problem!" });
