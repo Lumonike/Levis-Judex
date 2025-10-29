@@ -50,7 +50,6 @@ sunEditorScript.onload = () => {
                     buttonList: [
                         ["bold", "italic", "underline", "strike"],
                         ["list"],
-                        ["subscript", "superscript"],
                         ["link", "math"],
                     ],
                     katex: katex,
