@@ -181,3 +181,11 @@
         font-size: 8px;
     }
 }
+
+a {
+    color: #2196f3;
+}
+
+a:hover {
+    text-decoration: underline;
+}
