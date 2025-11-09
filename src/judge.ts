@@ -61,6 +61,7 @@ export function getResults(submissionID: string): IResult[] {
     return submissions[submissionID].results;
 }
 
+
 /**
  * Judges a code submission to a problem
  * @param submissionID id of submission
@@ -108,17 +109,41 @@ export async function judge(submissionID: string): Promise<IResult[]> {
     for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
         results.push({ mem: "...", status: `...`, time: "..." });
         for (const client of submission.clients ?? []) {
-            client.write(`data: ${JSON.stringify(submission.results)}\n\n`);
+            const res = client;
+            if (!res.writableEnded && !res.destroyed) {
+                try {
+                    res.write(`data: ${JSON.stringify(submission.results)}\n\n`);
+                } catch (err) {
+                    console.error('SSE write error:', err);
+                    removeClient(submissionID, client);
+                }
+            }
         }
         results[testcase] = await runProgram(boxID, submissionDir, problem, testcase);
         for (const client of submission.clients ?? []) {
-            client.write(`data: ${JSON.stringify(submission.results)}\n\n`);
+            const res = client;
+            if (!res.writableEnded && !res.destroyed) {
+                try {
+                    res.write(`data: ${JSON.stringify(submission.results)}\n\n`);
+                } catch (err) {
+                    console.error('SSE write error:', err);
+                    removeClient(submissionID, client);
+                }
+            }
         }
     }
 
     const finalResults = [...results];
     for (const client of submission.clients ?? []) {
-        client.write(`event: done\ndata: ${JSON.stringify(finalResults)}\n\n`);
+        const res = client;
+        if (!res.writableEnded && !res.destroyed) {
+            try {
+                client.write(`event: done\ndata: ${JSON.stringify(finalResults)}\n\n`);
+            } catch (err) {
+                console.error('SSE write error:', err);
+                removeClient(submissionID, client);
+            }
+        }
     }
 
     // cleanup
@@ -143,6 +168,18 @@ export function queueSubmission(submissionID: string, code: string, problem: IPr
         problem,
         results: [],
     };
+}
+
+/**
+ * Removes client from watching submission
+ * @param submissionID id of submission
+ * @param res client
+ */
+export function removeClient(submissionID: string, res: Response) {
+    const submission = submissions[submissionID];
+    if (!submission?.clients) return;
+
+    submission.clients = submission.clients.filter(c => c !== res);
 }
 
 /**
@@ -252,11 +289,25 @@ async function runProgram(boxID: number, submissionDir: string, problem: IProble
     try {
         await new Promise<void>((resolve) => {
             const child = spawn(`isolate`, args);
-            child.stdin.write(problem.inputTestcases[testcase]);
-            child.stdin.end();
+
+            child.stdin.on("error", (err) => {
+                if ('code' in err && err.code === "EPIPE") {
+                    return;
+                }
+                console.error(err);
+            });
+
             child.on("error", (err) => {
                 console.error(err);
             });
+
+            try {
+                child.stdin.write(problem.inputTestcases[testcase]);
+                child.stdin.end();
+            } catch (err) {
+                console.error('Error writing to isolate stdin:', err);
+            }
+
             let stdout = "";
             child.stdout.on("data", (data: Buffer) => (stdout += data.toString()));
             child.on("close", () => {

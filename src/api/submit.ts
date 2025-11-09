@@ -155,6 +155,15 @@ router.get("/sub-status", (req, res) => {
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
+    res.on('error', (err) => {
+        console.error('SSE connection error:', err.message);
+        judge.removeClient(sanitizedSubmissionID, res);
+    });
+
     judge.addClient(sanitizedSubmissionID, res);
     res.write(`data: ${JSON.stringify(judge.getResults(sanitizedSubmissionID))}\n\n`);
+
+    req.on('close', () => {
+        judge.removeClient(sanitizedSubmissionID, res);
+    });
 });
