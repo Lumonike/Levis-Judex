@@ -19,6 +19,7 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 
+import { sanitizeProblemHtml } from "../lib/sanitize.js";
 import { Contest } from "../models.js";
 import { IContest, IProblem } from "../types/models.js";
 
@@ -99,7 +100,12 @@ router.get("/contests/:contestID/:problemID", async (req, res) => {
             head: `<script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
                    <script type="module" src="/problems/problem-script.js" defer></script>
                    <link rel="stylesheet" href="/problems/problem-style.css"></link>`,
-            problem,
+            problem: {
+                ...problem,
+                inputFormat: sanitizeProblemHtml(problem.inputFormat),
+                outputFormat: sanitizeProblemHtml(problem.outputFormat),
+                problemStatement: sanitizeProblemHtml(problem.problemStatement),
+            },
             title: problem.name,
         });
         return;

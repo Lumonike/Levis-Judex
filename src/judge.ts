@@ -24,6 +24,7 @@ import { JudgeSubmission } from "./types/judge";
 import { IProblem, IResult } from "./types/models";
 
 let initializedIsolate = false;
+let initIsolatePromise: Promise<void> | undefined;
 
 const numBoxes = 5;
 
@@ -61,7 +62,6 @@ export function getResults(submissionID: string): IResult[] {
     return submissions[submissionID].results;
 }
 
-
 /**
  * Judges a code submission to a problem
  * @param submissionID id of submission
@@ -72,86 +72,84 @@ export async function judge(submissionID: string): Promise<IResult[]> {
     if (!submission) {
         return [{ mem: "...", status: "RTE", time: "..." }];
     }
-    await new Promise<void>((resolve) => {
-        const getBoxID = setInterval(() => {
-            if (availableBoxes.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                submission.boxID = availableBoxes.pop()!;
-                clearInterval(getBoxID);
-                resolve();
-            }
-        }, 100);
-    });
 
-    const { boxID, code, problem, results } = submission;
+    const { code, problem, results } = submission;
     // code must be less than 100,000 bytes
     if (code.length > 100000) {
         console.error("Code file too large!");
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete submissions[submissionID];
         return [{ mem: "0 MB", status: "RTE", time: "0s" }];
     }
 
-    const submissionDir = path.join(__dirname, "..", "isolate", boxID.toString());
-    const codeFile = path.join(submissionDir, "code.py");
-
-    if (!initializedIsolate) {
-        await initIsolate();
-        initializedIsolate = true;
-    }
+    let boxID: number | undefined;
 
     try {
+        if (!initializedIsolate) {
+            await ensureIsolateInitialized();
+        }
+
+        boxID = await acquireBox();
+        submission.boxID = boxID;
+
+        const submissionDir = path.join(__dirname, "..", "isolate", boxID.toString());
+        const codeFile = path.join(submissionDir, "code.py");
+
+        fs.mkdirSync(submissionDir, { recursive: true });
         fs.writeFileSync(codeFile, code);
         fs.copyFileSync(codeFile, path.join(boxPaths[boxID], "code.py"));
+
+        for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
+            results.push({ mem: "...", status: `...`, time: "..." });
+            for (const client of submission.clients ?? []) {
+                const res = client;
+                if (!res.writableEnded && !res.destroyed) {
+                    try {
+                        res.write(`data: ${JSON.stringify(submission.results)}\n\n`);
+                    } catch (err) {
+                        console.error("SSE write error:", err);
+                        removeClient(submissionID, client);
+                    }
+                }
+            }
+            results[testcase] = await runProgram(boxID, submissionDir, problem, testcase);
+            for (const client of submission.clients ?? []) {
+                const res = client;
+                if (!res.writableEnded && !res.destroyed) {
+                    try {
+                        res.write(`data: ${JSON.stringify(submission.results)}\n\n`);
+                    } catch (err) {
+                        console.error("SSE write error:", err);
+                        removeClient(submissionID, client);
+                    }
+                }
+            }
+        }
+
+        const finalResults = [...results];
+        for (const client of submission.clients ?? []) {
+            const res = client;
+            if (!res.writableEnded && !res.destroyed) {
+                try {
+                    client.write(`event: done\ndata: ${JSON.stringify(finalResults)}\n\n`);
+                } catch (err) {
+                    console.error("SSE write error:", err);
+                    removeClient(submissionID, client);
+                }
+            }
+        }
+
+        return finalResults;
     } catch (error) {
         console.error("Error writing code file:", error);
         return [{ mem: "0 MB", status: "RTE", time: "0s" }];
-    }
-
-    for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
-        results.push({ mem: "...", status: `...`, time: "..." });
-        for (const client of submission.clients ?? []) {
-            const res = client;
-            if (!res.writableEnded && !res.destroyed) {
-                try {
-                    res.write(`data: ${JSON.stringify(submission.results)}\n\n`);
-                } catch (err) {
-                    console.error('SSE write error:', err);
-                    removeClient(submissionID, client);
-                }
-            }
+    } finally {
+        if (boxID !== undefined) {
+            availableBoxes.push(boxID);
         }
-        results[testcase] = await runProgram(boxID, submissionDir, problem, testcase);
-        for (const client of submission.clients ?? []) {
-            const res = client;
-            if (!res.writableEnded && !res.destroyed) {
-                try {
-                    res.write(`data: ${JSON.stringify(submission.results)}\n\n`);
-                } catch (err) {
-                    console.error('SSE write error:', err);
-                    removeClient(submissionID, client);
-                }
-            }
-        }
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete submissions[submissionID];
     }
-
-    const finalResults = [...results];
-    for (const client of submission.clients ?? []) {
-        const res = client;
-        if (!res.writableEnded && !res.destroyed) {
-            try {
-                client.write(`event: done\ndata: ${JSON.stringify(finalResults)}\n\n`);
-            } catch (err) {
-                console.error('SSE write error:', err);
-                removeClient(submissionID, client);
-            }
-        }
-    }
-
-    // cleanup
-    availableBoxes.push(boxID);
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-    delete submissions[submissionID];
-
-    return finalResults;
 }
 
 /**
@@ -179,7 +177,21 @@ export function removeClient(submissionID: string, res: Response) {
     const submission = submissions[submissionID];
     if (!submission?.clients) return;
 
-    submission.clients = submission.clients.filter(c => c !== res);
+    submission.clients = submission.clients.filter((c) => c !== res);
+}
+
+async function acquireBox(): Promise<number> {
+    return new Promise<number>((resolve) => {
+        const getBoxID = setInterval(() => {
+            if (availableBoxes.length > 0) {
+                const boxID = availableBoxes.pop();
+                if (boxID !== undefined) {
+                    clearInterval(getBoxID);
+                    resolve(boxID);
+                }
+            }
+        }, 100);
+    });
 }
 
 /**
@@ -197,6 +209,13 @@ async function closeIsolate() {
     );
     await Promise.all(promises);
     console.log("Closed Isolate!");
+}
+
+async function ensureIsolateInitialized(): Promise<void> {
+    initIsolatePromise ??= initIsolate().then(() => {
+        initializedIsolate = true;
+    });
+    await initIsolatePromise;
 }
 
 /**
@@ -291,7 +310,7 @@ async function runProgram(boxID: number, submissionDir: string, problem: IProble
             const child = spawn(`isolate`, args);
 
             child.stdin.on("error", (err) => {
-                if ('code' in err && err.code === "EPIPE") {
+                if ("code" in err && err.code === "EPIPE") {
                     return;
                 }
                 console.error(err);
@@ -305,7 +324,7 @@ async function runProgram(boxID: number, submissionDir: string, problem: IProble
                 child.stdin.write(problem.inputTestcases[testcase]);
                 child.stdin.end();
             } catch (err) {
-                console.error('Error writing to isolate stdin:', err);
+                console.error("Error writing to isolate stdin:", err);
             }
 
             let stdout = "";

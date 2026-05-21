@@ -18,6 +18,7 @@
 import express from "express";
 import { FilterQuery } from "mongoose";
 
+import { sanitizeProblemHtml } from "../lib/sanitize.js";
 import { authenticateTokenOptional } from "../middleware/authenticate.js";
 import { problemMiddleware } from "../middleware/problem.js";
 import { Problem, User } from "../models.js";
@@ -45,7 +46,12 @@ router.get(
                <script type="module" src="/problems/problem-script.js" defer></script>
                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" />
                <link rel="stylesheet" href="/problems/problem-style.css" />`,
-            problem,
+            problem: {
+                ...problem,
+                inputFormat: sanitizeProblemHtml(problem.inputFormat),
+                outputFormat: sanitizeProblemHtml(problem.outputFormat),
+                problemStatement: sanitizeProblemHtml(problem.problemStatement),
+            },
             title: problem.name,
         });
     },

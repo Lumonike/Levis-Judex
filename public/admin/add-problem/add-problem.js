@@ -47,11 +47,7 @@ sunEditorScript.onload = () => {
             const editorIds = ["problem-statement", "input-format", "output-format"];
             editorIds.forEach((id) => {
                 const editor = SUNEDITOR.create(getId(id), {
-                    buttonList: [
-                        ["bold", "italic", "underline", "strike"],
-                        ["list"],
-                        ["link", "math"],
-                    ],
+                    buttonList: [["bold", "italic", "underline", "strike"], ["list"], ["link", "math"]],
                     katex: katex,
                 });
 

@@ -35,6 +35,19 @@ export interface IContest {
 }
 
 /**
+ * Password reset token interface
+ * @remarks Tokens are stored as hashes so leaked DB rows cannot reset accounts.
+ */
+export interface IPasswordReset {
+    /** When this reset token expires */
+    expiresAt: Date;
+    /** Hash of the reset token sent to the user */
+    tokenHash: string;
+    /** User requesting the reset */
+    userId: Types.ObjectId;
+}
+
+/**
  * Problem Interface
  * @remarks used for mongoose stuff
  */
@@ -88,14 +101,12 @@ export interface IUser {
     email: string;
     /** encrypted password */
     password: string;
-    /** possible new password when resetting password */
-    possibleNewPassword?: string;
-    /** token to reset password */
-    resetToken?: string;
     /** Map with problemId as the key and points to results */
     results: Map<string, IResult[]>;
     /** token to verify email */
     verificationToken?: string;
+    /** when the verification token expires */
+    verificationTokenExpiresAt?: Date;
     /** has verified email */
     verified?: boolean;
 }

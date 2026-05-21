@@ -21,15 +21,15 @@
  */
 
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import disposableDomains from "disposable-email-domains";
 import express, { Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 
+import { createToken, hashToken } from "../lib/tokens";
 import { authenticateToken } from "../middleware/authenticate";
-import { User } from "../models";
+import { PasswordReset, User } from "../models";
 import { transporter } from "../transporter";
 import { ApiError, ApiMessage, ApiSuccess } from "../types/api";
 import { IResult } from "../types/models";
@@ -93,9 +93,10 @@ router.post(
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const token = crypto.randomBytes(8).toString("base64url");
+        const token = createToken();
+        const verificationTokenExpiresAt = new Date(Date.now() + 1000 * 60 * 10);
 
-        const user = new User({ email: sanitizedEmail, password: hashedPassword, verificationToken: token });
+        const user = new User({ email: sanitizedEmail, password: hashedPassword, verificationToken: token, verificationTokenExpiresAt });
         await user.save();
 
         const baseUrl: string = process.env.BASE_URL ?? "http://localhost:3000";
@@ -109,15 +110,6 @@ router.post(
         });
 
         res.json({ message: "Check your email to verify your account!" });
-
-        // delete unverified accounts after 10 minutes
-        await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 10));
-        await User.findOne({ email: sanitizedEmail }).then(async (updatedUser) => {
-            if (updatedUser && !updatedUser.verified) {
-                console.log("Deleted unverified account");
-                await User.deleteOne({ email: sanitizedEmail });
-            }
-        });
     },
 );
 
@@ -196,68 +188,85 @@ const resetPasswordLimiter = rateLimit({
  * @swagger
  * TODO
  */
+router.post("/reset-password", resetPasswordLimiter, async (req: Request<unknown, ApiError | ApiMessage, { email: string }>, res: Response) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: "Email is required." });
+    }
+
+    if (typeof email !== "string") {
+        return res.status(400).json({ error: "Invalid input types." });
+    }
+
+    const sanitizedEmail = validator.normalizeEmail(email.trim());
+    if (!sanitizedEmail || !validator.isEmail(sanitizedEmail)) {
+        return res.status(400).json({ error: "Invalid email address." });
+    }
+
+    const user = await User.findOne({ email: sanitizedEmail });
+    if (!user) {
+        return res.json({ message: "If that email is registered, a reset link has been sent." });
+    }
+
+    const token = createToken();
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 10);
+
+    await PasswordReset.deleteMany({ userId: user._id });
+    await PasswordReset.create({
+        expiresAt,
+        tokenHash,
+        userId: user._id,
+    });
+
+    const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
+    const link = `${baseUrl}/reset/${token}`;
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        subject: `Reset your password`,
+        text: `If you did NOT request this email, ignore it.\n\nClick here to choose a new password: ${link}\n(Link expires in ten minutes)`,
+        to: sanitizedEmail,
+    });
+
+    res.json({ message: "If that email is registered, a reset link has been sent." });
+});
+
 router.post(
-    "/reset-password",
+    "/complete-reset-password",
     resetPasswordLimiter,
-    async (req: Request<unknown, ApiError | ApiSuccess, { email: string; password: string }>, res: Response) => {
-        const { email, password } = req.body;
+    async (req: Request<unknown, ApiError | ApiSuccess, { password: string; token: string }>, res: Response) => {
+        const { password, token } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({ error: "Email and password are required." });
+        if (!password || !token) {
+            return res.status(400).json({ error: "Token and password are required." });
         }
 
-        if (typeof email !== "string" || typeof password !== "string") {
+        if (typeof password !== "string" || typeof token !== "string") {
             return res.status(400).json({ error: "Invalid input types." });
-        }
-
-        const sanitizedEmail = validator.normalizeEmail(email.trim());
-        if (!sanitizedEmail || !validator.isEmail(sanitizedEmail)) {
-            return res.status(400).json({ error: "Invalid email address." });
         }
 
         if (password.length > 128) {
             return res.status(400).json({ error: "Password must be less than 128 characters." });
         }
 
-        const user = await User.findOne({ email: sanitizedEmail });
-        if (!user) {
-            return res.status(400).json({ error: "Email is not registered" });
+        const tokenHash = hashToken(token);
+        const reset = await PasswordReset.findOne({ expiresAt: { $gt: new Date() }, tokenHash });
+        if (!reset) {
+            return res.status(400).json({ error: "Invalid or expired token." });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const token = crypto.randomBytes(8).toString("base64url");
-        user.resetToken = token;
-        user.possibleNewPassword = hashedPassword;
-        user.markModified("resetToken");
-        user.markModified("possibleNewPassword");
+        const user = await User.findById(reset.userId);
+        if (!user) {
+            await reset.deleteOne();
+            return res.status(400).json({ error: "Invalid or expired token." });
+        }
+
+        user.password = await bcrypt.hash(password, 10);
         await user.save();
+        await PasswordReset.deleteMany({ userId: user._id });
 
-        const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
-        const link = `${baseUrl}/reset/${token}`;
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            subject: `Reset your password`,
-            text: `If you did NOT request this email, do NOT click the link and instead IGNORE this email so you don't give access to your account to an unknown third-party.\n\nClick here to confirm reset: ${link}\n(Link expires in one minute)`,
-            to: sanitizedEmail,
-        });
-
-        res.json({ message: "Check your email to confirm resetting your password!" });
-
-        // delete reset tokens after one minute
-        await new Promise((resolve) => setTimeout(resolve, 1000 * 60));
-        await User.findOne({ email: sanitizedEmail })
-            .then((updatedUser) => {
-                if (updatedUser) {
-                    updatedUser.resetToken = undefined;
-                    updatedUser.possibleNewPassword = undefined;
-                    updatedUser.markModified("resetToken");
-                    updatedUser.markModified("possibleNewPassword");
-                    return updatedUser.save();
-                }
-            })
-            .then(() => {
-                console.log("Deleted reset token");
-            });
+        res.status(200).json({ success: "Password reset successfully" });
     },
 );
 

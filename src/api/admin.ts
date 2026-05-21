@@ -19,6 +19,7 @@ import express, { Request, Response } from "express";
 import { Types } from "mongoose";
 import validator from "validator";
 
+import { sanitizeProblemHtml } from "../lib/sanitize";
 import { authenticateToken } from "../middleware/authenticate";
 import { requireAdmin } from "../middleware/authorize";
 import { Problem, User } from "../models";
@@ -30,6 +31,8 @@ import { IProblem } from "../types/models";
  */
 const router = express.Router();
 export default router;
+
+const maxTestcases = 50;
 
 /**
  * @swagger
@@ -71,7 +74,7 @@ router.post(
  * @swagger
  * TODO
  */
-router.delete("/delete-problem", async (req, res) => {
+router.delete("/delete-problem", authenticateToken, requireAdmin, async (req, res) => {
     const id = req.query.id;
 
     if (!id) {
@@ -121,30 +124,40 @@ router.post(
             return res.status(400).json({ message: "Problem name must be less than 200 characters" });
         }
 
-        if (update.problemStatement && typeof update.problemStatement !== "string") {
-            return res.status(400).json({ message: "Problem statement must be a string" });
+        if (!update.problemStatement || typeof update.problemStatement !== "string") {
+            return res.status(400).json({ message: "Problem statement is required and must be a string" });
         }
 
-        if (update.inputFormat && typeof update.inputFormat !== "string") {
-            return res.status(400).json({ message: "Input format must be a string" });
+        if (!update.inputFormat || typeof update.inputFormat !== "string") {
+            return res.status(400).json({ message: "Input format is required and must be a string" });
         }
 
-        if (update.outputFormat && typeof update.outputFormat !== "string") {
-            return res.status(400).json({ message: "Output format must be a string" });
+        if (!update.outputFormat || typeof update.outputFormat !== "string") {
+            return res.status(400).json({ message: "Output format is required and must be a string" });
         }
 
-        if (update.numSampleTestcases && (typeof update.numSampleTestcases !== "number" || update.numSampleTestcases < 0)) {
+        if (typeof update.numSampleTestcases !== "number" || update.numSampleTestcases < 0) {
             return res.status(400).json({ message: "Number of sample testcases must be a non-negative number" });
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (update.inputTestcases && (!Array.isArray(update.inputTestcases) || !update.inputTestcases.every((tc) => typeof tc === "string"))) {
+        if (!Array.isArray(update.inputTestcases) || !update.inputTestcases.every((tc) => typeof tc === "string")) {
             return res.status(400).json({ message: "Input testcases must be an array of strings" });
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (update.outputTestcases && (!Array.isArray(update.outputTestcases) || !update.outputTestcases.every((tc) => typeof tc === "string"))) {
+        if (!Array.isArray(update.outputTestcases) || !update.outputTestcases.every((tc) => typeof tc === "string")) {
             return res.status(400).json({ message: "Output testcases must be an array of strings" });
+        }
+
+        if (update.inputTestcases.length === 0 || update.inputTestcases.length > maxTestcases) {
+            return res.status(400).json({ message: `Problems must have between 1 and ${maxTestcases.toString()} testcases` });
+        }
+
+        if (update.inputTestcases.length !== update.outputTestcases.length) {
+            return res.status(400).json({ message: "Input and output testcase counts must match" });
+        }
+
+        if (update.numSampleTestcases > update.inputTestcases.length) {
+            return res.status(400).json({ message: "Sample testcase count cannot exceed total testcase count" });
         }
 
         if (update.contestID && typeof update.contestID !== "string") {
@@ -174,6 +187,10 @@ router.post(
                 update.whitelist.splice(i, 1);
             }
         }
+
+        update.problemStatement = sanitizeProblemHtml(update.problemStatement);
+        update.inputFormat = sanitizeProblemHtml(update.inputFormat);
+        update.outputFormat = sanitizeProblemHtml(update.outputFormat);
 
         // console.log(update);
 

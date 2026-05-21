@@ -17,38 +17,67 @@
 
 document.addEventListener("DOMContentLoaded", function () {
     const resetForm = document.getElementById("reset-form");
+    const completeResetForm = document.getElementById("complete-reset-form");
 
-    resetForm.addEventListener("submit", function (event) {
-        event.preventDefault(); // Prevent form submission
+    if (resetForm)
+        resetForm.addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent form submission
 
-        const email = document.getElementById("email").value;
-        const password = document.getElementById("password").value;
+            const email = document.getElementById("email").value;
 
-        const resetData = {
-            email: email,
-            password: password,
-        };
+            const resetData = {
+                email: email,
+            };
 
-        fetch("/api/user/reset-password", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(resetData),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                console.log(data);
-                if (!data.message) {
-                    alert(data.error);
-                } else {
-                    alert(data.message);
-                    window.location.href = "/login"; // Redirect to login page on successful registration
-                }
+            fetch("/api/user/reset-password", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(resetData),
             })
-            .catch((error) => {
-                console.error("Error:", error);
-                alert("An error occurred. Please try again later.");
-            });
-    });
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log(data);
+                    if (!data.message) {
+                        alert(data.error);
+                    } else {
+                        alert(data.message);
+                        window.location.href = "/login";
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    alert("An error occurred. Please try again later.");
+                });
+        });
+
+    if (completeResetForm)
+        completeResetForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const password = document.getElementById("password").value;
+            const token = document.getElementById("reset-token").value;
+
+            fetch("/api/user/complete-reset-password", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ password, token }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (!data.success) {
+                        alert(data.error);
+                    } else {
+                        alert(data.success);
+                        window.location.href = "/login";
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    alert("An error occurred. Please try again later.");
+                });
+        });
 });

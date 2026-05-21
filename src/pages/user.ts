@@ -17,7 +17,8 @@
 
 import express from "express";
 
-import { User } from "../models.js";
+import { hashToken } from "../lib/tokens.js";
+import { PasswordReset, User } from "../models.js";
 
 /**
  * User pages router
@@ -35,7 +36,7 @@ router.get("/register", (req, res) => {
 });
 
 router.get("/verify/:token", async (req, res) => {
-    const user = await User.findOne({ verificationToken: req.params.token });
+    const user = await User.findOne({ verificationToken: req.params.token, verificationTokenExpiresAt: { $gt: new Date() } });
     if (!user) {
         res.render("verify", { success: false });
         return;
@@ -43,6 +44,7 @@ router.get("/verify/:token", async (req, res) => {
 
     user.verified = true;
     user.verificationToken = undefined;
+    user.verificationTokenExpiresAt = undefined;
     await user.save();
 
     res.render("verify", { success: true });
@@ -66,38 +68,14 @@ router.get("/forgot-password", (req, res) => {
     });
 });
 
-// TODO fix this system lol
 router.get("/reset/:token", async (req, res) => {
-    const user = await User.findOne({ resetToken: req.params.token });
-    if (!user) return res.status(400).json({ error: "Invalid token" });
-
-    if (!user.possibleNewPassword) return res.status(400).json({ error: "Invalid new password" });
-
-    user.password = user.possibleNewPassword;
-    user.resetToken = undefined;
-    user.possibleNewPassword = undefined;
-    await user.save();
-
-    // res.json({ message: `Email verified! You can now log in. Login: ${process.env.BASE_URL}/login` });
-    // TODO: replace in views
-    res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Password Reset</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-gray-900 text-gray-100">
-            <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 shadow-lg rounded-xl">
-                <h1 class="text-4xl font-bold text-center mb-6 text-green-400">Password Reset!</h1>
-                <p class="text-center text-2xl mb-6">Password successfully reset. Contact us at codejointcrew@gmail.com for any inquiries.</p>
-                <div class="text-center">
-                    <a href="/login/" class="text-blue-400 hover:underline">← Login</a>
-                </div>
-            </div>
-        </body>
-        </html>
-    `);
+    const reset = await PasswordReset.findOne({ expiresAt: { $gt: new Date() }, tokenHash: hashToken(req.params.token) });
+    res.render("reset-password", {
+        backArrow: { href: "/login", text: "Back to login" },
+        head: `<script type="module" src="/forgot-password/forgot-password.js" defer=""></script>`,
+        mainSection: { width: "max-w-md" },
+        title: "Set New Password",
+        token: req.params.token,
+        valid: Boolean(reset),
+    });
 });
