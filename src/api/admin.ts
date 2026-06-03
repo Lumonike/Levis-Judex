@@ -23,8 +23,9 @@ import { sanitizeProblemHtml } from "../lib/sanitize";
 import { authenticateToken } from "../middleware/authenticate";
 import { requireAdmin } from "../middleware/authorize";
 import { Problem, User } from "../models";
+import { saveProblemWithTestcases } from "../services/problems";
 import { ApiError, ApiMessage, ApiSuccess } from "../types/api";
-import { IProblem } from "../types/models";
+import { IProblemWithTestcases } from "../types/models";
 
 /**
  * Router for admin
@@ -109,7 +110,10 @@ router.post(
     "/save-problem",
     authenticateToken,
     requireAdmin,
-    async (req: Request<unknown, ApiMessage, Omit<IProblem, "whitelist"> & { whitelist?: (string | Types.ObjectId)[] }>, res: Response) => {
+    async (
+        req: Request<unknown, ApiMessage, Omit<IProblemWithTestcases, "whitelist"> & { whitelist?: (string | Types.ObjectId)[] }>,
+        res: Response,
+    ) => {
         const update = { ...req.body };
 
         if (!update.id || typeof update.id !== "string") {
@@ -195,11 +199,7 @@ router.post(
         // console.log(update);
 
         try {
-            const response: IProblem = await Problem.findOneAndUpdate({ id: update.id }, update, {
-                new: true,
-                setDefaultsOnInsert: true,
-                upsert: true,
-            });
+            const response = await saveProblemWithTestcases(update);
             console.log(`Saved problem ${response.id}`);
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (response) {

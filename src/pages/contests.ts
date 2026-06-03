@@ -21,7 +21,8 @@ import path from "path";
 
 import { sanitizeProblemHtml } from "../lib/sanitize.js";
 import { Contest } from "../models.js";
-import { IContest, IProblem } from "../types/models.js";
+import { getContestProblem, getContestProblems } from "../services/problems.js";
+import { IContest } from "../types/models.js";
 
 /**
  * Contests Router
@@ -44,16 +45,17 @@ router.get("/contests/:target", async (req, res) => {
             return;
         }
     }
-    const contest = await Contest.findOne({ id: target });
+    const contest = await Contest.findOne({ id: target }).lean<IContest>();
     if (!contest) {
         // redirect if the file doesn't exist
         res.redirect("/contests");
         return;
     }
+    const problems = await getContestProblems(contest, false);
 
     res.render("contest", {
         backArrow: { href: "/contests", text: "Back to Contest List" },
-        contest,
+        contest: { ...contest, problems },
         title: contest.name,
     });
 });
@@ -67,12 +69,12 @@ router.get("/contests/:contestID/:problemID", async (req, res) => {
             return;
         }
     }
-    const contest: IContest | null = await Contest.findOne({ id: contestID });
+    const contest: IContest | null = await Contest.findOne({ id: contestID }).lean<IContest>();
     if (!contest) {
         res.redirect("/contests");
         return;
     }
-    const problem: IProblem | null | undefined = contest.problems.find((problem) => problem.id == problemID);
+    const problem = await getContestProblem(contest, problemID, false);
     if (!problem?.contestID) {
         res.redirect("../");
         return;

@@ -20,8 +20,7 @@ import { Response } from "express";
 import fs from "fs";
 import path from "path";
 
-import { JudgeSubmission } from "./types/judge";
-import { IProblem, IResult } from "./types/models";
+import { IProblemWithTestcases, IResult } from "./types/models";
 
 let initializedIsolate = false;
 let initIsolatePromise: Promise<void> | undefined;
@@ -34,55 +33,39 @@ const numBoxes = 5;
 export const maxTestcases = 50;
 
 const boxPaths = new Array<string>(numBoxes);
-
 const availableBoxes = new Array<number>(numBoxes).fill(0).map((_, index) => index);
-
-const submissions: Record<string, JudgeSubmission | undefined> = {};
+const clients = new Map<string, Response[]>();
 
 /**
- * Adds client to watch submission
+ * Adds client to watch a persisted submission.
  * @param submissionID Id of submission
  * @param res client
  */
-export function addClient(submissionID: string, res: Response) {
-    if (submissions[submissionID]?.clients) {
-        submissions[submissionID].clients.push(res);
-    }
+export function addClient(submissionID: string, res: Response): void {
+    const submissionClients = clients.get(submissionID) ?? [];
+    submissionClients.push(res);
+    clients.set(submissionID, submissionClients);
 }
 
 /**
- * Gets results of submission
- * @param submissionID Submission ID
- * @returns The results so far
+ * Judges source code against a problem.
+ * @param code Submitted source
+ * @param problem Problem with judge-only testcases loaded
+ * @param onProgress Optional progress callback
+ * @returns Final testcase results
  */
-export function getResults(submissionID: string): IResult[] {
-    if (!submissions[submissionID]) {
-        return [];
-    }
-    return submissions[submissionID].results;
-}
-
-/**
- * Judges a code submission to a problem
- * @param submissionID id of submission
- * @returns Results of the submission
- */
-export async function judge(submissionID: string): Promise<IResult[]> {
-    const submission = submissions[submissionID];
-    if (!submission) {
-        return [{ mem: "...", status: "RTE", time: "..." }];
-    }
-
-    const { code, problem, results } = submission;
-    // code must be less than 100,000 bytes
+export async function judgeCode(
+    code: string,
+    problem: IProblemWithTestcases,
+    onProgress?: (results: IResult[]) => Promise<void> | void,
+): Promise<IResult[]> {
     if (code.length > 100000) {
         console.error("Code file too large!");
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete submissions[submissionID];
         return [{ mem: "0 MB", status: "RTE", time: "0s" }];
     }
 
     let boxID: number | undefined;
+    const results: IResult[] = [];
 
     try {
         if (!initializedIsolate) {
@@ -90,7 +73,6 @@ export async function judge(submissionID: string): Promise<IResult[]> {
         }
 
         boxID = await acquireBox();
-        submission.boxID = boxID;
 
         const submissionDir = path.join(__dirname, "..", "isolate", boxID.toString());
         const codeFile = path.join(submissionDir, "code.py");
@@ -100,72 +82,52 @@ export async function judge(submissionID: string): Promise<IResult[]> {
         fs.copyFileSync(codeFile, path.join(boxPaths[boxID], "code.py"));
 
         for (let testcase = 0; testcase < problem.inputTestcases.length; testcase++) {
-            results.push({ mem: "...", status: `...`, time: "..." });
-            for (const client of submission.clients ?? []) {
-                const res = client;
-                if (!res.writableEnded && !res.destroyed) {
-                    try {
-                        res.write(`data: ${JSON.stringify(submission.results)}\n\n`);
-                    } catch (err) {
-                        console.error("SSE write error:", err);
-                        removeClient(submissionID, client);
-                    }
-                }
-            }
+            results.push({ mem: "...", status: "...", time: "..." });
+            await onProgress?.([...results]);
             results[testcase] = await runProgram(boxID, submissionDir, problem, testcase);
-            for (const client of submission.clients ?? []) {
-                const res = client;
-                if (!res.writableEnded && !res.destroyed) {
-                    try {
-                        res.write(`data: ${JSON.stringify(submission.results)}\n\n`);
-                    } catch (err) {
-                        console.error("SSE write error:", err);
-                        removeClient(submissionID, client);
-                    }
-                }
-            }
+            await onProgress?.([...results]);
         }
 
-        const finalResults = [...results];
-        for (const client of submission.clients ?? []) {
-            const res = client;
-            if (!res.writableEnded && !res.destroyed) {
-                try {
-                    client.write(`event: done\ndata: ${JSON.stringify(finalResults)}\n\n`);
-                } catch (err) {
-                    console.error("SSE write error:", err);
-                    removeClient(submissionID, client);
-                }
-            }
-        }
-
-        return finalResults;
+        return [...results];
     } catch (error) {
-        console.error("Error writing code file:", error);
+        console.error("Error judging submission:", error);
         return [{ mem: "0 MB", status: "RTE", time: "0s" }];
     } finally {
         if (boxID !== undefined) {
             availableBoxes.push(boxID);
         }
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete submissions[submissionID];
     }
 }
 
 /**
- * Saves a submission to be judged
- * @param submissionID Id of submission
- * @param code Code of submission
- * @param problem Problem being submitted
+ * Broadcasts submission progress to SSE clients.
+ * @param submissionID id of submission
+ * @param results current results
+ * @param completed whether judging has finished
  */
-export function queueSubmission(submissionID: string, code: string, problem: IProblem) {
-    submissions[submissionID] = {
-        boxID: -1,
-        clients: [],
-        code,
-        problem,
-        results: [],
-    };
+export function publishResults(submissionID: string, results: IResult[], completed: boolean): void {
+    const submissionClients = clients.get(submissionID) ?? [];
+    for (const client of submissionClients) {
+        if (client.writableEnded || client.destroyed) {
+            removeClient(submissionID, client);
+            continue;
+        }
+
+        try {
+            if (completed) {
+                client.write(`event: done\ndata: ${JSON.stringify(results)}\n\n`);
+            } else {
+                client.write(`data: ${JSON.stringify(results)}\n\n`);
+            }
+        } catch (err) {
+            console.error("SSE write error:", err);
+            removeClient(submissionID, client);
+        }
+    }
+
+    if (completed) {
+        clients.delete(submissionID);
+    }
 }
 
 /**
@@ -173,11 +135,16 @@ export function queueSubmission(submissionID: string, code: string, problem: IPr
  * @param submissionID id of submission
  * @param res client
  */
-export function removeClient(submissionID: string, res: Response) {
-    const submission = submissions[submissionID];
-    if (!submission?.clients) return;
+export function removeClient(submissionID: string, res: Response): void {
+    const submissionClients = clients.get(submissionID);
+    if (!submissionClients) return;
 
-    submission.clients = submission.clients.filter((c) => c !== res);
+    const remainingClients = submissionClients.filter((client) => client !== res);
+    if (remainingClients.length === 0) {
+        clients.delete(submissionID);
+    } else {
+        clients.set(submissionID, remainingClients);
+    }
 }
 
 async function acquireBox(): Promise<number> {
@@ -194,23 +161,6 @@ async function acquireBox(): Promise<number> {
     });
 }
 
-/**
- * @private
- * @memberof module:judge
- * Shuts down isolate
- */
-async function closeIsolate() {
-    console.log("Attempting to close Isolate!");
-    const promises = new Array(numBoxes).fill(0).map(
-        (_, boxID) =>
-            new Promise((resolve) => {
-                spawn(`isolate`, [`--cg`, `--box-id=${boxID.toString()}`, `--cleanup`]).on("close", resolve);
-            }),
-    );
-    await Promise.all(promises);
-    console.log("Closed Isolate!");
-}
-
 async function ensureIsolateInitialized(): Promise<void> {
     initIsolatePromise ??= initIsolate().then(() => {
         initializedIsolate = true;
@@ -223,17 +173,23 @@ async function ensureIsolateInitialized(): Promise<void> {
  * @private
  * @memberof module:judge
  */
-async function initIsolate() {
-    // run commands concurrently
+async function initIsolate(): Promise<void> {
     const promises = new Array(numBoxes).fill(0).map(
         (_, boxID) =>
-            new Promise((resolve) => {
-                const child = spawn(`isolate`, [`--cg`, `--box-id=${boxID.toString()}`, `--init`]);
+            new Promise<void>((resolve, reject) => {
+                const child = spawn("isolate", ["--cg", `--box-id=${boxID.toString()}`, "--init"]);
                 child.stdout.on("data", (data: Buffer) => {
                     const stdout = data.toString();
                     boxPaths[boxID] = `${stdout.trim()}/box/`;
                 });
-                child.on("close", resolve);
+                child.on("close", (code) => {
+                    if (code === 0 && boxPaths[boxID]) {
+                        resolve();
+                    } else {
+                        reject(new Error(`Failed to initialize isolate box ${boxID.toString()}`));
+                    }
+                });
+                child.on("error", reject);
             }),
     );
     await Promise.all(promises);
@@ -250,7 +206,7 @@ function parseMetafile(submissionDir: string): Record<string, string | undefined
     try {
         const metadataArr = fs.readFileSync(path.join(submissionDir, "meta.txt")).toString().split(":").join("\n").split("\n");
         const metadata: Record<string, string | undefined> = {};
-        for (let i = 0; i < metadataArr.length - 2 /*ignore last two characters*/; i += 2) {
+        for (let i = 0; i < metadataArr.length - 2; i += 2) {
             metadata[metadataArr[i]] = metadataArr[i + 1];
         }
         return metadata;
@@ -269,23 +225,23 @@ function parseMetafile(submissionDir: string): Record<string, string | undefined
  * @param testcase What testcase number it is
  * @returns What were the results of the code
  */
-async function runProgram(boxID: number, submissionDir: string, problem: IProblem, testcase: number): Promise<IResult> {
+async function runProgram(boxID: number, submissionDir: string, problem: IProblemWithTestcases, testcase: number): Promise<IResult> {
     const timeLimit = 4;
-    const timeWall = 2 * timeLimit; // used to prevent sleeping
-    const memLimit = 256 * 1024; // 256 MB is the USACO limit. could lower to allow more control groups
+    const timeWall = 2 * timeLimit;
+    const memLimit = 256 * 1024;
     const args = [
-        `--cg`,
+        "--cg",
         `--dir=${submissionDir}`,
         `--meta=${path.join(submissionDir, "meta.txt")}`,
         `--time=${timeLimit.toString()}`,
         `--wall-time=${timeWall.toString()}`,
         `--cg-mem=${memLimit.toString()}`,
         `--box-id=${boxID.toString()}`,
-        `--run`,
-        `--`,
-        `/bin/python3`,
-        `-O`,
-        `code.py`,
+        "--run",
+        "--",
+        "/bin/python3",
+        "-O",
+        "code.py",
     ];
     const expected = problem.outputTestcases[testcase].trim();
     const result: IResult = { mem: "", status: "...", time: "" };
@@ -295,7 +251,6 @@ async function runProgram(boxID: number, submissionDir: string, problem: IProble
         if (metadata.status == "TO") {
             result.status = "TLE";
         } else if (metadata.exitsig == "9") {
-            // exit signal 9 is memory limit exceeded i think
             result.status = "MLE";
         } else if (metadata.status != undefined) {
             result.status = "RTE";
@@ -307,7 +262,7 @@ async function runProgram(boxID: number, submissionDir: string, problem: IProble
     };
     try {
         await new Promise<void>((resolve) => {
-            const child = spawn(`isolate`, args);
+            const child = spawn("isolate", args);
 
             child.stdin.on("error", (err) => {
                 if ("code" in err && err.code === "EPIPE") {
@@ -339,15 +294,3 @@ async function runProgram(boxID: number, submissionDir: string, problem: IProble
     }
     return result;
 }
-
-process.on("SIGINT", () => {
-    void closeIsolate().then(() => {
-        process.exit(0);
-    });
-});
-
-process.on("SIGTERM", () => {
-    void closeIsolate().then(() => {
-        process.exit(0);
-    });
-});

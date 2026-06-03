@@ -15,16 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import crypto from "crypto";
 import express, { Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import { slowDown } from "express-slow-down";
+import { Types } from "mongoose";
 import validator from "validator";
 
 import * as judge from "../judge";
 import { authenticateToken } from "../middleware/authenticate";
-import { submitMiddleware } from "../middleware/problem";
-import { Contest, User } from "../models";
+import { Contest, Submission, User } from "../models";
+import { getContestProblem, getProblemWithTestcases } from "../services/problems";
+import { createSubmission } from "../services/submissions";
 import { ApiError } from "../types/api";
 
 /**
@@ -60,11 +61,6 @@ router.post(
     authenticateToken,
     submissionSlowdown,
     submissionLimiter,
-    submitMiddleware((req: Request<unknown, unknown, { problemID: string }>) => {
-        const problemID = req.body.problemID;
-        if (typeof problemID == "string") return problemID;
-        return undefined;
-    }),
     async (req: Request<unknown, ApiError, { code: string; contestID?: string; problemID?: string }>, res: Response) => {
         const { code, contestID, problemID } = req.body;
 
@@ -88,6 +84,7 @@ router.post(
             return res.status(400).json({ error: "Code cannot be empty" });
         }
 
+        const sanitizedProblemID = validator.escape(problemID.trim());
         const sanitizedContestID = contestID ? validator.escape(contestID.trim()) : null;
 
         const user = await User.findById(req.user?.id);
@@ -97,7 +94,7 @@ router.post(
 
         let problem = null;
         if (!sanitizedContestID) {
-            problem = req.problem ?? null;
+            problem = await getProblemWithTestcases(sanitizedProblemID, true);
         } else {
             const contest = await Contest.findOne({ id: sanitizedContestID });
             if (!contest) {
@@ -109,27 +106,23 @@ router.post(
             } else if (now >= contest.endTime) {
                 return res.status(400).json({ error: "Contest has already ended!" });
             }
-            problem = contest.problems.find((problem) => problem.id === problemID);
+            problem = await getContestProblem(contest, sanitizedProblemID, true);
         }
         if (!problem) {
             return res.status(400).json({ error: "Invalid Problem!" });
         }
 
-        const submissionID = crypto.randomBytes(32).toString("base64url");
-        judge.queueSubmission(submissionID, code, problem);
-        res.json({ submissionID });
-
-        const result = await judge.judge(submissionID);
-
-        let combinedID = problemID;
-        if (sanitizedContestID) {
-            combinedID = sanitizedContestID.concat(":", problemID);
+        if (problem.isPrivate && !user.admin && !problem.whitelist?.some((id) => id.equals(user._id))) {
+            return res.status(403).json({ error: "Unauthorized" });
         }
-        user.results.set(combinedID, result);
-        user.markModified("results"); // if i don't do this, the data won't save
-        user.code.set(combinedID, code);
-        user.markModified("code"); // same here
-        await user.save();
+
+        const submissionID = await createSubmission({
+            code,
+            contestId: sanitizedContestID,
+            problem,
+            userId: user._id,
+        });
+        res.json({ submissionID });
     },
 );
 
@@ -137,7 +130,7 @@ router.post(
  * @swagger
  * TODO
  */
-router.get("/sub-status", (req, res) => {
+router.get("/sub-status", authenticateToken, async (req, res) => {
     const submissionID = req.query.submissionID;
 
     if (!submissionID) {
@@ -149,6 +142,19 @@ router.get("/sub-status", (req, res) => {
     }
 
     const sanitizedSubmissionID = validator.escape(submissionID.trim());
+    if (!Types.ObjectId.isValid(sanitizedSubmissionID)) {
+        return res.status(400).json({ error: "Invalid submission ID" });
+    }
+
+    const submission = await Submission.findById(sanitizedSubmissionID);
+    if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+    }
+
+    const user = await User.findById(req.user?.id).select("admin");
+    if (!user || (!user.admin && !submission.userId.equals(user._id))) {
+        return res.status(403).json({ error: "Unauthorized" });
+    }
 
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
@@ -160,8 +166,14 @@ router.get("/sub-status", (req, res) => {
         judge.removeClient(sanitizedSubmissionID, res);
     });
 
+    res.write(`data: ${JSON.stringify(submission.results)}\n\n`);
+    if (submission.status === "completed" || submission.status === "failed") {
+        res.write(`event: done\ndata: ${JSON.stringify(submission.results)}\n\n`);
+        res.end();
+        return;
+    }
+
     judge.addClient(sanitizedSubmissionID, res);
-    res.write(`data: ${JSON.stringify(judge.getResults(sanitizedSubmissionID))}\n\n`);
 
     req.on("close", () => {
         judge.removeClient(sanitizedSubmissionID, res);

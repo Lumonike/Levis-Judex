@@ -30,6 +30,7 @@ import validator from "validator";
 import { createToken, hashToken } from "../lib/tokens";
 import { authenticateToken } from "../middleware/authenticate";
 import { PasswordReset, User } from "../models";
+import { getLatestSubmission } from "../services/submissions";
 import { transporter } from "../transporter";
 import { ApiError, ApiMessage, ApiSuccess } from "../types/api";
 import { IResult } from "../types/models";
@@ -295,16 +296,13 @@ router.post(
         const sanitizedProblemID = validator.escape(problemID.trim());
         const sanitizedContestID = contestID ? validator.escape(contestID.trim()) : null;
 
-        const user = await User.findById(req.user?.id);
+        const user = await User.findById(req.user?.id).select("_id");
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
 
-        let combinedID = sanitizedProblemID;
-        if (sanitizedContestID) {
-            combinedID = sanitizedContestID.concat(":", sanitizedProblemID);
-        }
-        const result = user.code.get(combinedID) ?? "";
+        const submission = await getLatestSubmission(user._id, sanitizedProblemID, sanitizedContestID);
+        const result = submission?.code ?? "";
         res.json({ result });
     },
 );
@@ -334,16 +332,13 @@ router.post(
         const sanitizedProblemID = validator.escape(problemID.trim());
         const sanitizedContestID = contestID ? validator.escape(contestID.trim()) : null;
 
-        const user = await User.findById(req.user?.id);
+        const user = await User.findById(req.user?.id).select("_id");
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
 
-        let combinedID = sanitizedProblemID;
-        if (sanitizedContestID) {
-            combinedID = sanitizedContestID.concat(":", sanitizedProblemID);
-        }
-        const result = user.results.get(combinedID);
+        const submission = await getLatestSubmission(user._id, sanitizedProblemID, sanitizedContestID);
+        const result = submission?.results;
         res.json({ result });
     },
 );

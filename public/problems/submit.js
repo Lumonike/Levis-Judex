@@ -57,16 +57,19 @@ export async function submitCode(code, problemID, contestID) {
                 displayStatus(outputArea, curResults, false);
             };
             eventSource.onerror = () => {
-                throw new Error("Server had an error with submitting");
+                displayStatus(outputArea, [], false, "Server had an error with submitting");
+                eventSource.close();
+                alreadySubmitting = false;
             };
             eventSource.addEventListener("done", (ev) => {
                 const completedResults = JSON.parse(ev.data);
                 displayStatus(outputArea, completedResults, true);
                 eventSource.close();
+                alreadySubmitting = false;
             });
         })
         .catch((err) => {
             displayStatus(outputArea, [], false, err.message);
+            alreadySubmitting = false;
         });
-    alreadySubmitting = false;
 }

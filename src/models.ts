@@ -17,7 +17,7 @@
 
 import mongoose from "mongoose";
 
-import { IContest, IPasswordReset, IProblem, IResult, IUser } from "./types/models";
+import { IContest, IPasswordReset, IProblem, IProblemTestcase, IResult, ISubmission, IUser } from "./types/models";
 
 const ResultSchema = new mongoose.Schema<IResult>(
     {
@@ -30,14 +30,8 @@ const ResultSchema = new mongoose.Schema<IResult>(
 
 const UserSchema = new mongoose.Schema<IUser>({
     admin: { default: false, type: Boolean },
-    code: { default: new Map(), of: String, required: true, type: Map },
     email: { required: true, type: String, unique: true },
     password: { required: true, type: String },
-    results: {
-        default: new Map(),
-        of: [ResultSchema],
-        type: Map,
-    },
     verificationToken: String,
     verificationTokenExpiresAt: Date,
     verified: { default: false, type: Boolean },
@@ -70,19 +64,20 @@ PasswordResetSchema.index({ userId: 1 });
  */
 export const PasswordReset = mongoose.model<IPasswordReset>("PasswordReset", PasswordResetSchema);
 
-const ProblemSchema = new mongoose.Schema<IProblem>({
-    contestID: { default: null, type: String }, // null if not a contest problem
-    id: { required: true, type: String }, // in case we want to do stuff like 5B like codeforces. CANNOT HAVE COLONS
-    inputFormat: { required: true, type: String },
-    inputTestcases: { required: true, type: [String] },
-    isPrivate: Boolean,
-    name: { required: true, type: String },
-    numSampleTestcases: { required: true, type: Number },
-    outputFormat: { required: true, type: String },
-    outputTestcases: { required: true, type: [String] },
-    problemStatement: { required: true, type: String },
-    whitelist: [{ ref: "User", type: mongoose.Types.ObjectId }],
-});
+const ProblemSchema = new mongoose.Schema<IProblem>(
+    {
+        contestID: { default: null, type: String }, // null if not a contest problem
+        id: { required: true, type: String }, // in case we want to do stuff like 5B like codeforces. CANNOT HAVE COLONS
+        inputFormat: { required: true, type: String },
+        isPrivate: Boolean,
+        name: { required: true, type: String },
+        numSampleTestcases: { required: true, type: Number },
+        outputFormat: { required: true, type: String },
+        problemStatement: { required: true, type: String },
+        whitelist: [{ ref: "User", type: mongoose.Schema.Types.ObjectId }],
+    },
+    { strict: false },
+);
 
 ProblemSchema.index({ id: 1 }, { unique: true });
 
@@ -91,17 +86,58 @@ ProblemSchema.index({ id: 1 }, { unique: true });
  */
 export const Problem = mongoose.model<IProblem>("Problem", ProblemSchema);
 
+const ProblemTestcaseSchema = new mongoose.Schema<IProblemTestcase>({
+    input: { required: true, type: String },
+    isSample: { default: false, required: true, type: Boolean },
+    order: { required: true, type: Number },
+    output: { required: true, type: String },
+    problemId: { index: true, required: true, type: String },
+});
+
+ProblemTestcaseSchema.index({ order: 1, problemId: 1 }, { unique: true });
+ProblemTestcaseSchema.index({ isSample: 1, problemId: 1 });
+
+/**
+ * Judge-only testcase model
+ */
+export const ProblemTestcase = mongoose.model<IProblemTestcase>("ProblemTestcase", ProblemTestcaseSchema);
+
 /**
  * Contest model
  */
-const ContestSchema = new mongoose.Schema<IContest>({
-    endTime: { required: true, type: Date },
-    id: { required: true, type: String },
-    name: { required: true, type: String },
-    problems: { required: true, type: [Problem.schema] },
-    startTime: { required: true, type: Date },
-});
+const ContestSchema = new mongoose.Schema<IContest>(
+    {
+        endTime: { required: true, type: Date },
+        id: { required: true, type: String },
+        name: { required: true, type: String },
+        problemIds: { default: [], required: true, type: [String] },
+        startTime: { required: true, type: Date },
+    },
+    { strict: false },
+);
 
 ContestSchema.index({ id: 1 }, { unique: true });
 
 export const Contest = mongoose.model<IContest>("Contest", ContestSchema);
+
+const SubmissionSchema = new mongoose.Schema<ISubmission>(
+    {
+        code: { required: true, type: String },
+        completedAt: Date,
+        contestId: { default: null, type: String },
+        error: String,
+        legacyKey: { index: true, sparse: true, type: String, unique: true },
+        problemId: { index: true, required: true, type: String },
+        results: { default: [], of: ResultSchema, type: [ResultSchema] },
+        status: { default: "queued", enum: ["completed", "failed", "queued", "running"], index: true, required: true, type: String },
+        userId: { index: true, ref: "User", required: true, type: mongoose.Schema.Types.ObjectId },
+    },
+    { timestamps: true },
+);
+
+SubmissionSchema.index({ contestId: 1, createdAt: -1, problemId: 1, userId: 1 });
+
+/**
+ * Submission model
+ */
+export const Submission = mongoose.model<ISubmission>("Submission", SubmissionSchema);

@@ -11,6 +11,7 @@
         "type-check": "tsc --noEmit",
         "lint": "eslint .",
         "lint:fix": "eslint --fix .",
+        "migrate:database": "tsx --env-file .env src/scripts/migrate-database.ts",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "test": "node --import tsx --test tests/**/*.test.ts"
@@ -28,6 +29,7 @@
         "dotenv": "^16.4.7",
         "ejs": "^3.1.10",
         "express": "^4.21.2",
+        "express-async-errors": "^3.1.1",
         "express-ejs-layouts": "^2.5.1",
         "express-rate-limit": "^8.0.1",
         "express-slow-down": "^3.0.0",

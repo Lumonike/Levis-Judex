@@ -20,7 +20,8 @@ import { Types } from "mongoose";
 
 import { problemMiddleware } from "../middleware/problem";
 import { User } from "../models";
-import { IProblem } from "../types/models";
+import { getProblemWithTestcases } from "../services/problems";
+import { IProblemWithTestcases } from "../types/models";
 
 /**
  * Problem Router
@@ -40,25 +41,23 @@ router.get(
             return res.status(404).json({ error: "Couldn't get problem" });
         }
 
-        const problem: Omit<IProblem, "whitelist"> & { whitelist?: (string | Types.ObjectId)[] } = req.problem;
-        problem.whitelist ??= [] as string[];
+        const isAdmin = req.user ? ((await User.findById(req.user.id).select("admin"))?.admin ?? false) : false;
+        const problem = (await getProblemWithTestcases(req.problem.id, isAdmin)) as
+            | null
+            | (Omit<IProblemWithTestcases, "whitelist"> & { whitelist?: (string | Types.ObjectId)[] });
+        if (!problem) {
+            return res.status(404).json({ error: "Couldn't get problem" });
+        }
 
-        if (!req.user) {
+        problem.whitelist ??= [];
+
+        if (!isAdmin) {
             problem.whitelist = [] as string[];
-        } else {
-            const isAdmin = (await User.findById(req.user.id).select("admin"))?.admin ?? false;
-            if (!isAdmin) {
-                problem.whitelist = [] as string[];
-            } else {
-                for (let i = problem.whitelist.length - 1; i >= 0; i--) {
-                    const userEmail = (await User.findById(problem.whitelist[i]).select("email"))?.email;
-                    if (!userEmail) {
-                        problem.whitelist.splice(i, 1);
-                        continue;
-                    }
-                    problem.whitelist[i] = userEmail;
-                }
-            }
+        } else if (problem.whitelist.length > 0) {
+            const users = await User.find({ _id: { $in: problem.whitelist } })
+                .select("email")
+                .lean();
+            problem.whitelist = users.map((user) => user.email);
         }
         return res.json(problem);
     },

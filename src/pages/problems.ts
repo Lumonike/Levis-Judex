@@ -16,12 +16,12 @@
  */
 
 import express from "express";
-import { FilterQuery } from "mongoose";
 
 import { sanitizeProblemHtml } from "../lib/sanitize.js";
 import { authenticateTokenOptional } from "../middleware/authenticate.js";
 import { problemMiddleware } from "../middleware/problem.js";
-import { Problem, User } from "../models.js";
+import { Problem } from "../models.js";
+import { getProblemWithTestcases, getVisibleProblemQuery } from "../services/problems.js";
 
 /**
  * Problem Router
@@ -32,10 +32,16 @@ export default router;
 router.get(
     "/problems/:problemId",
     problemMiddleware((req) => req.params.problemId, "redirect"),
-    (req, res) => {
+    async (req, res) => {
         const problem = req.problem;
         if (!problem) {
             // redirect if the file doesn't exist
+            res.redirect("/problems");
+            return;
+        }
+
+        const problemWithSamples = await getProblemWithTestcases(problem.id, false);
+        if (!problemWithSamples) {
             res.redirect("/problems");
             return;
         }
@@ -47,10 +53,10 @@ router.get(
                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" />
                <link rel="stylesheet" href="/problems/problem-style.css" />`,
             problem: {
-                ...problem,
-                inputFormat: sanitizeProblemHtml(problem.inputFormat),
-                outputFormat: sanitizeProblemHtml(problem.outputFormat),
-                problemStatement: sanitizeProblemHtml(problem.problemStatement),
+                ...problemWithSamples,
+                inputFormat: sanitizeProblemHtml(problemWithSamples.inputFormat),
+                outputFormat: sanitizeProblemHtml(problemWithSamples.outputFormat),
+                problemStatement: sanitizeProblemHtml(problemWithSamples.problemStatement),
             },
             title: problem.name,
         });
@@ -58,24 +64,7 @@ router.get(
 );
 
 router.get("/problems", authenticateTokenOptional, async (req, res) => {
-    let query: FilterQuery<typeof Problem> = {
-        $or: [
-            { isPrivate: { $ne: true } }, // always include non-private
-        ],
-    };
-
-    if (req.user?.id) {
-        const isAdmin = (await User.findById(req.user.id).select("admin"))?.admin ?? false;
-        if (isAdmin) {
-            query = {};
-        } else {
-            query.$or?.push({
-                isPrivate: true,
-                whitelist: { $in: [req.user.id] }, // include private only if userId is in whitelist
-            });
-        }
-    }
-
+    const query = await getVisibleProblemQuery(req.user?.id);
     const problems = (await Problem.find(query)).reverse();
     res.render("problems", { problems });
 });

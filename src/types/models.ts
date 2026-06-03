@@ -28,8 +28,10 @@ export interface IContest {
     id: string;
     /** Name of contest */
     name: string;
-    /** Problems of the contest */
-    problems: IProblem[];
+    /** IDs of problems included in the contest */
+    problemIds?: string[];
+    /** Legacy embedded problems, kept only for old database rows */
+    problems?: IProblemWithTestcases[];
     /** When the contest starts */
     startTime: Date;
 }
@@ -58,8 +60,6 @@ export interface IProblem {
     id: string;
     /** Describes the input format */
     inputFormat: string;
-    /** Input testcases */
-    inputTestcases: string[];
     /** Is the problem private */
     isPrivate?: boolean;
     /** problem name */
@@ -68,12 +68,36 @@ export interface IProblem {
     numSampleTestcases: number;
     /** Describes the output format */
     outputFormat: string;
-    /** Output testcases */
-    outputTestcases: string[];
     /** Describes the problem */
     problemStatement: string;
     /** Whitelist if the problem is private */
     whitelist?: Types.ObjectId[];
+}
+
+/**
+ * Judge-only testcase data for a problem.
+ */
+export interface IProblemTestcase {
+    /** Input text */
+    input: string;
+    /** Whether this testcase is public sample data */
+    isSample: boolean;
+    /** Zero-based testcase order */
+    order: number;
+    /** Expected output text */
+    output: string;
+    /** Public problem id */
+    problemId: string;
+}
+
+/**
+ * Problem plus testcase arrays used by render and judge paths.
+ */
+export interface IProblemWithTestcases extends IProblem {
+    /** Input testcases */
+    inputTestcases: string[];
+    /** Output testcases */
+    outputTestcases: string[];
 }
 
 /**
@@ -89,20 +113,40 @@ export interface IResult {
 }
 
 /**
+ * Stored submission.
+ */
+export interface ISubmission {
+    /** Submitted source code */
+    code: string;
+    /** When judging finished */
+    completedAt?: Date;
+    /** Contest id, when submitted inside a contest */
+    contestId?: null | string;
+    /** Error message when judging failed */
+    error?: string;
+    /** Stable key for idempotent legacy migrations */
+    legacyKey?: string;
+    /** Public problem id */
+    problemId: string;
+    /** Latest known testcase results */
+    results: IResult[];
+    /** Current judging state */
+    status: "completed" | "failed" | "queued" | "running";
+    /** User that submitted */
+    userId: Types.ObjectId;
+}
+
+/**
  * User interface
  * @remarks Used for mongoose stuff
  */
 export interface IUser {
     /** has admin privelleges */
     admin?: boolean;
-    /** Map with problemId as the key and points to code user submitted for that problem */
-    code: Map<string, string>;
     /** email address */
     email: string;
     /** encrypted password */
     password: string;
-    /** Map with problemId as the key and points to results */
-    results: Map<string, IResult[]>;
     /** token to verify email */
     verificationToken?: string;
     /** when the verification token expires */
