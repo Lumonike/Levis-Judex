@@ -19,6 +19,7 @@ import express from "express";
 import { rateLimit } from "express-rate-limit";
 
 import adminRouter from "./admin";
+import clubsRouter from "./clubs";
 import contestsRouter from "./contests";
 import homeRouter from "./home";
 import problemsRouter from "./problems";
@@ -41,6 +42,7 @@ const pageLimiter = rateLimit({
 router.use(pageLimiter);
 
 router.use("/", adminRouter);
+router.use("/", clubsRouter);
 router.use("/", contestsRouter);
 router.use("/", homeRouter);
 router.use("/", problemsRouter);

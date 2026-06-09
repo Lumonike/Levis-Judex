@@ -1,0 +1,257 @@
+import express, { Request, Response } from "express";
+import validator from "validator";
+
+import { authenticateToken } from "../middleware/authenticate";
+import { ClassClub, Contest, User } from "../models";
+import {
+    canManageClub,
+    deleteClubForUser,
+    findUserManageableClubs,
+    getClubRole,
+    normalizeClubId,
+    normalizeEmailList,
+    serializeClub,
+} from "../services/clubs";
+import { ApiMessage } from "../types/api";
+
+const router = express.Router();
+export default router;
+
+interface ClubSaveBody {
+    id: string;
+    joinPolicy?: string;
+    name: string;
+}
+
+interface EmailBody {
+    email?: string;
+    emails?: string | string[];
+}
+
+router.get("/mine", authenticateToken, async (req, res) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const user = await User.findById(req.user.id).select("email").lean();
+    if (!user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const clubs = await ClassClub.find({
+        $or: [
+            { ownerId: req.user.id },
+            { memberEmails: user.email },
+            { inviteEmails: user.email },
+            { requestEmails: user.email },
+            { joinPolicy: "open" },
+        ],
+    })
+        .sort({ name: 1 })
+        .lean();
+    const serialized = await Promise.all(clubs.map(async (club) => serializeClub(club, await getClubRole(club, req.user?.id))));
+
+    return res.json({
+        clubs: serialized,
+        invited: serialized.filter((club) => club.role === "invited"),
+        joined: serialized.filter((club) => club.role === "admin" || club.role === "member" || club.role === "owner"),
+        open: serialized.filter((club) => club.joinPolicy === "open" && club.role === "visitor"),
+        requested: serialized.filter((club) => club.role === "requested"),
+    });
+});
+
+router.get("/owned", authenticateToken, async (req, res) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const clubs = await findUserManageableClubs(req.user.id);
+    return res.json({ clubs: clubs.map((club) => serializeClub(club, club.ownerId?.toString() === req.user?.id.toString() ? "owner" : "admin")) });
+});
+
+router.post("/save", authenticateToken, async (req: Request<unknown, ApiMessage, ClubSaveBody>, res: Response) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    try {
+        const id = normalizeClubId(req.body.id);
+        const name = validator.escape(req.body.name.trim());
+        const joinPolicy = req.body.joinPolicy === "open" ? "open" : "invite";
+        if (!id) {
+            return res.status(400).json({ message: "Class/club ID is required" });
+        }
+        if (!name) {
+            return res.status(400).json({ message: "Class/club name is required" });
+        }
+
+        const existing = await ClassClub.findOne({ id });
+        if (existing && !(await canManageClub(existing, req.user.id))) {
+            return res.status(403).json({ message: "Only the club owner can edit this club" });
+        }
+
+        await ClassClub.findOneAndUpdate(
+            { id },
+            {
+                $set: {
+                    joinPolicy,
+                    name,
+                    ...(existing ? {} : { ownerId: req.user.id }),
+                },
+                $setOnInsert: {
+                    inviteEmails: [],
+                    memberEmails: [],
+                    requestEmails: [],
+                },
+            },
+            { new: true, setDefaultsOnInsert: true, upsert: true },
+        );
+        return res.json({ message: "Saved class/club." });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to save class/club.";
+        return res.status(400).json({ message });
+    }
+});
+
+router.get("/:id", authenticateToken, async (req, res) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const club = await ClassClub.findOne({ id: normalizeClubId(req.params.id) }).lean();
+    if (!club) {
+        return res.status(404).json({ message: "Class/club not found" });
+    }
+    const role = await getClubRole(club, req.user.id);
+    const contests = await Contest.find({ clubId: club.id }).select("accessType endTime id name startTime timingMode").sort({ startTime: -1 }).lean();
+
+    return res.json({ club: serializeClub(club, role), contests });
+});
+
+router.delete("/:id", authenticateToken, async (req, res) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    try {
+        await deleteClubForUser(normalizeClubId(req.params.id), req.user.id);
+        return res.json({ message: "Deleted class/club." });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to delete class/club.";
+        const status = message === "Class/club not found" ? 404 : message.startsWith("Only the club owner") ? 403 : 400;
+        return res.status(status).json({ message });
+    }
+});
+
+router.post("/:id/invite", authenticateToken, async (req: Request<{ id: string }, ApiMessage, EmailBody>, res: Response) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+    const club = await ClassClub.findOne({ id: normalizeClubId(req.params.id) });
+    if (!club) {
+        return res.status(404).json({ message: "Class/club not found" });
+    }
+    if (!(await canManageClub(club, req.user.id))) {
+        return res.status(403).json({ message: "Only the club owner can invite students" });
+    }
+
+    const emails = normalizeEmailList(req.body.emails);
+    club.inviteEmails = [...new Set([...(club.inviteEmails ?? []), ...emails].filter((email) => !club.memberEmails.includes(email)))];
+    club.requestEmails = (club.requestEmails ?? []).filter((email) => !emails.includes(email));
+    await club.save();
+
+    return res.json({ message: `Invited ${emails.length.toString()} student${emails.length === 1 ? "" : "s"}.` });
+});
+
+router.post("/:id/kick", authenticateToken, async (req: Request<{ id: string }, ApiMessage, EmailBody>, res: Response) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+    const club = await ClassClub.findOne({ id: normalizeClubId(req.params.id) });
+    if (!club) {
+        return res.status(404).json({ message: "Class/club not found" });
+    }
+    if (!(await canManageClub(club, req.user.id))) {
+        return res.status(403).json({ message: "Only the club owner can remove students" });
+    }
+
+    const emails = normalizeEmailList(req.body.email ? [req.body.email] : req.body.emails);
+    club.memberEmails = club.memberEmails.filter((email) => !emails.includes(email));
+    club.inviteEmails = (club.inviteEmails ?? []).filter((email) => !emails.includes(email));
+    club.requestEmails = (club.requestEmails ?? []).filter((email) => !emails.includes(email));
+    await club.save();
+
+    return res.json({ message: "Updated roster." });
+});
+
+router.post("/:id/join", authenticateToken, async (req, res) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+    const user = await User.findById(req.user.id).select("email").lean();
+    const club = await ClassClub.findOne({ id: normalizeClubId(req.params.id) });
+    if (!user || !club) {
+        return res.status(404).json({ message: "Class/club not found" });
+    }
+
+    if (club.memberEmails.includes(user.email)) {
+        return res.json({ message: "You are already a member." });
+    }
+    if ((club.inviteEmails ?? []).includes(user.email) || club.joinPolicy === "open") {
+        club.memberEmails = [...new Set([user.email, ...club.memberEmails])];
+        club.inviteEmails = (club.inviteEmails ?? []).filter((email) => email !== user.email);
+        club.requestEmails = (club.requestEmails ?? []).filter((email) => email !== user.email);
+        await club.save();
+        return res.json({ message: "Joined class/club." });
+    }
+
+    club.requestEmails = [...new Set([user.email, ...(club.requestEmails ?? [])])];
+    await club.save();
+    return res.json({ message: "Requested to join. The owner can approve you." });
+});
+
+router.post("/:id/leave", authenticateToken, async (req, res) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+    const user = await User.findById(req.user.id).select("email").lean();
+    const club = await ClassClub.findOne({ id: normalizeClubId(req.params.id) });
+    if (!user || !club) {
+        return res.status(404).json({ message: "Class/club not found" });
+    }
+    if (club.ownerId?.toString() === req.user.id.toString()) {
+        return res.status(400).json({ message: "Owners cannot leave their own club." });
+    }
+
+    club.memberEmails = club.memberEmails.filter((email) => email !== user.email);
+    club.inviteEmails = (club.inviteEmails ?? []).filter((email) => email !== user.email);
+    club.requestEmails = (club.requestEmails ?? []).filter((email) => email !== user.email);
+    await club.save();
+
+    return res.json({ message: "Left class/club." });
+});
+
+router.post("/:id/respond-request", authenticateToken, async (req: Request<{ id: string }, ApiMessage, EmailBody & { accept?: boolean }>, res) => {
+    if (!req.user) {
+        return res.status(403).json({ message: "Unauthorized" });
+    }
+    const club = await ClassClub.findOne({ id: normalizeClubId(req.params.id) });
+    if (!club) {
+        return res.status(404).json({ message: "Class/club not found" });
+    }
+    if (!(await canManageClub(club, req.user.id))) {
+        return res.status(403).json({ message: "Only the club owner can approve requests" });
+    }
+    const email = normalizeEmailList(req.body.email ? [req.body.email] : [])[0];
+    if (!email) {
+        return res.status(400).json({ message: "Valid student email is required" });
+    }
+
+    club.requestEmails = (club.requestEmails ?? []).filter((requestedEmail) => requestedEmail !== email);
+    if (req.body.accept) {
+        club.memberEmails = [...new Set([email, ...club.memberEmails])];
+        club.inviteEmails = (club.inviteEmails ?? []).filter((inviteEmail) => inviteEmail !== email);
+    }
+    await club.save();
+    return res.json({ message: req.body.accept ? "Request approved." : "Request declined." });
+});

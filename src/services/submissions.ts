@@ -1,13 +1,15 @@
 import { Types } from "mongoose";
 
 import * as judge from "../judge";
-import { Contest, Submission } from "../models";
+import { Submission } from "../models";
 import { IProblemWithTestcases, IResult } from "../types/models";
+import { findContestByStorageId } from "./contests";
 import { getContestProblem, getProblemWithTestcases } from "./problems";
 
 export interface CreateSubmissionInput {
     code: string;
     contestId?: null | string;
+    contestScored?: boolean;
     problem: IProblemWithTestcases;
     userId: Types.ObjectId;
 }
@@ -16,6 +18,7 @@ export async function createSubmission(input: CreateSubmissionInput): Promise<st
     const submission = await Submission.create({
         code: input.code,
         contestId: input.contestId ?? null,
+        contestScored: input.contestScored ?? false,
         problemId: input.problem.id,
         results: [],
         status: "queued",
@@ -87,7 +90,7 @@ async function resolveSubmissionProblem(problemId: string, contestId?: null | st
         return getProblemWithTestcases(problemId, true);
     }
 
-    const contest = await Contest.findOne({ id: contestId });
+    const contest = await findContestByStorageId(contestId);
     if (!contest) {
         return null;
     }

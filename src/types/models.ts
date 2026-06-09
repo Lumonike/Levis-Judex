@@ -18,10 +18,38 @@
 import { Types } from "mongoose";
 
 /**
+ * Class or club that can own restricted contests.
+ */
+export interface IClassClub {
+    /** Stable public id used in URLs/forms */
+    id: string;
+    /** Emails invited by the owner but not accepted yet */
+    inviteEmails?: string[];
+    /** Whether users can join directly or must be invited/approved */
+    joinPolicy?: "invite" | "open";
+    /** Student emails that can access member-only contests */
+    memberEmails: string[];
+    /** Display name */
+    name: string;
+    /** Admin/teacher that created the club */
+    ownerId?: Types.ObjectId;
+    /** Emails that asked to join an invite-only club */
+    requestEmails?: string[];
+}
+
+/**
  * Contest interface
  * @remarks used for mongoose stuff
  */
 export interface IContest {
+    /** Public contest or restricted to a class/club roster */
+    accessType?: "club" | "public";
+    /** Class/club id when accessType is club */
+    clubId?: null | string;
+    /** Admin/teacher that created the contest */
+    createdBy?: Types.ObjectId;
+    /** Personal contest length in minutes */
+    durationMinutes?: number;
     /** When the contest ends */
     endTime: Date;
     /** Id of contest, didn't know _id existed */
@@ -30,10 +58,28 @@ export interface IContest {
     name: string;
     /** IDs of problems included in the contest */
     problemIds?: string[];
+    /** Point value for each contest-local problem id */
+    problemPoints?: Map<string, number> | Record<string, number>;
     /** Legacy embedded problems, kept only for old database rows */
     problems?: IProblemWithTestcases[];
     /** When the contest starts */
     startTime: Date;
+    /** Shared schedule or per-user timed starts */
+    timingMode: "global" | "personal";
+}
+
+/**
+ * A user's personal contest timer.
+ */
+export interface IContestAttempt {
+    /** Public contest id */
+    contestId: string;
+    /** When this user's scoring window closes */
+    endsAt: Date;
+    /** When this user started the contest */
+    startedAt: Date;
+    /** User taking the contest */
+    userId: Types.ObjectId;
 }
 
 /**
@@ -78,6 +124,8 @@ export interface IProblem {
  * Judge-only testcase data for a problem.
  */
 export interface IProblemTestcase {
+    /** Contest id for contest-scoped problems */
+    contestId?: null | string;
     /** Input text */
     input: string;
     /** Whether this testcase is public sample data */
@@ -122,11 +170,13 @@ export interface ISubmission {
     completedAt?: Date;
     /** Contest id, when submitted inside a contest */
     contestId?: null | string;
+    /** Whether this submission counts toward contest results */
+    contestScored?: boolean;
     /** Error message when judging failed */
     error?: string;
     /** Stable key for idempotent legacy migrations */
     legacyKey?: string;
-    /** Public problem id */
+    /** Public problem id, scoped by contestId when present */
     problemId: string;
     /** Latest known testcase results */
     results: IResult[];

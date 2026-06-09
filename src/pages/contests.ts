@@ -20,7 +20,10 @@ import fs from "fs";
 import path from "path";
 
 import { sanitizeProblemHtml } from "../lib/sanitize.js";
+import { authenticateTokenOptional } from "../middleware/authenticate.js";
 import { Contest } from "../models.js";
+import { contestScopeFilter, contestUrl, getContestStorageId } from "../services/contest-scope.js";
+import { canAccessContest, getContestProblemPoints, getContestState, getScoreboard } from "../services/contests.js";
 import { getContestProblem, getContestProblems } from "../services/problems.js";
 import { IContest } from "../types/models.js";
 
@@ -30,12 +33,18 @@ import { IContest } from "../types/models.js";
 const router = express.Router();
 export default router;
 
-router.get("/contests", async (req, res) => {
-    const contests = await Contest.find();
+router.get("/contests", authenticateTokenOptional, async (req, res) => {
+    const allContests = await Contest.find().lean<IContest[]>();
+    const contests = [];
+    for (const contest of allContests) {
+        if (await canAccessContest(contest, req.user?.id)) {
+            contests.push({ ...contest, href: contestUrl(contest) });
+        }
+    }
     res.render("contests", { contests });
 });
 
-router.get("/contests/:target", async (req, res) => {
+router.get("/contests/:target", authenticateTokenOptional, async (req, res) => {
     const target = req.params.target;
     const targetPath = path.join(__dirname, "..", "public", "contests", target);
     // send files if they exist
@@ -45,22 +54,63 @@ router.get("/contests/:target", async (req, res) => {
             return;
         }
     }
-    const contest = await Contest.findOne({ id: target }).lean<IContest>();
+    const clubId = typeof req.query.club === "string" ? req.query.club : null;
+    const contest = await Contest.findOne(contestScopeFilter(target, clubId)).lean<IContest>();
     if (!contest) {
         // redirect if the file doesn't exist
         res.redirect("/contests");
         return;
     }
-    const problems = await getContestProblems(contest, false);
+    if (!(await canAccessContest(contest, req.user?.id))) {
+        res.status(403).render("contest-unavailable", {
+            contestID: contest.id,
+            reason: {
+                text: "This contest is limited to members of its class or club.",
+                title: "Contest Restricted",
+            },
+            title: "Contest Restricted",
+        });
+        return;
+    }
+    const state = await getContestState(contest, req.user?.id);
+    const problems = state.canViewProblems
+        ? (await getContestProblems(contest, false)).map((problem) => ({
+              ...problem,
+              points: getContestProblemPoints(contest, problem.id),
+          }))
+        : [];
+    const scoreboard = (await getScoreboard(contest)).map((row) => ({
+        ...row,
+        elapsedLabel: formatElapsed(row.elapsedMs),
+    }));
 
     res.render("contest", {
         backArrow: { href: "/contests", text: "Back to Contest List" },
-        contest: { ...contest, problems },
+        contest: { ...contest, href: contestUrl(contest), problems, storageId: getContestStorageId(contest) },
+        mainSection: { width: "max-w-6xl" },
+        scoreboard,
+        state,
         title: contest.name,
     });
 });
 
-router.get("/contests/:contestID/:problemID", async (req, res) => {
+function formatElapsed(elapsedMs: number): string {
+    if (!Number.isFinite(elapsedMs) || elapsedMs === Number.MAX_SAFE_INTEGER) {
+        return "-";
+    }
+
+    const totalSeconds = Math.floor(elapsedMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+        return `${hours.toString()}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    return `${minutes.toString()}:${seconds.toString().padStart(2, "0")}`;
+}
+
+router.get("/contests/:contestID/:problemID", authenticateTokenOptional, async (req, res) => {
     const { contestID, problemID } = req.params;
     const contestDir = path.join(__dirname, "..", "public", "contests", contestID);
     if (fs.existsSync(path.join(contestDir, problemID))) {
@@ -69,9 +119,35 @@ router.get("/contests/:contestID/:problemID", async (req, res) => {
             return;
         }
     }
-    const contest: IContest | null = await Contest.findOne({ id: contestID }).lean<IContest>();
+    const clubId = typeof req.query.club === "string" ? req.query.club : null;
+    const contest: IContest | null = await Contest.findOne(contestScopeFilter(contestID, clubId)).lean<IContest>();
     if (!contest) {
         res.redirect("/contests");
+        return;
+    }
+    if (!(await canAccessContest(contest, req.user?.id))) {
+        res.status(403).render("contest-unavailable", {
+            contestID: contest.id,
+            reason: {
+                text: "This problem is part of a restricted contest.",
+                title: "Contest Restricted",
+            },
+            title: "Contest Restricted",
+        });
+        return;
+    }
+    const state = await getContestState(contest, req.user?.id);
+    if (!state.canViewProblems) {
+        res.render("contest-unavailable", {
+            contestID: contest.id,
+            reason: {
+                text: state.canStart
+                    ? "Start this contest from the contest page to unlock the problems."
+                    : `The contest opens at ${contest.startTime.toLocaleString()}`,
+                title: state.canStart ? "Contest Not Started" : "Contest Not Open",
+            },
+            title: "Contest Unavailable",
+        });
         return;
     }
     const problem = await getContestProblem(contest, problemID, false);
@@ -79,37 +155,18 @@ router.get("/contests/:contestID/:problemID", async (req, res) => {
         res.redirect("../");
         return;
     }
-    const now = new Date();
 
-    // Check if contest is active
-    if (now < contest.startTime) {
-        res.render("contest-unavailable", {
-            contestID: contest.id,
-            reason: { text: `The contest is scheduled to start at ${contest.startTime.toLocaleString()}`, title: "Contest Not Started" },
-            title: "Contest Not Started",
-        });
-        return;
-    } else if (now >= contest.endTime) {
-        res.render("contest-unavailable", {
-            contestID: contest.id,
-            reason: { text: `The contest ended on ${contest.endTime.toLocaleString()}`, title: "Contest Ended" },
-            title: "Contest Ended",
-        });
-        return;
-    } else {
-        res.render("problem", {
-            backArrow: { href: `/contests/${problem.contestID}`, text: "Back to Contest" },
-            head: `<script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+    res.render("problem", {
+        backArrow: { href: contestUrl(contest), text: "Back to Contest" },
+        head: `<script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
                    <script type="module" src="/problems/problem-script.js" defer></script>
                    <link rel="stylesheet" href="/problems/problem-style.css"></link>`,
-            problem: {
-                ...problem,
-                inputFormat: sanitizeProblemHtml(problem.inputFormat),
-                outputFormat: sanitizeProblemHtml(problem.outputFormat),
-                problemStatement: sanitizeProblemHtml(problem.problemStatement),
-            },
-            title: problem.name,
-        });
-        return;
-    }
+        problem: {
+            ...problem,
+            inputFormat: sanitizeProblemHtml(problem.inputFormat),
+            outputFormat: sanitizeProblemHtml(problem.outputFormat),
+            problemStatement: sanitizeProblemHtml(problem.problemStatement),
+        },
+        title: problem.name,
+    });
 });

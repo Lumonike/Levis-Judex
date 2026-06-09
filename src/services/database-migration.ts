@@ -1,8 +1,9 @@
 import mongoose, { Types } from "mongoose";
 
-import { Contest, Problem, ProblemTestcase, Submission, User } from "../models";
+import { Contest, ContestAttempt, Problem, ProblemTestcase, Submission, User } from "../models";
 import { IProblemWithTestcases, IResult } from "../types/models";
-import { migrateLegacyProblemTestcases, replaceProblemTestcases } from "./problems";
+import { getContestStorageId } from "./contest-scope";
+import { dropLegacyGlobalProblemIdIndex, dropLegacyProblemTestcaseIndexes, migrateLegacyProblemTestcases, replaceProblemTestcases } from "./problems";
 
 export interface MigrationResult {
     contests: {
@@ -19,6 +20,7 @@ export interface MigrationResult {
 
 interface LegacyContestDocument {
     _id: Types.ObjectId;
+    id: string;
     problems?: IProblemWithTestcases[];
 }
 
@@ -28,9 +30,43 @@ interface LegacyUserDocument {
     results?: Map<string, IResult[]> | Record<string, IResult[]>;
 }
 
+export async function dropLegacyContestProblemIndexes(): Promise<number> {
+    const legacyIndexes = ["id_1", "problems.id_1"];
+    const dropped = await Promise.all(legacyIndexes.map((indexName) => dropIndexIfExists(Contest.collection, indexName)));
+
+    return dropped.filter(Boolean).length;
+}
+
+export async function migrateClubContestStorageKeys(): Promise<number> {
+    const contests = await Contest.find({ accessType: "club", clubId: { $type: "string" } }).lean();
+    let migrated = 0;
+
+    for (const contest of contests) {
+        const oldContestId = contest.id;
+        const storageId = getContestStorageId(contest);
+        if (oldContestId === storageId) {
+            continue;
+        }
+
+        const [problems, testcases, submissions, attempts] = await Promise.all([
+            Problem.updateMany({ contestID: oldContestId }, { $set: { contestID: storageId } }),
+            ProblemTestcase.updateMany({ contestId: oldContestId }, { $set: { contestId: storageId } }),
+            Submission.updateMany({ contestId: oldContestId }, { $set: { contestId: storageId } }),
+            ContestAttempt.updateMany({ contestId: oldContestId }, { $set: { contestId: storageId } }),
+        ]);
+        migrated += problems.modifiedCount + testcases.modifiedCount + submissions.modifiedCount + attempts.modifiedCount;
+    }
+
+    return migrated;
+}
+
 export async function migrateDatabase(): Promise<MigrationResult> {
+    await dropLegacyGlobalProblemIdIndex();
+    await dropLegacyContestProblemIndexes();
+    await dropLegacyProblemTestcaseIndexes();
     const problemTestcasesMigrated = await migrateLegacyProblemTestcases();
     const contests = await migrateLegacyContests();
+    await migrateClubContestStorageKeys();
     const submissions = await migrateLegacyUserSubmissions();
 
     return {
@@ -58,13 +94,16 @@ export async function migrateLegacyContests(): Promise<MigrationResult["contests
         const problemIds: string[] = [];
         for (const problem of problems) {
             problemIds.push(problem.id);
-            importedProblems += await importLegacyContestProblem(problem);
+            importedProblems += await importLegacyContestProblem({ ...problem, contestID: problem.contestID ?? contest.id });
         }
 
         await Contest.updateOne(
             { _id: contest._id },
             {
-                $set: { problemIds },
+                $set: {
+                    problemIds,
+                    problemPoints: Object.fromEntries(problemIds.map((problemId) => [problemId, 100])),
+                },
                 $unset: { problems: "" },
             },
         );
@@ -134,11 +173,24 @@ export async function runDatabaseMigrationFromEnv(): Promise<MigrationResult> {
     }
 }
 
+async function dropIndexIfExists(collection: typeof Contest.collection, indexName: string): Promise<boolean> {
+    try {
+        await collection.dropIndex(indexName);
+        return true;
+    } catch (error) {
+        if (error instanceof Error && (error.message.includes("index not found") || error.message.includes("index not found with name"))) {
+            return false;
+        }
+        return false;
+    }
+}
+
 async function importLegacyContestProblem(problem: IProblemWithTestcases): Promise<number> {
-    const existingProblem = await Problem.findOne({ id: problem.id }).select("_id");
+    const contestID = problem.contestID ?? null;
+    const existingProblem = await Problem.findOne({ contestID, id: problem.id }).select("_id");
     if (!existingProblem) {
         await Problem.create({
-            contestID: problem.contestID ?? null,
+            contestID,
             id: problem.id,
             inputFormat: problem.inputFormat,
             isPrivate: problem.isPrivate ?? false,
@@ -150,9 +202,9 @@ async function importLegacyContestProblem(problem: IProblemWithTestcases): Promi
         });
     }
 
-    const existingTestcaseCount = await ProblemTestcase.countDocuments({ problemId: problem.id });
+    const existingTestcaseCount = await ProblemTestcase.countDocuments({ contestId: contestID, problemId: problem.id });
     if (existingTestcaseCount === 0 && problem.inputTestcases.length === problem.outputTestcases.length) {
-        await replaceProblemTestcases(problem.id, problem.inputTestcases, problem.outputTestcases, problem.numSampleTestcases);
+        await replaceProblemTestcases(problem.id, problem.inputTestcases, problem.outputTestcases, problem.numSampleTestcases, contestID);
     }
 
     return existingProblem ? 0 : 1;

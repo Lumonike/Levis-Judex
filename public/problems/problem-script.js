@@ -26,11 +26,9 @@ const url = window.location.pathname.split("/");
 if (url.at(-1) == "") {
     url.pop();
 }
-let contestID = null;
-if (url.at(-3) == "contests") {
-    contestID = url.at(-2);
-}
-const problemID = url.at(-1);
+const context = document.getElementById("problem-context");
+let contestID = context?.dataset.contestId || null;
+const problemID = context?.dataset.problemId || url.at(-1);
 console.log(contestID);
 console.log(problemID);
 // set up listener for run button

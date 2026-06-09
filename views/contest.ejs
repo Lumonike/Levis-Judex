@@ -1,38 +1,103 @@
-<%- include("partials/home-button") %>
-
-<div class="max-w-4xl mx-auto">
-    <div class="text-center mb-8">
-        <h1 class="text-5xl font-bold mb-4 text-white"><%= contest.name %></h1>
-        <div class="bg-gray-700 rounded-lg p-4 inline-block">
+<div class="max-w-5xl mx-auto space-y-6" data-contest-id="<%= contest.id %>" data-contest-club-id="<%= contest.clubId ?? "" %>" data-contest-status="<%= state.status %>">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+            <h1 class="text-4xl font-bold mb-2 text-white"><%= contest.name %></h1>
+            <p class="text-gray-300">
+                <%= contest.timingMode === "personal" ? "Personal timer" : "Global contest" %>
+                <% if (contest.accessType === "club") { %>
+                    <span class="ml-2 text-sm text-yellow-200 bg-yellow-900 bg-opacity-40 border border-yellow-700 rounded px-2 py-1">Class / club</span>
+                <% } %>
+            </p>
+        </div>
+        <div class="bg-gray-700 rounded-lg p-4 border border-gray-600 min-w-64">
+            <p class="text-sm text-gray-400 mb-1"><%= state.canSubmitForScore ? "Scored time remaining" : "Contest status" %></p>
             <p class="text-xl text-blue-300 font-semibold" id="contest-timing">Loading...</p>
         </div>
     </div>
 
-    <div class="grid gap-3 max-w-2xl mx-auto">
-        <% contest.problems.forEach((problem, index) => { %>
-            <div class="bg-gray-700 rounded-lg p-2 hover:bg-gray-600 transition-colors duration-200">
-                <a class="flex items-center justify-between group" href="/contests/<%= contest.id %>/<%= problem.id %>">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                            <%= problem.id %>
-                        </div>
-                        <span class="text-xl text-white group-hover:text-blue-300 transition-colors duration-200">
-                            <%= problem.name %>
-                        </span>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-300 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                </a>
+    <% if (state.canStart) { %>
+        <div class="bg-gray-700 rounded-lg p-6 border border-gray-600 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-white mb-2">Ready to start?</h2>
+                <p class="text-gray-300">Your timer will run for <%= contest.durationMinutes %> minutes once started.</p>
             </div>
-        <% }) %>
+            <button id="start-contest-button" class="text-lg px-5 py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 focus:outline-none transition-colors duration-200">
+                Start Contest
+            </button>
+        </div>
+    <% } %>
+
+    <% if (!state.canViewProblems && !state.canStart) { %>
+        <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
+            <h2 class="text-2xl font-bold text-white mb-2"><%= state.isBeforeOpen ? "Not Open Yet" : "Closed" %></h2>
+            <p class="text-gray-300">
+                <%= state.isBeforeOpen ? `This contest opens at ${contest.startTime.toLocaleString()}.` : "This personal contest is closed for new starts." %>
+            </p>
+        </div>
+    <% } %>
+
+    <% if (state.canViewProblems) { %>
+        <div class="grid gap-3">
+            <% contest.problems.forEach((problem) => { %>
+                <div class="bg-gray-700 rounded-lg p-3 hover:bg-gray-600 transition-colors duration-200 border border-gray-600">
+                    <a class="flex items-center justify-between group" href="/contests/<%= contest.id %>/<%= problem.id %><%= contest.clubId ? `?club=${encodeURIComponent(contest.clubId)}` : "" %>">
+                        <div class="flex items-center space-x-4 min-w-0">
+                            <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                                <%= problem.id %>
+                            </div>
+                            <div class="min-w-0">
+                                <span class="block text-xl text-white group-hover:text-blue-300 transition-colors duration-200 truncate">
+                                    <%= problem.name %>
+                                </span>
+                                <span class="block text-sm text-gray-300"><%= problem.points %> points</span>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-300 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                </div>
+            <% }) %>
+        </div>
+    <% } %>
+
+    <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
+        <h2 class="text-2xl font-bold text-white mb-4">Scoreboard</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="text-gray-300 border-b border-gray-600">
+                    <tr>
+                        <th class="py-2 pr-4">Rank</th>
+                        <th class="py-2 pr-4">User</th>
+                        <th class="py-2 pr-4">Solved</th>
+                        <th class="py-2 pr-4">Points</th>
+                        <th class="py-2 pr-4">Time</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-100">
+                    <% if (scoreboard.length === 0) { %>
+                        <tr><td class="py-3 text-gray-400" colspan="5">No scored submissions yet.</td></tr>
+                    <% } %>
+                    <% scoreboard.forEach((row, index) => { %>
+                        <tr class="border-b border-gray-600 last:border-b-0">
+                            <td class="py-3 pr-4"><%= index + 1 %></td>
+                            <td class="py-3 pr-4"><%= row.email %></td>
+                            <td class="py-3 pr-4"><%= row.solved %></td>
+                            <td class="py-3 pr-4"><%= row.points %></td>
+                            <td class="py-3 pr-4"><%= row.elapsedLabel %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
+<script type="module" src="/contests/contest.js"></script>
 <script type="module">
     import { apply } from "/contests/update-timing.js";
-    let elem = document.getElementById("contest-timing");
-    const startTime = new Date("<%= contest.startTime.toISOString() %>");
-    const endTime = new Date("<%= contest.endTime.toISOString() %>");
+    const elem = document.getElementById("contest-timing");
+    const startTime = new Date("<%= state.startsAt.toISOString() %>");
+    const endTime = new Date("<%= state.endsAt.toISOString() %>");
     setInterval(apply, 100, elem, startTime, endTime);
 </script>

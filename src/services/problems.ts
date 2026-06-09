@@ -2,15 +2,28 @@ import { FilterQuery, Types } from "mongoose";
 
 import { Problem, ProblemTestcase, User } from "../models";
 import { IContest, IProblem, IProblemWithTestcases } from "../types/models";
+import { getContestStorageId } from "./contest-scope";
 
 export type ProblemUpdateInput = Omit<IProblemWithTestcases, "whitelist"> & {
     whitelist?: (string | Types.ObjectId)[];
 };
 
 type ProblemDocumentShape = IProblem & {
+    _id: Types.ObjectId;
     inputTestcases?: string[];
     outputTestcases?: string[];
 };
+
+export async function dropLegacyGlobalProblemIdIndex(): Promise<boolean> {
+    return dropIndexIfExists(Problem.collection, "id_1");
+}
+
+export async function dropLegacyProblemTestcaseIndexes(): Promise<number> {
+    const legacyIndexes = ["isSample_1_problemId_1", "order_1_problemId_1", "problemId_1_isSample_1", "problemId_1_order_1"];
+    const dropped = await Promise.all(legacyIndexes.map((indexName) => dropIndexIfExists(ProblemTestcase.collection, indexName)));
+
+    return dropped.filter(Boolean).length;
+}
 
 export async function getContestProblem(
     contest: IContest,
@@ -22,9 +35,15 @@ export async function getContestProblem(
         return null;
     }
 
-    const normalizedProblem = await getProblemWithTestcases(problemId, includeHiddenTestcases);
-    if (normalizedProblem) {
-        return { ...normalizedProblem, contestID: contest.id };
+    const contestStorageId = getContestStorageId(contest);
+    const contestProblem = await getProblemWithTestcases(problemId, includeHiddenTestcases, contestStorageId);
+    if (contestProblem) {
+        return contestProblem;
+    }
+
+    const globalProblem = await getProblemWithTestcases(problemId, includeHiddenTestcases);
+    if (globalProblem) {
+        return { ...globalProblem, contestID: contestStorageId };
     }
 
     const legacyProblem = contest.problems?.find((problem) => problem.id === problemId);
@@ -54,13 +73,19 @@ export async function getContestProblems(contest: IContest, includeHiddenTestcas
     return problems.filter((problem): problem is IProblemWithTestcases => problem !== null);
 }
 
-export async function getProblemWithTestcases(problemId: string, includeHiddenTestcases: boolean): Promise<IProblemWithTestcases | null> {
-    const problem = await Problem.findOne({ id: problemId }).lean<ProblemDocumentShape>();
+export async function getProblemWithTestcases(
+    problemId: string,
+    includeHiddenTestcases: boolean,
+    contestId?: null | string,
+): Promise<IProblemWithTestcases | null> {
+    const normalizedContestId = contestId ?? null;
+    const problem = await Problem.findOne(problemScopeFilter(problemId, normalizedContestId)).lean<ProblemDocumentShape>();
     if (!problem) {
         return null;
     }
 
     const testcases = await ProblemTestcase.find({
+        contestId: normalizedContestId,
         problemId,
         ...(includeHiddenTestcases ? {} : { isSample: true }),
     })
@@ -87,6 +112,7 @@ export async function getProblemWithTestcases(problemId: string, includeHiddenTe
 
 export async function getVisibleProblemQuery(userId?: Types.ObjectId): Promise<FilterQuery<IProblem>> {
     const query: FilterQuery<IProblem> = {
+        $and: [globalProblemScopeFilter()],
         $or: [{ isPrivate: { $ne: true } }],
     };
 
@@ -96,7 +122,7 @@ export async function getVisibleProblemQuery(userId?: Types.ObjectId): Promise<F
 
     const isAdmin = (await User.findById(userId).select("admin"))?.admin ?? false;
     if (isAdmin) {
-        return {};
+        return globalProblemScopeFilter();
     }
 
     query.$or?.push({
@@ -114,20 +140,22 @@ export async function migrateLegacyProblemTestcases(): Promise<number> {
 
     let migrated = 0;
     for (const problem of legacyProblems) {
+        const contestId = problem.contestID ?? null;
         const inputTestcases = problem.inputTestcases ?? [];
         const outputTestcases = problem.outputTestcases ?? [];
         if (inputTestcases.length === 0 || inputTestcases.length !== outputTestcases.length) {
             continue;
         }
 
-        const existingTestcaseCount = await ProblemTestcase.countDocuments({ problemId: problem.id });
+        const existingTestcaseCount = await ProblemTestcase.countDocuments({ contestId, problemId: problem.id });
         if (existingTestcaseCount === 0) {
-            await replaceProblemTestcases(problem.id, inputTestcases, outputTestcases, problem.numSampleTestcases);
+            await replaceProblemTestcases(problem.id, inputTestcases, outputTestcases, problem.numSampleTestcases, contestId);
         }
 
         await Problem.updateOne(
-            { id: problem.id },
+            { _id: problem._id },
             {
+                $set: { contestID: contestId },
                 $unset: {
                     inputTestcases: "",
                     outputTestcases: "",
@@ -145,10 +173,13 @@ export async function replaceProblemTestcases(
     inputTestcases: string[],
     outputTestcases: string[],
     numSampleTestcases: number,
+    contestId?: null | string,
 ): Promise<void> {
-    await ProblemTestcase.deleteMany({ problemId });
+    const normalizedContestId = contestId ?? null;
+    await ProblemTestcase.deleteMany({ contestId: normalizedContestId, problemId });
     await ProblemTestcase.insertMany(
         inputTestcases.map((input, order) => ({
+            contestId: normalizedContestId,
             input,
             isSample: order < numSampleTestcases,
             order,
@@ -159,11 +190,12 @@ export async function replaceProblemTestcases(
 }
 
 export async function saveProblemWithTestcases(update: ProblemUpdateInput): Promise<IProblem> {
+    const contestID = update.contestID ?? null;
     const problem = await Problem.findOneAndUpdate(
-        { id: update.id },
+        { contestID, id: update.id },
         {
             $set: {
-                contestID: update.contestID ?? null,
+                contestID,
                 id: update.id,
                 inputFormat: update.inputFormat,
                 isPrivate: update.isPrivate ?? false,
@@ -185,8 +217,20 @@ export async function saveProblemWithTestcases(update: ProblemUpdateInput): Prom
         },
     );
 
-    await replaceProblemTestcases(update.id, update.inputTestcases, update.outputTestcases, update.numSampleTestcases);
+    await replaceProblemTestcases(update.id, update.inputTestcases, update.outputTestcases, update.numSampleTestcases, contestID);
     return problem;
+}
+
+async function dropIndexIfExists(collection: typeof Problem.collection, indexName: string): Promise<boolean> {
+    try {
+        await collection.dropIndex(indexName);
+        return true;
+    } catch (error) {
+        if (error instanceof Error && (error.message.includes("index not found") || error.message.includes("index not found with name"))) {
+            return false;
+        }
+        return false;
+    }
 }
 
 function filterProblemTestcases(problem: IProblemWithTestcases, includeHiddenTestcases: boolean): IProblemWithTestcases {
@@ -199,4 +243,19 @@ function filterProblemTestcases(problem: IProblemWithTestcases, includeHiddenTes
         inputTestcases: problem.inputTestcases.slice(0, problem.numSampleTestcases),
         outputTestcases: problem.outputTestcases.slice(0, problem.numSampleTestcases),
     };
+}
+
+function globalProblemScopeFilter(): FilterQuery<IProblem> {
+    return { $or: [{ contestID: null }, { contestID: { $exists: false } }] };
+}
+
+function problemScopeFilter(problemId: string, contestId: null | string): FilterQuery<IProblem> {
+    if (contestId === null) {
+        return {
+            id: problemId,
+            ...globalProblemScopeFilter(),
+        };
+    }
+
+    return { contestID: contestId, id: problemId };
 }

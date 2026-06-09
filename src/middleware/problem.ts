@@ -23,7 +23,10 @@ import { authenticateToken } from "./authenticate";
 
 export function problemMiddleware(getProblemId: (req: Request) => string | undefined, action?: "redirect") {
     return async (req: Request, res: Response, next: NextFunction) => {
-        const problem: IProblem | null = await Problem.findOne({ id: getProblemId(req) }).lean();
+        const problem: IProblem | null = await Problem.findOne({
+            $or: [{ contestID: null }, { contestID: { $exists: false } }],
+            id: getProblemId(req),
+        }).lean();
 
         if (!problem) {
             if (action == "redirect") {
@@ -84,7 +87,10 @@ export function problemMiddleware(getProblemId: (req: Request) => string | undef
 
 export function submitMiddleware(getProblemId: (req: Request) => string | undefined) {
     return async (req: Request, res: Response, next: NextFunction) => {
-        const problem: IProblem | null = await Problem.findOne({ id: getProblemId(req) });
+        const problem: IProblem | null = await Problem.findOne({
+            $or: [{ contestID: null }, { contestID: { $exists: false } }],
+            id: getProblemId(req),
+        });
 
         if (!problem) {
             return res.status(404).json({ error: "Not found" });

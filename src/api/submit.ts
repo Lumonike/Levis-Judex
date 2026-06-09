@@ -23,7 +23,8 @@ import validator from "validator";
 
 import * as judge from "../judge";
 import { authenticateToken } from "../middleware/authenticate";
-import { Contest, Submission, User } from "../models";
+import { Submission, User } from "../models";
+import { canAccessContest, findContestByStorageId, getContestState } from "../services/contests";
 import { getContestProblem, getProblemWithTestcases } from "../services/problems";
 import { createSubmission } from "../services/submissions";
 import { ApiError } from "../types/api";
@@ -93,19 +94,22 @@ router.post(
         }
 
         let problem = null;
+        let contestScored = false;
         if (!sanitizedContestID) {
             problem = await getProblemWithTestcases(sanitizedProblemID, true);
         } else {
-            const contest = await Contest.findOne({ id: sanitizedContestID });
+            const contest = await findContestByStorageId(sanitizedContestID);
             if (!contest) {
                 return res.status(400).json({ error: "Invalid Contest!" });
             }
-            const now = new Date();
-            if (now < contest.startTime) {
-                return res.status(400).json({ error: "Contest hasn't started!" });
-            } else if (now >= contest.endTime) {
-                return res.status(400).json({ error: "Contest has already ended!" });
+            if (!(await canAccessContest(contest, user._id))) {
+                return res.status(403).json({ error: "Contest is restricted" });
             }
+            const state = await getContestState(contest, user._id);
+            if (!state.canViewProblems) {
+                return res.status(400).json({ error: "Contest is not available yet." });
+            }
+            contestScored = state.canSubmitForScore;
             problem = await getContestProblem(contest, sanitizedProblemID, true);
         }
         if (!problem) {
@@ -119,6 +123,7 @@ router.post(
         const submissionID = await createSubmission({
             code,
             contestId: sanitizedContestID,
+            contestScored,
             problem,
             userId: user._id,
         });

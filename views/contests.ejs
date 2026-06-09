@@ -9,13 +9,16 @@
     <div class="grid gap-3">
         <% contests.forEach((contest, index) => { %>
             <div class="bg-gray-700 rounded-lg p-2 hover:bg-gray-600 transition-all duration-200 hover:scale-[1.02]">
-                <a class="flex items-center justify-between group" href="/contests/<%= contest.id %>">
+                <a class="flex items-center justify-between group" href="<%= contest.href %>">
                     <div class="flex items-center space-x-4">
                         <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
                             <%= contest.id %>
                         </div>
                         <span class="text-xl text-white group-hover:text-purple-300 transition-colors duration-200">
                             <%= contest.name %>
+                            <% if (contest.accessType === "club") { %>
+                                <span class="ml-2 align-middle text-xs text-yellow-200 bg-yellow-900 bg-opacity-40 border border-yellow-700 rounded px-2 py-1">Class / club</span>
+                            <% } %>
                         </span>
                     </div>
                     <svg class="w-5 h-5 text-gray-400 group-hover:text-purple-300 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">

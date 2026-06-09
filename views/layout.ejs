@@ -18,7 +18,12 @@
         <%= mainSection.width %>
     <% } else { %>
         <%= "max-w-4xl" %>
-    <% } %> mx-auto mt-10 p-8 bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-2xl rounded-2xl border border-gray-700 
+    <% } %> mx-auto <%= "backArrow" in locals ? "mt-4" : "mt-10" %>
+    <% if ("mainSection" in locals && "unframed" in mainSection && mainSection.unframed) { %>
+        <%= "px-4 pb-10" %>
+    <% } else { %>
+        <%= "p-8 bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-2xl rounded-2xl border border-gray-700" %>
+    <% } %>
     <% if ("mainSection" in locals && "centered" in mainSection && mainSection.centered) { %>
         <%= "text-center relative" %>
     <% } %>" id="main-section">

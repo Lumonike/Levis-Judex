@@ -19,6 +19,8 @@ import express from "express";
 import { rateLimit } from "express-rate-limit";
 
 import adminApiRouter from "./admin";
+import clubsApiRouter from "./clubs";
+import contestsApiRouter from "./contests";
 import problemsApiRouter from "./problems";
 import submissionApiRouter from "./submit";
 import userApiRouter from "./user";
@@ -40,6 +42,8 @@ const apiLimiter = rateLimit({
 router.use(apiLimiter);
 
 router.use("/api/admin", adminApiRouter);
+router.use("/api/clubs", clubsApiRouter);
+router.use("/api/contests", contestsApiRouter);
 router.use("/api/problems", problemsApiRouter);
 router.use("/api/submit", submissionApiRouter);
 router.use("/api/user", userApiRouter);

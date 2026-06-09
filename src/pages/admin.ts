@@ -55,7 +55,17 @@ router.get("/admin/add-problem", authenticateToken, requireAdmin, (req, res) => 
 router.get("/admin/add-contest", authenticateToken, requireAdmin, (req, res) => {
     res.render("admin/add-contest", {
         backArrow: { href: "/admin", text: "Back to Admin" },
-        mainSection: { centered: true },
+        contestEditorConfig: {
+            clubsUrl: "/api/admin/list-clubs",
+            getContestUrl: "/api/admin/get-contest?id={id}",
+            saveUrl: "/api/admin/save-contest",
+        },
+        head: `<script type="module" src="/admin/add-contest/add-contest.js" defer></script>`,
+        mainSection: { unframed: true, width: "max-w-7xl" },
         title: "Add Contest",
     });
+});
+
+router.get("/admin/clubs", authenticateToken, requireAdmin, (req, res) => {
+    res.redirect("/clubs");
 });
