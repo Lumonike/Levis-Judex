@@ -1,22 +1,22 @@
-<div class="max-w-md mx-auto">
-    <div class="text-center mb-8">
-        <svg class="w-16 h-16 mx-auto mb-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-        </svg>
-        <h1 class="text-4xl font-bold text-white">Create Account</h1>
-        <p class="text-gray-400 mt-2">Join the CodeJoint community</p>
-    </div>
+<div class="page narrow mx-auto">
+    <section class="page-header">
+        <div>
+            <p class="page-kicker">Account</p>
+            <h1 class="page-title">Create account</h1>
+            <p class="page-subtitle">Register once, then join clubs and submit to contests.</p>
+        </div>
+    </section>
 
-    <form id="register-form" class="space-y-6">
-        <%- include("partials/input", { id: "name", label: "Full Name", type: "text", placeholder: "Enter your full name" }) %>
-        <%- include("partials/input", { id: "email", label: "Email", type: "email", placeholder: "Enter your email" }) %>
-        <%- include("partials/input", { id: "password", label: "Password", type: "password", placeholder: "Enter your password" }) %>
-        <%- include("partials/button", { id: "register-button", text: "Create Account" }) %>
-    </form>
-    
-    <div class="text-center mt-6 pt-6 border-t border-gray-600">
-        <p class="text-gray-300">Already have an account? 
-            <a class="text-blue-400 hover:text-blue-300 font-semibold transition-colors duration-200" href="/login">Sign in</a>
-        </p>
-    </div>
+    <section class="panel panel-body">
+        <form id="register-form" class="space-y-5">
+            <%- include("partials/input", { id: "name", label: "Full name", type: "text", placeholder: "Ada Lovelace" }) %>
+            <%- include("partials/input", { id: "email", label: "Email", type: "email", placeholder: "you@example.com" }) %>
+            <%- include("partials/input", { id: "password", label: "Password", type: "password", placeholder: "Choose a password" }) %>
+            <%- include("partials/button", { id: "register-button", text: "Create account" }) %>
+        </form>
+    </section>
+
+    <p class="section-note text-center">
+        Already registered? <a class="font-bold text-blue-700" href="/login">Sign in</a>
+    </p>
 </div>

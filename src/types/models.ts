@@ -23,10 +23,12 @@ import { Types } from "mongoose";
 export interface IClassClub {
     /** Stable public id used in URLs/forms */
     id: string;
+    /** Shared code students can use to join */
+    inviteCode?: string;
     /** Emails invited by the owner but not accepted yet */
     inviteEmails?: string[];
-    /** Whether users can join directly or must be invited/approved */
-    joinPolicy?: "invite" | "open";
+    /** Clubs are joined by invite code */
+    joinPolicy?: "invite";
     /** Student emails that can access member-only contests */
     memberEmails: string[];
     /** Display name */

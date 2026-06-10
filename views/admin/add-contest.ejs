@@ -3,33 +3,33 @@
     window.contestEditorConfig = <%- JSON.stringify("contestEditorConfig" in locals ? contestEditorConfig : {}) %>;
 </script>
 
-<div class="mx-auto max-w-7xl space-y-6 text-left">
-    <div class="flex flex-col gap-4 border-b border-gray-700 pb-6 lg:flex-row lg:items-end lg:justify-between">
+<div class="page">
+    <div class="page-header">
         <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-blue-300">Contest Builder</p>
-            <h1 class="text-4xl font-bold text-white">Create or edit a contest</h1>
-            <p class="mt-2 max-w-2xl text-gray-300">Set timing, access, points, and problems in one place.</p>
+            <p class="page-kicker">Contest Builder</p>
+            <h1 class="page-title">Create or edit a contest</h1>
+            <p class="page-subtitle">Set timing, access, points, and problems in one place.</p>
         </div>
-        <div class="rounded-lg border border-gray-700 bg-gray-900 p-4">
-            <p class="text-sm text-gray-400">Scoring</p>
-            <p class="font-semibold text-white">Samples ignored, hidden tests split each problem's points.</p>
+        <div class="panel panel-body">
+            <p class="section-note">Scoring</p>
+            <p class="m-0 font-bold">Samples ignored; hidden tests split points.</p>
         </div>
     </div>
 
-    <div class="rounded-lg border border-gray-700 bg-gray-900 p-5">
+    <div class="panel panel-body">
         <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
             <%- include("../partials/input", { id: "contest-id-search", label: "Contest ID to Edit", type: "text", placeholder: "e.g. dec-2026" }) %>
-            <button id="load-contest-button" class="text-lg px-4 py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 focus:outline-none transition-colors duration-200 h-fit">
+            <button id="load-contest-button" class="btn h-fit" type="button">
                 Load Contest
             </button>
         </div>
     </div>
 
     <form id="contest-form" class="space-y-6">
-        <div class="rounded-lg border border-gray-700 bg-gray-900 p-6 space-y-6">
+        <div class="panel panel-body space-y-6">
             <div>
-                <h2 class="text-2xl font-bold text-white">Contest Setup</h2>
-                <p class="text-gray-400">These settings control availability and scoring windows.</p>
+                <h2 class="section-heading">Contest Setup</h2>
+                <p class="section-note">These settings control availability and scoring windows.</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <%- include("../partials/input", { id: "id", label: "Contest ID", type: "text", placeholder: "e.g. dec-2026" }) %>
@@ -79,10 +79,10 @@
             </div>
         </div>
 
-        <div class="rounded-lg border border-gray-700 bg-gray-900 p-6 space-y-4">
+        <div class="panel panel-body space-y-4">
             <div>
-                <h2 class="text-2xl font-bold text-white">Problem Bank</h2>
-                <p class="text-gray-400">Attach an existing public problem or load one as an editable contest-only copy.</p>
+                <h2 class="section-heading">Problem Bank</h2>
+                <p class="section-note">Attach an existing public problem or load one as an editable contest-only copy.</p>
             </div>
             <div class="flex flex-col md:flex-row md:items-end gap-4">
                 <div class="flex-1">
@@ -91,23 +91,23 @@
                         class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500"
                         placeholder="e.g. 1">
                 </div>
-                <button type="button" id="add-existing-problem-button" class="text-lg px-4 py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 focus:outline-none transition-colors duration-200">
+                <button type="button" id="add-existing-problem-button" class="btn">
                     Add Existing
                 </button>
-                <button type="button" id="load-existing-problem-button" class="text-lg px-4 py-3 rounded-lg bg-gray-600 text-white hover:bg-gray-500 focus:outline-none transition-colors duration-200">
+                <button type="button" id="load-existing-problem-button" class="btn btn-secondary">
                     Load as Inline
                 </button>
             </div>
             <div id="existing-problem-list" class="grid grid-cols-1 lg:grid-cols-2 gap-3"></div>
         </div>
 
-        <div class="rounded-lg border border-gray-700 bg-gray-900 p-6 space-y-4">
+        <div class="panel panel-body space-y-4">
             <div class="flex items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-2xl font-bold text-white">Contest-Only Problems</h2>
-                    <p class="text-gray-400">Problems created here can reuse IDs from other contests.</p>
+                    <h2 class="section-heading">Contest-Only Problems</h2>
+                    <p class="section-note">Problems created here can reuse IDs from other contests.</p>
                 </div>
-                <button type="button" id="add-inline-problem-button" class="text-lg px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 focus:outline-none transition-colors duration-200">
+                <button type="button" id="add-inline-problem-button" class="btn">
                     Add Inline Problem
                 </button>
             </div>
@@ -115,7 +115,7 @@
         </div>
 
         <div class="text-center pt-2">
-            <button type="submit" class="text-lg px-5 py-3 rounded-lg bg-blue-500 text-white hover:bg-blue-600 focus:outline-none transition-colors duration-200">
+            <button type="submit" class="btn">
                 Save Contest
             </button>
         </div>

@@ -19,7 +19,7 @@ import { submitCode } from "/problems/submit.js";
 import { fetchLastCode, displayPastResults } from "/problems/load-data.js";
 
 const editor = ace.edit("editor");
-editor.setTheme("ace/theme/monokai");
+editor.setTheme("ace/theme/textmate");
 editor.session.setMode("ace/mode/python");
 
 const url = window.location.pathname.split("/");

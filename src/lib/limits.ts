@@ -1,0 +1,3 @@
+export const MAX_CLUBS_PER_OWNER = 100;
+export const MAX_CONTESTS_PER_CLUB = 500;
+export const MAX_PROBLEMS_PER_CONTEST = 100;

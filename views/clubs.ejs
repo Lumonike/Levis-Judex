@@ -1,48 +1,49 @@
-<div class="mx-auto max-w-7xl space-y-6 text-left">
-    <div class="flex flex-col gap-4 border-b border-gray-700 pb-6 lg:flex-row lg:items-end lg:justify-between">
+<div class="page">
+    <section class="page-header">
         <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-blue-300">Classes / Clubs</p>
-            <h1 class="text-4xl font-bold text-white">Manage rosters and contests</h1>
-            <p class="mt-2 max-w-2xl text-gray-300">Create a club, invite students, approve join requests, and build contests for your group.</p>
+            <p class="page-kicker">Clubs</p>
+            <h1 class="page-title">Clubs</h1>
+            <p class="page-subtitle">Join with an invite code, then use your club contests from one place.</p>
         </div>
-        <a href="/contests" class="rounded-lg border border-gray-600 px-4 py-3 font-semibold text-blue-200 hover:bg-gray-700">View Contests</a>
-    </div>
+        <a href="/contests" class="btn btn-secondary">View contests</a>
+    </section>
 
-    <section class="grid grid-cols-1 gap-6 xl:grid-cols-[420px_1fr]">
-        <form id="club-form" class="rounded-lg border border-gray-700 bg-gray-900 p-5 space-y-5">
+    <section class="grid grid-cols-1 gap-5 lg:grid-cols-[360px_1fr]">
+        <form id="join-code-form" class="panel panel-body space-y-4">
             <div>
-                <h2 class="text-2xl font-bold text-white">Create or Edit Club</h2>
-                <p class="text-gray-400">The ID is used in URLs and contest settings.</p>
+                <h2 class="section-heading">Join a club</h2>
+                <p class="section-note">Paste the code your teacher or club owner shared.</p>
             </div>
             <div>
-                <label for="club-id" class="block text-sm font-semibold text-gray-200">Club ID</label>
-                <input id="club-id" required placeholder="e.g. math-team" class="mt-2 w-full rounded-lg border border-gray-600 bg-gray-800 p-3 text-white focus:border-blue-400 focus:outline-none">
+                <label for="invite-code">Invite code</label>
+                <input id="invite-code" autocomplete="off" placeholder="ABCD1234">
             </div>
-            <div>
-                <label for="club-name" class="block text-sm font-semibold text-gray-200">Club Name</label>
-                <input id="club-name" required placeholder="e.g. Math Team" class="mt-2 w-full rounded-lg border border-gray-600 bg-gray-800 p-3 text-white focus:border-blue-400 focus:outline-none">
-            </div>
-            <div>
-                <label for="join-policy" class="block text-sm font-semibold text-gray-200">Join Policy</label>
-                <select id="join-policy" class="mt-2 w-full rounded-lg border border-gray-600 bg-gray-800 p-3 text-white focus:border-blue-400 focus:outline-none">
-                    <option value="invite">Invite or approval required</option>
-                    <option value="open">Public to join</option>
-                </select>
-            </div>
-            <button class="w-full rounded-lg bg-blue-500 px-4 py-3 font-semibold text-white hover:bg-blue-600">Save Club</button>
+            <button class="btn w-full" type="submit">Join club</button>
         </form>
 
-        <div class="space-y-6">
-            <section class="rounded-lg border border-gray-700 bg-gray-900 p-5">
-                <div class="mb-4 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-2xl font-bold text-white">Your Clubs</h2>
-                        <p class="text-gray-400">Owned, joined, invited, requested, and public clubs appear here.</p>
-                    </div>
-                    <button id="refresh-clubs" class="rounded-lg border border-gray-600 px-4 py-2 font-semibold text-blue-200 hover:bg-gray-700">Refresh</button>
+        <section class="panel panel-body">
+            <div class="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 class="section-heading">Your clubs</h2>
                 </div>
-                <div id="club-list" class="grid grid-cols-1 gap-4 lg:grid-cols-2"></div>
-            </section>
-        </div>
+                <button id="refresh-clubs" class="btn btn-secondary" type="button">Refresh</button>
+            </div>
+            <div id="club-list" class="grid grid-cols-1 gap-4 lg:grid-cols-2"></div>
+        </section>
     </section>
+
+    <details class="panel panel-body">
+        <summary class="cursor-pointer font-semibold">Create a club</summary>
+        <form id="club-form" class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <div>
+                <label for="club-id">Club ID</label>
+                <input id="club-id" required placeholder="math-team">
+            </div>
+            <div>
+                <label for="club-name">Club name</label>
+                <input id="club-name" required placeholder="Math Team">
+            </div>
+            <button class="btn" type="submit">Save club</button>
+        </form>
+    </details>
 </div>

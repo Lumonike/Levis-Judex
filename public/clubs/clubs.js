@@ -26,26 +26,24 @@ function renderClubs(clubs) {
     list.innerHTML = "";
 
     if (clubs.length === 0) {
-        list.innerHTML = `<p class="text-gray-400">No clubs yet. Create one on the left, or ask an owner to invite you.</p>`;
+        list.innerHTML = `<p class="section-note">No clubs yet. Enter an invite code to join one.</p>`;
         return;
     }
 
     clubs.forEach((club) => {
         const canManage = club.role === "admin" || club.role === "owner";
         const item = document.createElement("article");
-        item.className = "rounded-lg border border-gray-700 bg-gray-800 p-4 space-y-4";
+        item.className = "panel panel-body space-y-4";
         item.innerHTML = `
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <p class="text-xl font-bold text-white">${escapeText(club.name)}</p>
-                    <p class="text-sm text-blue-200">${escapeText(club.id)}</p>
+                    <p class="m-0 text-xl font-bold">${escapeText(club.name)}</p>
+                    <p class="m-0 text-sm muted">${escapeText(club.id)}</p>
                 </div>
-                <span class="w-fit rounded-full border border-gray-600 px-3 py-1 text-sm text-gray-200">${roleLabel(club)}</span>
+                <span class="badge">${roleLabel(club)}</span>
             </div>
-            <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="grid grid-cols-1 gap-2 text-center">
                 ${statMarkup("Members", club.memberEmails.length)}
-                ${statMarkup("Invites", club.inviteEmails.length)}
-                ${statMarkup("Requests", club.requestEmails.length)}
             </div>
             <div class="flex flex-wrap gap-2">${actionsMarkup(club)}</div>
             ${canManage ? managerMarkup(club) : ""}
@@ -57,57 +55,64 @@ function renderClubs(clubs) {
 
 function actionsMarkup(club) {
     if (club.role === "invited") {
-        return `<button data-action="join" class="rounded-lg bg-blue-500 px-3 py-2 font-semibold text-white hover:bg-blue-600">Accept Invite</button>
-            <button data-action="leave" class="rounded-lg border border-gray-600 px-3 py-2 font-semibold text-gray-200 hover:bg-gray-700">Decline</button>`;
+        return `<button data-action="join" class="btn">Join Club</button>
+            <button data-action="leave" class="btn btn-secondary">Decline</button>`;
     }
     if (club.role === "visitor") {
-        return `<button data-action="join" class="rounded-lg bg-blue-500 px-3 py-2 font-semibold text-white hover:bg-blue-600">${
-            club.joinPolicy === "open" ? "Join Club" : "Request to Join"
-        }</button>`;
+        return "";
     }
     if (club.role === "requested") {
-        return `<button data-action="leave" class="rounded-lg border border-gray-600 px-3 py-2 font-semibold text-gray-200 hover:bg-gray-700">Cancel Request</button>`;
+        return `<button data-action="leave" class="btn btn-secondary">Cancel Request</button>`;
     }
     if (club.role === "member") {
-        return `<button data-action="leave" class="rounded-lg border border-gray-600 px-3 py-2 font-semibold text-gray-200 hover:bg-gray-700">Leave Club</button>`;
+        return `<button data-action="leave" class="btn btn-secondary">Leave Club</button>`;
     }
-    return `<a href="/clubs/${encodeURIComponent(club.id)}/add-contest" class="rounded-lg bg-blue-500 px-3 py-2 font-semibold text-white hover:bg-blue-600">Create Contest</a>
-        <button data-action="delete-club" class="rounded-lg border border-red-500 px-3 py-2 font-semibold text-red-200 hover:bg-red-900">Delete Club</button>`;
+    return `<a href="/clubs/${encodeURIComponent(club.id)}/add-contest" class="btn">Create Contest</a>
+        <button data-action="delete-club" class="btn btn-danger">Delete Club</button>`;
 }
 
 function managerMarkup(club) {
+    const inviteCode = club.inviteCode ?? "";
+    const inviteLink = inviteCode ? `${window.location.origin}/clubs?code=${encodeURIComponent(inviteCode)}` : "";
     return `
-        <div class="space-y-3 border-t border-gray-700 pt-4">
+        <div class="space-y-3 border-t pt-4" style="border-color: var(--line)">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
+                <div>
+                    <label>Invite code</label>
+                    <input data-role="invite-code" readonly value="${escapeAttr(inviteCode)}">
+                </div>
+                <button data-action="copy-code" class="btn btn-secondary" type="button">Copy Link</button>
+                <button data-action="regenerate-code" class="btn btn-secondary" type="button">New Code</button>
+            </div>
             <div class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-                <textarea data-role="invite-emails" rows="3" placeholder="student@example.com&#10;another@example.com" class="rounded-lg border border-gray-600 bg-gray-900 p-3 text-white focus:border-blue-400 focus:outline-none"></textarea>
-                <button data-action="invite" class="rounded-lg bg-blue-500 px-4 py-2 font-semibold text-white hover:bg-blue-600">Invite</button>
+                <textarea data-role="invite-emails" rows="3" placeholder="student@example.com&#10;another@example.com"></textarea>
+                <button data-action="invite" class="btn">Email Link</button>
             </div>
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                 ${emailListMarkup("Members", club.memberEmails, "kick")}
-                ${emailListMarkup("Requests", club.requestEmails, "request")}
-                ${emailListMarkup("Pending Invites", club.inviteEmails, "kick")}
             </div>
+            <input data-role="invite-link" type="hidden" value="${escapeAttr(inviteLink)}">
         </div>
     `;
 }
 
 function emailListMarkup(title, emails, action) {
     if (emails.length === 0) {
-        return `<div><p class="mb-2 font-semibold text-white">${title}</p><p class="text-sm text-gray-400">None</p></div>`;
+        return `<div><p class="mb-2 font-semibold">${title}</p><p class="text-sm muted">None</p></div>`;
     }
     return `
         <div>
-            <p class="mb-2 font-semibold text-white">${title}</p>
+            <p class="mb-2 font-semibold">${title}</p>
             <div class="space-y-2">
                 ${emails
                     .map(
                         (email) => `
-                    <div class="flex items-center justify-between gap-2 rounded-lg bg-gray-900 p-2">
-                        <span class="truncate text-sm text-gray-200">${escapeText(email)}</span>
+                    <div class="flex items-center justify-between gap-2 rounded-lg p-2" style="background: var(--panel-strong)">
+                        <span class="truncate text-sm">${escapeText(email)}</span>
                         ${
                             action === "request"
-                                ? `<span class="flex gap-1"><button data-action="approve" data-email="${escapeAttr(email)}" class="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white">Approve</button><button data-action="decline" data-email="${escapeAttr(email)}" class="rounded bg-gray-700 px-2 py-1 text-xs font-semibold text-white">Decline</button></span>`
-                                : `<button data-action="kick" data-email="${escapeAttr(email)}" class="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white">Remove</button>`
+                                ? `<span class="flex gap-1"><button data-action="approve" data-email="${escapeAttr(email)}" class="btn" style="min-height: 2rem; padding: .25rem .5rem; font-size: .78rem;">Approve</button><button data-action="decline" data-email="${escapeAttr(email)}" class="btn btn-secondary" style="min-height: 2rem; padding: .25rem .5rem; font-size: .78rem;">Decline</button></span>`
+                                : `<button data-action="kick" data-email="${escapeAttr(email)}" class="btn btn-danger" style="min-height: 2rem; padding: .25rem .5rem; font-size: .78rem;">Remove</button>`
                         }
                     </div>`,
                     )
@@ -118,7 +123,7 @@ function emailListMarkup(title, emails, action) {
 }
 
 function statMarkup(label, value) {
-    return `<div class="rounded-lg bg-gray-900 p-3"><p class="text-2xl font-bold text-white">${value}</p><p class="text-xs uppercase tracking-wide text-gray-400">${label}</p></div>`;
+    return `<div class="rounded-lg p-3" style="background: var(--panel-strong)"><p class="m-0 text-xl font-semibold">${escapeText(value)}</p><p class="m-0 text-xs uppercase tracking-wide muted">${label}</p></div>`;
 }
 
 function wireClubActions(container, club) {
@@ -129,6 +134,8 @@ function wireClubActions(container, club) {
         ?.addEventListener("click", () =>
             runClubAction(`/api/clubs/${club.id}/invite`, { emails: container.querySelector("[data-role='invite-emails']").value }),
         );
+    container.querySelector("[data-action='copy-code']")?.addEventListener("click", () => copyInviteLink(container));
+    container.querySelector("[data-action='regenerate-code']")?.addEventListener("click", () => regenerateInviteCode(club));
     container.querySelector("[data-action='delete-club']")?.addEventListener("click", () => deleteClub(club));
     container.querySelectorAll("[data-action='kick']").forEach((button) => {
         button.addEventListener("click", () => runClubAction(`/api/clubs/${club.id}/kick`, { email: button.dataset.email }));
@@ -143,12 +150,54 @@ function wireClubActions(container, club) {
     });
 }
 
+async function copyInviteLink(container) {
+    const link = container.querySelector("[data-role='invite-link']")?.value;
+    if (!link) {
+        alert("This club does not have an invite code yet.");
+        return;
+    }
+    try {
+        await window.navigator.clipboard.writeText(link);
+        alert("Invite link copied.");
+    } catch {
+        window.prompt("Copy this invite link:", link);
+    }
+}
+
 async function deleteClub(club) {
     if (!confirm(`Delete ${club.name}? This cannot be undone.`)) {
         return;
     }
     try {
         const parsed = await api(`/api/clubs/${club.id}`, { method: "DELETE" });
+        alert(parsed.message);
+        await loadClubs();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function joinByCode(event) {
+    event.preventDefault();
+    try {
+        const parsed = await api("/api/clubs/join-code", {
+            body: JSON.stringify({ code: getId("invite-code").value.trim() }),
+            method: "POST",
+        });
+        alert(parsed.message);
+        getId("invite-code").value = "";
+        await loadClubs();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function regenerateInviteCode(club) {
+    if (!confirm(`Create a new invite code for ${club.name}? Old invite links will stop working.`)) {
+        return;
+    }
+    try {
+        const parsed = await api(`/api/clubs/${club.id}/regenerate-code`, { method: "POST" });
         alert(parsed.message);
         await loadClubs();
     } catch (error) {
@@ -175,7 +224,6 @@ async function saveClub(event) {
         const parsed = await api("/api/clubs/save", {
             body: JSON.stringify({
                 id: getId("club-id").value.trim(),
-                joinPolicy: getId("join-policy").value,
                 name: getId("club-name").value.trim(),
             }),
             method: "POST",
@@ -194,7 +242,7 @@ function roleLabel(club) {
         member: "Member",
         owner: "Owner",
         requested: "Requested",
-        visitor: club.joinPolicy === "open" ? "Open" : "Invite-only",
+        visitor: "Invite-only",
     };
     return labels[club.role] ?? club.role;
 }
@@ -211,5 +259,11 @@ function escapeText(value) {
 }
 
 getId("club-form").addEventListener("submit", saveClub);
+getId("join-code-form").addEventListener("submit", joinByCode);
 getId("refresh-clubs").addEventListener("click", loadClubs);
+const codeFromUrl = new window.URLSearchParams(window.location.search).get("code");
+if (codeFromUrl) {
+    getId("invite-code").value = codeFromUrl;
+    getId("invite-code").focus();
+}
 void loadClubs();

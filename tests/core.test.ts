@@ -6,10 +6,19 @@ import adminRouter from "../src/api/admin";
 import submissionRouter from "../src/api/submit";
 import { parseTrustProxy } from "../src/app";
 import { judgeCode } from "../src/judge";
+import { MAX_CLUBS_PER_OWNER, MAX_CONTESTS_PER_CLUB, MAX_PROBLEMS_PER_CONTEST } from "../src/lib/limits";
 import { sanitizeProblemHtml } from "../src/lib/sanitize";
 import { createToken, hashToken } from "../src/lib/tokens";
+import { authenticateToken } from "../src/middleware/authenticate";
 import { ClassClub, Contest, ContestAttempt, Problem, ProblemTestcase, Submission, User } from "../src/models";
-import { deleteClubForUser, getClubRole } from "../src/services/clubs";
+import {
+    assertClubCreationLimit,
+    buildClubInviteLink,
+    deleteClubForUser,
+    getClubRole,
+    joinClubWithInviteCode,
+    requireClubInviteCode,
+} from "../src/services/clubs";
 import { getContestStorageId } from "../src/services/contest-scope";
 import { canAccessContest, getContestState, getScoreboard, saveContestWithProblems, startPersonalContest } from "../src/services/contests";
 import { dropLegacyContestProblemIndexes, migrateDatabase, migrateLegacyUserSubmissions } from "../src/services/database-migration";
@@ -84,6 +93,69 @@ void test("submission status route requires authentication", () => {
 
     assert.ok(layer?.route);
     assert.equal(layer.route.stack[0].handle.name, "authenticateToken");
+});
+
+void test("page requests with missing auth redirect to login instead of returning raw JSON", () => {
+    let clearedCookie = "";
+    let redirectUrl = "";
+
+    const req = {
+        cookies: {},
+        headers: { accept: "text/html" },
+        originalUrl: "/clubs",
+        path: "/clubs",
+        url: "/clubs",
+    };
+    const res = {
+        clearCookie(name: string) {
+            clearedCookie = name;
+            return this;
+        },
+        redirect(url: string) {
+            redirectUrl = url;
+            return this;
+        },
+        status() {
+            throw new Error("Page auth failures should redirect.");
+        },
+    };
+
+    authenticateToken(req as never, res as never, () => {
+        throw new Error("Unauthenticated requests should not continue.");
+    });
+
+    assert.equal(clearedCookie, "authToken");
+    assert.equal(redirectUrl, "/login?next=%2Fclubs");
+});
+
+void test("api requests with missing auth still return a concise JSON error", () => {
+    let statusCode = 0;
+    let payload: unknown;
+
+    const req = {
+        cookies: {},
+        headers: { accept: "application/json" },
+        originalUrl: "/api/clubs/mine",
+        path: "/api/clubs/mine",
+        url: "/api/clubs/mine",
+    };
+    const res = {
+        json(body: unknown) {
+            payload = body;
+            return this;
+        },
+        status(code: number) {
+            statusCode = code;
+            return this;
+        },
+    };
+
+    authenticateToken(req as never, res as never, () => {
+        throw new Error("Unauthenticated requests should not continue.");
+    });
+
+    assert.equal(statusCode, 403);
+    assert.deepEqual(payload, { error: "Please log in again." });
 });
 
 void test("oversized submissions fail without needing an isolate box", async () => {
@@ -411,6 +483,68 @@ void test("club roles distinguish pending invites and join requests", async () =
     assert.equal(await getClubRole(club, visitor._id), "visitor");
 });
 
+void test("students can join invite-only clubs with an invite code", async () => {
+    const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
+    const student = await User.create({ email: "student@example.com", password: "hash", verified: true });
+    const club = await ClassClub.create({
+        id: "coded",
+        inviteCode: "ABCD1234",
+        inviteEmails: ["student@example.com"],
+        memberEmails: [],
+        name: "Coded Club",
+        ownerId: owner._id,
+        requestEmails: ["student@example.com"],
+    });
+
+    const originalBaseUrl = process.env.BASE_URL;
+    process.env.BASE_URL = "http://example.test";
+    const link = buildClubInviteLink(club.inviteCode ?? "");
+    process.env.BASE_URL = originalBaseUrl;
+    const joinedClub = await joinClubWithInviteCode(student._id, "abcd-1234");
+    const storedClub = await ClassClub.findOne({ id: "coded" }).lean();
+
+    assert.equal(link, "http://example.test/clubs?code=ABCD1234");
+    assert.equal(joinedClub.id, "coded");
+    assert.ok(storedClub);
+    assert.deepEqual(storedClub.memberEmails, ["student@example.com"]);
+    assert.deepEqual(storedClub.inviteEmails, []);
+    assert.deepEqual(storedClub.requestEmails, []);
+});
+
+void test("legacy clubs receive an invite code before serialization", async () => {
+    await ClassClub.collection.insertOne({
+        id: "legacy-club",
+        inviteEmails: [],
+        joinPolicy: "invite",
+        memberEmails: [],
+        name: "Legacy Club",
+        requestEmails: [],
+    });
+    const club = await ClassClub.findOne({ id: "legacy-club" }).lean();
+
+    assert.ok(club);
+    const inviteCode = await requireClubInviteCode(club);
+    const storedClub = await ClassClub.findOne({ id: "legacy-club" }).lean();
+
+    assert.match(inviteCode, /^[A-Z0-9]{8}$/);
+    assert.equal(storedClub?.inviteCode, inviteCode);
+});
+
+void test("invalid invite codes do not join clubs", async () => {
+    const student = await User.create({ email: "student@example.com", password: "hash", verified: true });
+    await ClassClub.create({
+        id: "coded",
+        inviteCode: "GOOD1234",
+        memberEmails: [],
+        name: "Coded Club",
+    });
+
+    await assert.rejects(() => joinClubWithInviteCode(student._id, "bad-code"), /Invite code was not found/);
+    const storedClub = await ClassClub.findOne({ id: "coded" }).lean();
+
+    assert.deepEqual(storedClub?.memberEmails, []);
+});
+
 void test("club owners can delete empty clubs but outsiders cannot", async () => {
     const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
     const outsider = await User.create({ email: "outsider@example.com", password: "hash", verified: true });
@@ -450,12 +584,13 @@ void test("clubs with contests cannot be deleted until contests are moved or rem
     assert.ok(await ClassClub.exists({ id: "contest-club" }));
 });
 
-void test("open club contests are visible to signed-in users without a manual invite", async () => {
+void test("legacy open clubs no longer expose contests to non-members", async () => {
     const visitor = await User.create({ email: "visitor@example.com", password: "hash", verified: true });
-    await ClassClub.create({
+    const member = await User.create({ email: "member@example.com", password: "hash", verified: true });
+    await ClassClub.collection.insertOne({
         id: "open-club",
         joinPolicy: "open",
-        memberEmails: [],
+        memberEmails: ["member@example.com"],
         name: "Open Club",
     });
 
@@ -471,8 +606,77 @@ void test("open club contests are visible to signed-in users without a manual in
         timingMode: "global",
     });
 
-    assert.equal(await canAccessContest(contest, visitor._id), true);
+    assert.equal(await canAccessContest(contest, visitor._id), false);
+    assert.equal(await canAccessContest(contest, member._id), true);
     assert.equal(await canAccessContest(contest), false);
+});
+
+void test("club creation limit allows edits but blocks extra new clubs", async () => {
+    const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
+    await ClassClub.insertMany(
+        Array.from({ length: MAX_CLUBS_PER_OWNER }, (_, index) => ({
+            id: `club-${index.toString()}`,
+            memberEmails: [],
+            name: `Club ${index.toString()}`,
+            ownerId: owner._id,
+        })),
+    );
+
+    await assert.rejects(() => assertClubCreationLimit(owner._id), /You can create up to/);
+});
+
+void test("contest creation limit blocks extra new club contests", async () => {
+    const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
+    await ClassClub.create({
+        id: "contest-limit-club",
+        memberEmails: [],
+        name: "Contest Limit Club",
+        ownerId: owner._id,
+    });
+    await Contest.insertMany(
+        Array.from({ length: MAX_CONTESTS_PER_CLUB }, (_, index) => ({
+            accessType: "club",
+            clubId: "contest-limit-club",
+            endTime: new Date("2026-01-02T00:00:00Z"),
+            id: `contest-${index.toString()}`,
+            name: `Contest ${index.toString()}`,
+            problemIds: [],
+            startTime: new Date("2026-01-01T00:00:00Z"),
+            timingMode: "global",
+        })),
+    );
+
+    await assert.rejects(
+        () =>
+            saveContestWithProblems({
+                accessType: "club",
+                clubId: "contest-limit-club",
+                endTime: new Date("2026-01-02T00:00:00Z"),
+                existingProblemIds: ["a"],
+                id: "one-too-many",
+                inlineProblems: [],
+                name: "One Too Many",
+                startTime: new Date("2026-01-01T00:00:00Z"),
+                timingMode: "global",
+            }),
+        /Clubs can create up to/,
+    );
+});
+
+void test("contest problem limit rejects oversized contest payloads", async () => {
+    await assert.rejects(
+        () =>
+            saveContestWithProblems({
+                endTime: new Date("2026-01-02T00:00:00Z"),
+                existingProblemIds: Array.from({ length: MAX_PROBLEMS_PER_CONTEST + 1 }, (_, index) => `p${index.toString()}`),
+                id: "too-many-problems",
+                inlineProblems: [],
+                name: "Too Many Problems",
+                startTime: new Date("2026-01-01T00:00:00Z"),
+                timingMode: "global",
+            }),
+        /Contests can include up to/,
+    );
 });
 
 void test("different contests can have different problems with the same local id", async () => {

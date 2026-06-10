@@ -1,22 +1,23 @@
 <link href="/admin/add-problem/sun-editor.css" rel="stylesheet" />
 
-<div class="max-w-6xl mx-auto">
-    <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-white mb-2">Problem Management</h1>
-        <p class="text-gray-400">Create or edit coding problems</p>
+<div class="page">
+    <div class="page-header">
+        <div>
+            <p class="page-kicker">Problem Editor</p>
+            <h1 class="page-title">Create or edit a problem</h1>
+            <p class="page-subtitle">Manage statements, samples, hidden tests, and visibility.</p>
+        </div>
     </div>
 
-    <div class="bg-gray-700 rounded-lg p-6 mb-6 border border-gray-600">
-        <%- include("../partials/input", { id: "problem-id-search", label: "Problem ID to Edit", type: "text", placeholder: "e.g. 3" }) %>
-        <button id="load-problem-button" class="text-lg p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 focus:outline-none transition-colors duration-200 h-fit">
-            Load Problem
-        </button>
-        <button id="delete-problem-button" class="text-lg p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 focus:outline-none transition-colors duration-200 h-fit">
-            Delete Problem
-        </button>
+    <div class="panel panel-body">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
+            <%- include("../partials/input", { id: "problem-id-search", label: "Problem ID to Edit", type: "text", placeholder: "e.g. 3" }) %>
+            <button id="load-problem-button" class="btn" type="button">Load Problem</button>
+            <button id="delete-problem-button" class="btn btn-danger" type="button">Delete Problem</button>
+        </div>
     </div>
 
-    <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
+    <div class="panel panel-body">
         <form id="problem-form" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <%- include("../partials/input", { id: "id", label: "Problem ID", type: "text" }) %>
@@ -24,17 +25,17 @@
             </div>
 
             <div>
-                <label class="text-lg font-semibold text-white mb-3 block">Problem Statement</label>
+                <label>Problem Statement</label>
                 <div id="problem-statement" class="bg-white rounded-lg" style="height: 200px;"></div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="text-lg font-semibold text-white mb-3 block">Input Format</label>
+                    <label>Input Format</label>
                     <div id="input-format" class="bg-white rounded-lg" style="height: 100px;"></div>
                 </div>
                 <div>
-                    <label class="text-lg font-semibold text-white mb-3 block">Output Format</label>
+                    <label>Output Format</label>
                     <div id="output-format" class="bg-white rounded-lg" style="height: 100px;"></div>
                 </div>
             </div>
@@ -53,15 +54,15 @@
             </div>
 
             <!-- Testcase Editor -->
-            <div class="border-t border-gray-600 pt-6">
-                <label class="text-lg font-semibold text-white mb-3 block">Testcase Editor</label>
+            <div class="border-t pt-6" style="border-color: var(--line)">
+                <label>Testcase Editor</label>
                 <select id="testcase-selector" 
                     class="w-full p-3 mb-4 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500">
                 </select>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-3">
-                        <label for="input-testcase-editor" class="text-lg font-semibold text-green-400 block">Input</label>
+                        <label for="input-testcase-editor">Input</label>
                         <textarea id="input-testcase-editor" rows="6" 
                             class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 border border-gray-500 font-mono"></textarea>
                         <input type="file" id="input-file-upload" 
@@ -69,7 +70,7 @@
                     </div>
                     
                     <div class="space-y-3">
-                        <label for="output-testcase-editor" class="text-lg font-semibold text-blue-400 block">Output</label>
+                        <label for="output-testcase-editor">Output</label>
                         <textarea id="output-testcase-editor" rows="6" 
                             class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500 font-mono"></textarea>
                         <input type="file" id="output-file-upload" 

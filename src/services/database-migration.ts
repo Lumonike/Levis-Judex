@@ -1,11 +1,16 @@
 import mongoose, { Types } from "mongoose";
 
-import { Contest, ContestAttempt, Problem, ProblemTestcase, Submission, User } from "../models";
+import { createClubInviteCode } from "../lib/invite-codes";
+import { ClassClub, Contest, ContestAttempt, Problem, ProblemTestcase, Submission, User } from "../models";
 import { IProblemWithTestcases, IResult } from "../types/models";
 import { getContestStorageId } from "./contest-scope";
 import { dropLegacyGlobalProblemIdIndex, dropLegacyProblemTestcaseIndexes, migrateLegacyProblemTestcases, replaceProblemTestcases } from "./problems";
 
 export interface MigrationResult {
+    clubs: {
+        inviteCodesMigrated: number;
+        openClubsClosed: number;
+    };
     contests: {
         importedProblems: number;
         migrated: number;
@@ -60,16 +65,41 @@ export async function migrateClubContestStorageKeys(): Promise<number> {
     return migrated;
 }
 
+export async function migrateClubInviteCodes(): Promise<number> {
+    const clubs = await ClassClub.find({
+        $or: [{ inviteCode: { $exists: false } }, { inviteCode: "" }, { inviteCode: null }],
+    }).select("_id inviteCode");
+    let migrated = 0;
+
+    for (const club of clubs) {
+        let inviteCode = createClubInviteCode();
+        while (await ClassClub.exists({ inviteCode })) {
+            inviteCode = createClubInviteCode();
+        }
+        club.inviteCode = inviteCode;
+        await club.save();
+        migrated++;
+    }
+
+    return migrated;
+}
+
 export async function migrateDatabase(): Promise<MigrationResult> {
     await dropLegacyGlobalProblemIdIndex();
     await dropLegacyContestProblemIndexes();
     await dropLegacyProblemTestcaseIndexes();
+    const inviteCodesMigrated = await migrateClubInviteCodes();
+    const openClubsClosed = await migrateOpenClubsToInviteOnly();
     const problemTestcasesMigrated = await migrateLegacyProblemTestcases();
     const contests = await migrateLegacyContests();
     await migrateClubContestStorageKeys();
     const submissions = await migrateLegacyUserSubmissions();
 
     return {
+        clubs: {
+            inviteCodesMigrated,
+            openClubsClosed,
+        },
         contests,
         problems: {
             testcasesMigrated: problemTestcasesMigrated,
@@ -162,6 +192,11 @@ export async function migrateLegacyUserSubmissions(): Promise<number> {
     }
 
     return migrated;
+}
+
+export async function migrateOpenClubsToInviteOnly(): Promise<number> {
+    const result = await ClassClub.updateMany({ joinPolicy: "open" }, { $set: { joinPolicy: "invite" } });
+    return result.modifiedCount;
 }
 
 export async function runDatabaseMigrationFromEnv(): Promise<MigrationResult> {

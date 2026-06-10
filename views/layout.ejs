@@ -5,29 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= "title" in locals ? title : "Levis Judex by CodeJoint" %></title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/styles/app.css" rel="stylesheet">
     <% if ("head" in locals) {%>
         <%- head %>
     <% }%>
 </head>
-<body class="m-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 min-h-screen">
-    <% if ("backArrow" in locals) { %>
-        <%- include("partials/back-arrow", backArrow) %>
-    <% } %>
-
-    <div class="<% if ("mainSection" in locals && "width" in mainSection) { %>
-        <%= mainSection.width %>
-    <% } else { %>
-        <%= "max-w-4xl" %>
-    <% } %> mx-auto <%= "backArrow" in locals ? "mt-4" : "mt-10" %>
-    <% if ("mainSection" in locals && "unframed" in mainSection && mainSection.unframed) { %>
-        <%= "px-4 pb-10" %>
-    <% } else { %>
-        <%= "p-8 bg-gray-800 bg-opacity-90 backdrop-blur-sm shadow-2xl rounded-2xl border border-gray-700" %>
-    <% } %>
-    <% if ("mainSection" in locals && "centered" in mainSection && mainSection.centered) { %>
-        <%= "text-center relative" %>
-    <% } %>" id="main-section">
-        <%- body %>
+<body class="app-body">
+    <div class="app-shell">
+        <header class="app-topbar">
+            <div class="app-topbar-inner">
+                <a class="brand-mark" href="/">
+                    <span class="brand-icon">LJ</span>
+                    <span>Levis Judex</span>
+                </a>
+                <nav class="app-nav" aria-label="Main navigation">
+                    <a class="nav-link" href="/problems">Problems</a>
+                    <a class="nav-link" href="/contests">Contests</a>
+                    <a class="nav-link" href="/clubs">Clubs</a>
+                    <a class="nav-link" href="/admin">Admin</a>
+                    <a class="nav-link" href="/login" id="nav-login">Login</a>
+                    <a class="nav-link" href="/register" id="nav-register">Register</a>
+                    <button class="nav-button hidden" id="logout-button" type="button">Logout</button>
+                </nav>
+            </div>
+        </header>
+        <main class="app-content <% if ("mainSection" in locals && "width" in mainSection && mainSection.width === "max-w-7xl") { %>wide<% } else if ("mainSection" in locals && "width" in mainSection && mainSection.width === "max-w-5xl") { %>narrow<% } %>" id="main-section">
+            <% if ("backArrow" in locals) { %>
+                <%- include("partials/back-arrow", backArrow) %>
+            <% } %>
+            <%- body %>
+        </main>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const login = document.getElementById("nav-login");
+            const register = document.getElementById("nav-register");
+            const logout = document.getElementById("logout-button");
+            let loggedIn = false;
+            try {
+                const response = await fetch("/api/user/valid-token", { method: "GET" });
+                loggedIn = response.ok;
+            } catch {
+                loggedIn = false;
+            }
+            login.classList.toggle("hidden", loggedIn);
+            register.classList.toggle("hidden", loggedIn);
+            logout.classList.toggle("hidden", !loggedIn);
+            logout.addEventListener("click", async function () {
+                await fetch("/api/user/logout", { method: "POST" });
+                window.location.href = "/";
+            });
+        });
+    </script>
 </body>
 </html>

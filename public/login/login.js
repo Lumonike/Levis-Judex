@@ -39,7 +39,8 @@ document.addEventListener("DOMContentLoaded", function () {
             .then((response) => response.json())
             .then((data) => {
                 if (data.success) {
-                    window.location.href = "/";
+                    const next = new window.URLSearchParams(window.location.search).get("next");
+                    window.location.href = next && next.startsWith("/") ? next : "/";
                 } else {
                     alert("Invalid credentials. Please try again.");
                 }

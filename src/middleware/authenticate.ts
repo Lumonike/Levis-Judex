@@ -21,11 +21,11 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
     const token: unknown = req.cookies.authToken;
     if (typeof token !== "string") {
-        res.status(403).json({ error: "Invalid token, try logging in again" });
+        rejectUnauthenticated(req, res);
         return;
     }
     if (!token) {
-        res.status(403).json({ error: "Access denied. No token provided." });
+        rejectUnauthenticated(req, res);
         return;
     }
     if (typeof process.env.JWT_SECRET === "string") {
@@ -34,7 +34,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
             req.user = user;
             next();
         } catch {
-            res.status(403).json({ error: "Invalid or expired token." });
+            rejectUnauthenticated(req, res);
             return;
         }
     } else {
@@ -71,4 +71,25 @@ export function authenticateTokenOptional(req: Request, res: Response, next: Nex
     } else {
         next();
     }
+}
+
+function expectsJson(req: Request): boolean {
+    const acceptHeader = req.headers.accept ?? "";
+    return (
+        req.path.startsWith("/api/") ||
+        req.originalUrl.startsWith("/api/") ||
+        req.headers["x-requested-with"] === "XMLHttpRequest" ||
+        acceptHeader.includes("application/json") ||
+        !acceptHeader.includes("text/html")
+    );
+}
+
+function rejectUnauthenticated(req: Request, res: Response): void {
+    if (expectsJson(req)) {
+        res.status(403).json({ error: "Please log in again." });
+        return;
+    }
+
+    res.clearCookie("authToken");
+    res.redirect(`/login?next=${encodeURIComponent(req.originalUrl || req.url || "/")}`);
 }

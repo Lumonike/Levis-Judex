@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 
+import { MAX_CONTESTS_PER_CLUB, MAX_PROBLEMS_PER_CONTEST } from "../lib/limits";
 import { ClassClub, Contest, ContestAttempt, Problem, Submission, User } from "../models";
 import { IContest, IContestAttempt, IProblemWithTestcases, IResult } from "../types/models";
 import { contestScopeFilter, getContestStorageId, parseContestStorageId } from "./contest-scope";
@@ -75,12 +76,12 @@ export async function canAccessContest(contest: IContest, userId?: Types.ObjectI
         return true;
     }
 
-    const club = await ClassClub.findOne({ id: contest.clubId }).select("joinPolicy memberEmails ownerId").lean();
+    const club = await ClassClub.findOne({ id: contest.clubId }).select("memberEmails ownerId").lean();
     if (!club) {
         return false;
     }
 
-    return club.joinPolicy === "open" || club.ownerId?.toString() === userId.toString() || club.memberEmails.includes(user.email);
+    return club.ownerId?.toString() === userId.toString() || club.memberEmails.includes(user.email);
 }
 
 export async function findContestByScope(contestId: string, clubId?: null | string): Promise<IContest | null> {
@@ -211,6 +212,18 @@ export async function saveContestWithProblems(input: ContestSaveInput): Promise<
     }
 
     const problemIds = [...input.existingProblemIds];
+    if (input.existingProblemIds.length + input.inlineProblems.length > MAX_PROBLEMS_PER_CONTEST) {
+        throw new Error(`Contests can include up to ${MAX_PROBLEMS_PER_CONTEST.toString()} problems.`);
+    }
+
+    const filter = contestScopeFilter(input.id, accessType === "club" ? clubId : null);
+    const existingContest = await Contest.findOne(filter).select("_id").lean();
+    if (!existingContest && accessType === "club" && clubId) {
+        const contestCount = await Contest.countDocuments({ accessType: "club", clubId });
+        if (contestCount >= MAX_CONTESTS_PER_CLUB) {
+            throw new Error(`Clubs can create up to ${MAX_CONTESTS_PER_CLUB.toString()} contests.`);
+        }
+    }
 
     for (const problem of input.inlineProblems) {
         const problemUpdate = { ...problem };
@@ -225,6 +238,9 @@ export async function saveContestWithProblems(input: ContestSaveInput): Promise<
     }
 
     const uniqueProblemIds = [...new Set(problemIds)];
+    if (uniqueProblemIds.length > MAX_PROBLEMS_PER_CONTEST) {
+        throw new Error(`Contests can include up to ${MAX_PROBLEMS_PER_CONTEST.toString()} problems.`);
+    }
     const problemPoints = normalizeProblemPoints(uniqueProblemIds, input.problemPoints);
     const inlineProblemIds = new Set(input.inlineProblems.map((problem) => problem.id));
     const existingGlobalProblemIds = uniqueProblemIds.filter((problemId) => !inlineProblemIds.has(problemId));
@@ -237,7 +253,7 @@ export async function saveContestWithProblems(input: ContestSaveInput): Promise<
     }
 
     const contest = await Contest.findOneAndUpdate(
-        contestScopeFilter(input.id, accessType === "club" ? clubId : null),
+        filter,
         {
             $set: {
                 accessType,

@@ -1,39 +1,29 @@
-<div class="max-w-2xl mx-auto">
-    <div class="text-center mb-8">
-        <svg class="w-16 h-16 mx-auto mb-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-        </svg>
-        <h1 class="text-4xl font-bold text-white mb-2">Admin Management</h1>
-        <p class="text-gray-400">Manage admin privileges</p>
-    </div>
-
-    <div class="space-y-6">
-        <!-- Add Admin -->
-        <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
-            <div class="flex items-center mb-4">
-                <svg class="w-6 h-6 text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                <h3 class="text-xl font-semibold text-white">Add Administrator</h3>
-            </div>
-            <form class="space-y-4">
-                <%- include("../partials/input", { id: "user-to-add", label: "User Email", type: "email", placeholder: "Enter user email to promote" }) %>
-                <%- include("../partials/button", { id: "add-button", small: true, text: "Grant Admin Access" }) %>
-            </form>
+<div class="page narrow mx-auto">
+    <section class="page-header">
+        <div>
+            <p class="page-kicker">Admin</p>
+            <h1 class="page-title">Admin access</h1>
+            <p class="page-subtitle">Grant or revoke platform administrator privileges by email.</p>
         </div>
+    </section>
 
-        <!-- Remove Admin -->
-        <div class="bg-gray-700 rounded-lg p-6 border border-gray-600">
-            <div class="flex items-center mb-4">
-                <svg class="w-6 h-6 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                </svg>
-                <h3 class="text-xl font-semibold text-white">Remove Administrator</h3>
+    <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <form class="panel panel-body space-y-4">
+            <div>
+                <h2 class="section-heading">Grant access</h2>
+                <p class="section-note">Promote a verified user to admin.</p>
             </div>
-            <form class="space-y-4">
-                <%- include("../partials/input", { id: "user-to-remove", label: "User Email", type: "email", placeholder: "Enter admin email to revoke" }) %>
-                <%- include("../partials/button", { id: "remove-button", small: true, text: "Revoke Admin Access" }) %>
-            </form>
-        </div>
-    </div>
+            <%- include("../partials/input", { id: "user-to-add", label: "User Email", type: "email", placeholder: "user@example.com" }) %>
+            <%- include("../partials/button", { id: "add-button", small: true, text: "Grant admin" }) %>
+        </form>
+
+        <form class="panel panel-body space-y-4">
+            <div>
+                <h2 class="section-heading">Revoke access</h2>
+                <p class="section-note">Remove admin privileges from a user.</p>
+            </div>
+            <%- include("../partials/input", { id: "user-to-remove", label: "User Email", type: "email", placeholder: "admin@example.com" }) %>
+            <%- include("../partials/button", { id: "remove-button", small: true, text: "Revoke admin" }) %>
+        </form>
+    </section>
 </div>

@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import validator from "validator";
 
+import { MAX_CONTESTS_PER_CLUB, MAX_PROBLEMS_PER_CONTEST } from "../lib/limits";
 import { sanitizeProblemHtml } from "../lib/sanitize";
 import { Contest } from "../models";
 import { contestScopeFilter, getContestStorageId } from "./contest-scope";
@@ -47,6 +48,8 @@ export async function getEditableContest(id: string, clubId?: null | string): Pr
 
 export function isExpectedContestSaveError(message: string): boolean {
     return [
+        `Clubs can create up to ${MAX_CONTESTS_PER_CLUB.toString()} contests.`,
+        `Contests can include up to ${MAX_PROBLEMS_PER_CONTEST.toString()} problems.`,
         "Class or club does not exist.",
         "Contest must include at least one problem",
         "One or more contest problems do not exist.",

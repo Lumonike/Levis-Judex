@@ -1,6 +1,8 @@
 import { Types } from "mongoose";
 import validator from "validator";
 
+import { createClubInviteCode, normalizeClubInviteCode } from "../lib/invite-codes";
+import { MAX_CLUBS_PER_OWNER } from "../lib/limits";
 import { ClassClub, Contest, User } from "../models";
 import { IClassClub } from "../types/models";
 
@@ -8,13 +10,28 @@ export type ClubRole = "admin" | "invited" | "member" | "owner" | "requested" | 
 
 export interface ClubView {
     id: string;
+    inviteCode?: string;
     inviteEmails: string[];
-    joinPolicy: "invite" | "open";
+    joinPolicy: "invite";
     memberEmails: string[];
     name: string;
     ownerId?: string;
     requestEmails: string[];
     role: ClubRole;
+}
+
+export async function assertClubCreationLimit(userId: Types.ObjectId): Promise<void> {
+    const existingClubCount = await ClassClub.countDocuments({ ownerId: userId });
+    if (existingClubCount >= MAX_CLUBS_PER_OWNER) {
+        throw new Error(`You can create up to ${MAX_CLUBS_PER_OWNER.toString()} clubs.`);
+    }
+}
+
+export function buildClubInviteLink(inviteCode: string): string {
+    const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
+    const url = new URL("/clubs", baseUrl);
+    url.searchParams.set("code", inviteCode);
+    return url.toString();
 }
 
 export async function canManageClub(club: IClassClub, userId: Types.ObjectId): Promise<boolean> {
@@ -74,6 +91,29 @@ export async function getClubRole(club: IClassClub, userId?: Types.ObjectId): Pr
     return "visitor";
 }
 
+export async function joinClubWithInviteCode(userId: Types.ObjectId, code: string): Promise<IClassClub> {
+    const inviteCode = normalizeClubInviteCode(code);
+    if (!inviteCode) {
+        throw new Error("Invite code is required");
+    }
+
+    const user = await User.findById(userId).select("email").lean();
+    const club = await ClassClub.findOne({ inviteCode });
+    if (!user || !club) {
+        throw new Error("Invite code was not found");
+    }
+
+    if (club.ownerId?.toString() === userId.toString() || club.memberEmails.includes(user.email)) {
+        return club;
+    }
+
+    club.memberEmails = [...new Set([user.email, ...club.memberEmails])];
+    club.inviteEmails = (club.inviteEmails ?? []).filter((email) => email !== user.email);
+    club.requestEmails = (club.requestEmails ?? []).filter((email) => email !== user.email);
+    await club.save();
+    return club;
+}
+
 export function normalizeClubId(id: string): string {
     return validator.escape(id.trim());
 }
@@ -89,11 +129,32 @@ export function normalizeEmailList(input: string | string[] | undefined): string
     ];
 }
 
+export async function regenerateClubInviteCode(club: IClassClub): Promise<string> {
+    const clubDocument = club as IClassClub & { _id?: Types.ObjectId };
+    let inviteCode = createClubInviteCode();
+    while (await ClassClub.exists({ _id: { $ne: clubDocument._id }, inviteCode })) {
+        inviteCode = createClubInviteCode();
+    }
+    await ClassClub.updateOne({ _id: clubDocument._id }, { $set: { inviteCode } });
+    club.inviteCode = inviteCode;
+    return inviteCode;
+}
+
+export async function requireClubInviteCode(club: IClassClub): Promise<string> {
+    if (club.inviteCode) {
+        return club.inviteCode;
+    }
+
+    return regenerateClubInviteCode(club);
+}
+
 export function serializeClub(club: IClassClub, role: ClubRole): ClubView {
+    const canManage = role === "admin" || role === "owner";
     return {
         id: club.id,
+        ...(canManage && club.inviteCode ? { inviteCode: club.inviteCode } : {}),
         inviteEmails: club.inviteEmails ?? [],
-        joinPolicy: club.joinPolicy ?? "invite",
+        joinPolicy: "invite",
         memberEmails: club.memberEmails,
         name: club.name,
         ...(club.ownerId ? { ownerId: club.ownerId.toString() } : {}),

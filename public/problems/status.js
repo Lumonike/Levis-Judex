@@ -37,13 +37,13 @@ export function displayStatus(outputArea, results, completed, err = undefined) {
     const h4 = document.createElement("h4");
     if (completed) {
         h4.textContent = "Submitted! View results below:";
-        h4.style.color = "#ffffff";
+        h4.style.color = "#1F2937";
     } else if (results.length == 0) {
         h4.textContent = "Waiting for available grading server...";
-        h4.style.color = "#F59E0B";
+        h4.style.color = "#92400E";
     } else {
         h4.textContent = "Processing code...";
-        h4.style.color = "#3B82F6";
+        h4.style.color = "#1D4ED8";
     }
     h4.style.margin = "0 auto";
     h4.style.textAlign = "center";

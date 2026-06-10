@@ -17,6 +17,7 @@
 
 import mongoose from "mongoose";
 
+import { createClubInviteCode } from "./lib/invite-codes";
 import { IClassClub, IContest, IContestAttempt, IPasswordReset, IProblem, IProblemTestcase, IResult, ISubmission, IUser } from "./types/models";
 
 const ResultSchema = new mongoose.Schema<IResult>(
@@ -106,8 +107,9 @@ export const ProblemTestcase = mongoose.model<IProblemTestcase>("ProblemTestcase
 const ClassClubSchema = new mongoose.Schema<IClassClub>(
     {
         id: { required: true, type: String, unique: true },
+        inviteCode: { default: createClubInviteCode, required: true, type: String },
         inviteEmails: { default: [], required: true, type: [String] },
-        joinPolicy: { default: "invite", enum: ["invite", "open"], required: true, type: String },
+        joinPolicy: { default: "invite", enum: ["invite"], required: true, type: String },
         memberEmails: { default: [], required: true, type: [String] },
         name: { required: true, type: String },
         ownerId: { ref: "User", type: mongoose.Schema.Types.ObjectId },
@@ -116,6 +118,7 @@ const ClassClubSchema = new mongoose.Schema<IClassClub>(
     { timestamps: true },
 );
 
+ClassClubSchema.index({ inviteCode: 1 }, { partialFilterExpression: { inviteCode: { $exists: true, $type: "string" } }, unique: true });
 ClassClubSchema.index({ inviteEmails: 1 });
 ClassClubSchema.index({ ownerId: 1 });
 ClassClubSchema.index({ memberEmails: 1 });
