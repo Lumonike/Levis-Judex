@@ -221,6 +221,7 @@ void test("problem editors preserve SunEditor KaTeX metadata on reload", () => {
     assert.match(contestEditorScript, /attributesWhitelist:\s*{[^}]*span:\s*"style\|contenteditable\|data-exp\|data-font-size"/s);
     assert.match(editorStyles, /\.sun-editor-editable \.__se__katex\.katex\s*{[^}]*font-size:\s*1em/s);
     assert.match(appStyles, /\.problem-section \.__se__katex\.katex\s*{[^}]*font-size:\s*1em/s);
+    assert.doesNotMatch(appStyles, /p:has\(>\s*\.katex:only-child\)/);
 });
 
 void test("problem result tiles use centered seven-column wrapping", () => {
@@ -232,7 +233,7 @@ void test("problem result tiles use centered seven-column wrapping", () => {
     assert.match(problemStyles, /\.modern-box\s*{[^}]*width:\s*86px/s);
     assert.match(problemStyles, /\.modern-box\s*{[^}]*height:\s*72px/s);
     assert.match(problemStyles, /\.metric-text\s*{[^}]*white-space:\s*nowrap/s);
-    assert.match(problemStyles, /\.status-symbol svg\s*{[^}]*width:\s*26px/s);
+    assert.match(problemStyles, /\.status-symbol svg\s*{[^}]*width:\s*35px/s);
 });
 
 void test("problem and contest lists use ordinal pills while keeping ids as metadata", () => {

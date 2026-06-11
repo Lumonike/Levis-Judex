@@ -697,8 +697,7 @@ a {
     font-weight: 640;
 }
 
-.problem-section .katex-display,
-.problem-section p:has(> .katex:only-child) {
+.problem-section .katex-display {
     margin: 0.85rem 0;
     text-align: center;
 }
