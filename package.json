@@ -11,6 +11,7 @@
         "type-check": "tsc --noEmit",
         "lint": "eslint .",
         "lint:fix": "eslint --fix .",
+        "create:test-user": "tsx --env-file .env src/scripts/create-test-user.ts",
         "migrate:database": "tsx --env-file .env src/scripts/migrate-database.ts",
         "format": "prettier --write .",
         "format:check": "prettier --check .",

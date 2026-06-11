@@ -156,6 +156,17 @@ void test("top navigation uses Code Joint logo without exposing admin link", () 
     assert.doesNotMatch(layout, /href="\/admin">Admin/);
 });
 
+void test("test user script is wired and keeps the GPL header", () => {
+    const packageJson = fs.readFileSync("package.json", "utf8");
+    const script = fs.readFileSync("src/scripts/create-test-user.ts", "utf8");
+
+    assert.match(packageJson, /"create:test-user": "tsx --env-file \.env src\/scripts\/create-test-user\.ts"/);
+    assert.match(script, /^\/\* Levis Judex - Self-hosted platform for contests\/problems/);
+    assert.match(script, /bcrypt\.hash\(options\.password, 10\)/);
+    assert.match(script, /verified: true/);
+    assert.doesNotMatch(script, /console\.log\([^\n]*(options\.password|passwordHash)/);
+});
+
 void test("club management uses bounded roster lists instead of full-width member rows", () => {
     const clubsScript = fs.readFileSync("public/clubs/clubs.js", "utf8");
     const script = fs.readFileSync("public/clubs/club-detail.js", "utf8");

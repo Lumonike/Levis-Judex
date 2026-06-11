@@ -1,66 +1,138 @@
 # Useful Commands
 
-## service starts
+Most commands should be run from the project directory:
 
 ```bash
-systemctl start mongod
-systemctl start isolate
+cd /home/hongy/levis-judex
 ```
 
----
+## Development
 
-## pm2
+Run the dev server:
 
-start server:
-`pm2 start pm2.json`
+```bash
+sudo npm run dev
+```
 
-stop server:
-`pm2 stop pm2.json`
+## Checks
 
-reload server:
-`pm2 reload pm2.json`
+Run everything before committing:
 
-check status:
-`pm2 status`
+```bash
+npm test
+npm run type-check
+npm run lint
+npm run build
+npm run format:check
+```
 
----
+Fix lint and formatting:
+
+```bash
+npm run lint:fix
+npm run format
+```
+
+## Test Users
+
+Create a verified student account:
+
+```bash
+npm run create:test-user -- student@example.com password123
+```
+
+Create a verified admin account:
+
+```bash
+npm run create:test-user -- admin@example.com password123 --admin
+```
+
+Update an existing test user's password or admin status:
+
+```bash
+npm run create:test-user -- student@example.com newpassword123 --update
+```
 
 ## MongoDB
 
-db ssh:  
-`mongosh "mongodb://localhost:27017/authdb"`
+Back up MongoDB:
 
-backup db:
-`mongodump --db authdb --out ./backup`
+```bash
+mongodump --db authdb --out ./backup-before-migration
+```
 
-restore from backup:
-`mongorestore --nsInclude="authdb.*" --drop ./backup`
+Restore a backup if needed:
 
-get collections:  
-`show collections`
+```bash
+mongorestore --nsInclude="authdb.*" --drop ./backup-before-migration
+```
 
-get users:  
-`db.users.find()`
+Open the app database:
 
-delete user:  
-`db.users.deleteOne({ email: "user@example.com" })`
+```bash
+mongosh "mongodb://localhost:27017/authdb"
+```
 
-delete all users:  
-`db.users.deleteMany({});`
+List collections:
 
-set user as admin (if you don't have access to admin page yet):  
-`db.users.updateOne({ email: "user@example.com" }, { $set: { admin: true } })` (you can also generalize this to modify any key of any collection)
+```bash
+show collections
+```
 
-Same stuff from above applies to problems and contests: just replace `users` with `problems` or `contests`
+Find users:
 
----
+```bash
+db.users.find()
+```
 
-## run server to see debug console in terminal
+Delete one user:
 
-`sudo npm dev`
+```bash
+db.users.deleteOne({ email: "user@example.com" })
+```
 
----
+Delete all users:
 
-## install dependencies
+```bash
+db.users.deleteMany({})
+```
 
-`npm install`
+Set a user as admin:
+
+```bash
+db.users.updateOne({ email: "user@example.com" }, { $set: { admin: true } })
+```
+
+The same pattern works for other collections, such as `problems`, `contests`, `clubs`, and `submissions`.
+
+## Services
+
+Check required services:
+
+```bash
+systemctl status mongod
+systemctl status isolate
+```
+
+Start required services:
+
+```bash
+sudo systemctl start mongod
+sudo systemctl start isolate
+```
+
+Restart required services:
+
+```bash
+sudo systemctl restart mongod
+sudo systemctl restart isolate
+```
+
+## PM2
+
+```bash
+pm2 start pm2.json
+pm2 stop pm2.json
+pm2 reload pm2.json
+pm2 status
+```
