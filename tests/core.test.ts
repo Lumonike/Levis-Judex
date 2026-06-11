@@ -223,6 +223,18 @@ void test("problem editors preserve SunEditor KaTeX metadata on reload", () => {
     assert.match(appStyles, /\.problem-section \.__se__katex\.katex\s*{[^}]*font-size:\s*1em/s);
 });
 
+void test("problem result tiles use centered seven-column wrapping", () => {
+    const problemStyles = fs.readFileSync("public/problems/problem-style.css", "utf8");
+
+    assert.match(problemStyles, /\.box-container\s*{[^}]*justify-content:\s*center/s);
+    assert.match(problemStyles, /\.box-container\s*{[^}]*width:\s*fit-content/s);
+    assert.match(problemStyles, /\.box-container\s*{[^}]*max-width:\s*min\(100%,\s*662px\)/s);
+    assert.match(problemStyles, /\.modern-box\s*{[^}]*width:\s*86px/s);
+    assert.match(problemStyles, /\.modern-box\s*{[^}]*height:\s*72px/s);
+    assert.match(problemStyles, /\.metric-text\s*{[^}]*white-space:\s*nowrap/s);
+    assert.match(problemStyles, /\.status-symbol svg\s*{[^}]*width:\s*26px/s);
+});
+
 void test("problem and contest lists use ordinal pills while keeping ids as metadata", () => {
     const problemList = fs.readFileSync("views/problems.ejs", "utf8");
     const contestList = fs.readFileSync("views/contests.ejs", "utf8");
