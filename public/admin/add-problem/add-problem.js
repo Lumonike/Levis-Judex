@@ -19,6 +19,16 @@ const getId = document.getElementById.bind(document);
 let inputTestcases = [];
 let outputTestcases = [];
 
+function richEditorOptions() {
+    return {
+        attributesWhitelist: {
+            span: "style|contenteditable|data-exp|data-font-size",
+        },
+        buttonList: [["bold", "italic", "underline", "strike"], ["list"], ["link", "math"]],
+        katex: window.katex,
+    };
+}
+
 // Inject SunEditor CSS
 const sunEditorCSS = document.createElement("link");
 sunEditorCSS.rel = "stylesheet";
@@ -46,10 +56,7 @@ sunEditorScript.onload = () => {
 
             const editorIds = ["problem-statement", "input-format", "output-format"];
             editorIds.forEach((id) => {
-                const editor = SUNEDITOR.create(getId(id), {
-                    buttonList: [["bold", "italic", "underline", "strike"], ["list"], ["link", "math"]],
-                    katex: katex,
-                });
+                const editor = SUNEDITOR.create(getId(id), richEditorOptions());
 
                 window[id + "Container"] = editor;
             });

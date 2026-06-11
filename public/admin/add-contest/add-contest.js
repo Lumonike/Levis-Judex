@@ -35,6 +35,9 @@ function createRichEditor(index, field, height) {
     if (!target || inlineEditors.has(key)) return;
 
     const editor = window.SUNEDITOR.create(target, {
+        attributesWhitelist: {
+            span: "style|contenteditable|data-exp|data-font-size",
+        },
         buttonList: [["bold", "italic", "underline", "strike"], ["list"], ["link", "math"], ["removeFormat", "codeView"]],
         height,
         katex: window.katex,

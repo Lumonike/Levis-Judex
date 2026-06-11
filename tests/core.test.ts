@@ -77,6 +77,24 @@ void test("problem html sanitizer removes executable content while preserving fo
     assert.doesNotMatch(sanitized, /onerror/i);
 });
 
+void test("problem html sanitizer preserves KaTeX layout styles without allowing arbitrary CSS", () => {
+    const sanitized = sanitizeProblemHtml(
+        '<span class="__se__katex katex" contenteditable="false" data-exp="a_i" data-font-size="1em" style="font-size:1em; color:red; background-image:url(javascript:alert(1))"><span class="vlist" style="height:0.95em; top:-0.4em; margin-right:0.05em">x</span></span>',
+    );
+
+    assert.match(sanitized, /class="__se__katex katex"/);
+    assert.match(sanitized, /contenteditable="false"/);
+    assert.match(sanitized, /data-exp="a_i"/);
+    assert.match(sanitized, /data-font-size="1em"/);
+    assert.match(sanitized, /font-size:1em/);
+    assert.match(sanitized, /height:0\.95em/);
+    assert.match(sanitized, /top:-0\.4em/);
+    assert.match(sanitized, /margin-right:0\.05em/);
+    assert.doesNotMatch(sanitized, /color:red/);
+    assert.doesNotMatch(sanitized, /javascript/i);
+    assert.doesNotMatch(sanitized, /background-image/i);
+});
+
 void test("reset tokens are hashable without storing the raw token", () => {
     const token = createToken();
     const tokenHash = hashToken(token);
@@ -191,6 +209,18 @@ void test("contest editor exposes visible remove controls and direct edit links"
     assert.match(adminPages, /initialContestId/);
     assert.match(contestView, /Edit Contest/);
     assert.match(contestPages, /editHref/);
+});
+
+void test("problem editors preserve SunEditor KaTeX metadata on reload", () => {
+    const problemEditorScript = fs.readFileSync("public/admin/add-problem/add-problem.js", "utf8");
+    const contestEditorScript = fs.readFileSync("public/admin/add-contest/add-contest.js", "utf8");
+    const editorStyles = fs.readFileSync("public/admin/add-problem/sun-editor.css", "utf8");
+    const appStyles = fs.readFileSync("public/styles/app.css", "utf8");
+
+    assert.match(problemEditorScript, /attributesWhitelist:\s*{[^}]*span:\s*"style\|contenteditable\|data-exp\|data-font-size"/s);
+    assert.match(contestEditorScript, /attributesWhitelist:\s*{[^}]*span:\s*"style\|contenteditable\|data-exp\|data-font-size"/s);
+    assert.match(editorStyles, /\.sun-editor-editable \.__se__katex\.katex\s*{[^}]*font-size:\s*1em/s);
+    assert.match(appStyles, /\.problem-section \.__se__katex\.katex\s*{[^}]*font-size:\s*1em/s);
 });
 
 void test("problem and contest lists use ordinal pills while keeping ids as metadata", () => {

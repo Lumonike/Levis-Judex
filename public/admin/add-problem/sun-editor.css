@@ -68,6 +68,10 @@
     text-align: center;
 }
 
+.sun-editor-editable .__se__katex.katex {
+    font-size: 1em;
+}
+
 .sun-editor .se-toolbar {
     display: flex;
     flex-wrap: wrap;

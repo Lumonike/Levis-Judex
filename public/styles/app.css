@@ -697,6 +697,20 @@ a {
     font-weight: 640;
 }
 
+.problem-section .katex-display,
+.problem-section p:has(> .katex:only-child) {
+    margin: 0.85rem 0;
+    text-align: center;
+}
+
+.problem-section .katex {
+    color: var(--ink);
+}
+
+.problem-section .__se__katex.katex {
+    font-size: 1em;
+}
+
 .sample-block {
     border: 1px solid var(--line);
     border-radius: var(--radius);
