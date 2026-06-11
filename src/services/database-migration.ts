@@ -10,6 +10,7 @@ export interface MigrationResult {
     clubs: {
         inviteCodesMigrated: number;
         openClubsClosed: number;
+        rosterFieldsMigrated: number;
     };
     contests: {
         importedProblems: number;
@@ -84,10 +85,21 @@ export async function migrateClubInviteCodes(): Promise<number> {
     return migrated;
 }
 
+export async function migrateClubRosterFields(): Promise<number> {
+    const [memberEmails, inviteEmails, requestEmails, joinPolicy] = await Promise.all([
+        ClassClub.updateMany({ memberEmails: { $exists: false } }, { $set: { memberEmails: [] } }),
+        ClassClub.updateMany({ inviteEmails: { $exists: false } }, { $set: { inviteEmails: [] } }),
+        ClassClub.updateMany({ requestEmails: { $exists: false } }, { $set: { requestEmails: [] } }),
+        ClassClub.updateMany({ joinPolicy: { $exists: false } }, { $set: { joinPolicy: "invite" } }),
+    ]);
+    return memberEmails.modifiedCount + inviteEmails.modifiedCount + requestEmails.modifiedCount + joinPolicy.modifiedCount;
+}
+
 export async function migrateDatabase(): Promise<MigrationResult> {
     await dropLegacyGlobalProblemIdIndex();
     await dropLegacyContestProblemIndexes();
     await dropLegacyProblemTestcaseIndexes();
+    const rosterFieldsMigrated = await migrateClubRosterFields();
     const inviteCodesMigrated = await migrateClubInviteCodes();
     const openClubsClosed = await migrateOpenClubsToInviteOnly();
     const problemTestcasesMigrated = await migrateLegacyProblemTestcases();
@@ -99,6 +111,7 @@ export async function migrateDatabase(): Promise<MigrationResult> {
         clubs: {
             inviteCodesMigrated,
             openClubsClosed,
+            rosterFieldsMigrated,
         },
         contests,
         problems: {
@@ -200,7 +213,7 @@ export async function migrateOpenClubsToInviteOnly(): Promise<number> {
 }
 
 export async function runDatabaseMigrationFromEnv(): Promise<MigrationResult> {
-    await mongoose.connect(process.env.MONGO_URI ?? "mongodb://localhost:27017/authdb");
+    await mongoose.connect(process.env.MONGODB_URI ?? process.env.MONGO_URI ?? "mongodb://localhost:27017/authdb");
     try {
         return await migrateDatabase();
     } finally {

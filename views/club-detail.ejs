@@ -1,0 +1,42 @@
+<div class="page" data-club-id="<%= club.id %>">
+    <section class="page-header">
+        <div>
+            <p class="page-kicker">Club</p>
+            <h1 class="page-title" id="club-name"><%= club.name %></h1>
+            <p class="page-subtitle" id="club-summary">Loading club details...</p>
+        </div>
+        <div class="flex flex-wrap gap-2" id="club-primary-actions"></div>
+    </section>
+
+    <section class="grid grid-cols-1 gap-4 md:grid-cols-3" id="club-stats"></section>
+
+    <section class="panel panel-body">
+        <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h2 class="section-heading">Contests</h2>
+                <p class="section-note">Club contests appear here for members.</p>
+            </div>
+            <div id="club-contest-actions"></div>
+        </div>
+        <div class="list" id="club-contests"></div>
+    </section>
+
+    <section class="panel panel-body hidden" id="club-management">
+        <div class="mb-4">
+            <h2 class="section-heading">Club management</h2>
+            <p class="section-note">Share the invite link, update the roster, and manage this club.</p>
+        </div>
+        <div id="club-management-body"></div>
+    </section>
+
+    <dialog class="club-modal" id="club-roster-dialog">
+        <div class="club-modal-header">
+            <div>
+                <h2 class="section-heading" id="club-roster-dialog-title">Roster</h2>
+                <p class="section-note" id="club-roster-dialog-count"></p>
+            </div>
+            <button class="btn btn-secondary" id="club-roster-dialog-close" type="button">Close</button>
+        </div>
+        <div id="club-roster-dialog-body"></div>
+    </dialog>
+</div>

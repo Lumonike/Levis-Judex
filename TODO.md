@@ -1,8 +1,6 @@
 # TODO
 
-- Contest creator
-- Make it easier to delete contests
-- Make contests actually good
-- Change forgot password because there are so many issues with how it works
-- Make it save login info so you don't have to sign in so much
-- More customization
+- Add a club option to automatically accept invite-code join requests.
+- Add logging in with Google
+- Add more programming languages
+- Add more scoring options

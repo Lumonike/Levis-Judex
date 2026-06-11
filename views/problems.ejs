@@ -13,13 +13,13 @@
                 <p class="section-note">No public problems are available yet.</p>
             </div>
         <% } %>
-        <% problems.forEach((problem) => { %>
+        <% problems.forEach((problem, index) => { %>
             <a class="list-row" href="/problems/<%= problem.id %>">
                 <div class="flex min-w-0 items-center gap-4">
-                    <span class="id-pill"><%= problem.id %></span>
+                    <span class="id-pill"><%= index + 1 %></span>
                     <div class="min-w-0">
                         <p class="m-0 truncate font-medium"><%= problem.name %></p>
-                        <p class="m-0 text-sm muted">Problem <%= problem.id %></p>
+                        <p class="m-0 text-sm muted">ID: <%= problem.id %></p>
                     </div>
                 </div>
                 <span class="muted">Open</span>

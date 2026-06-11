@@ -91,29 +91,6 @@ export async function getClubRole(club: IClassClub, userId?: Types.ObjectId): Pr
     return "visitor";
 }
 
-export async function joinClubWithInviteCode(userId: Types.ObjectId, code: string): Promise<IClassClub> {
-    const inviteCode = normalizeClubInviteCode(code);
-    if (!inviteCode) {
-        throw new Error("Invite code is required");
-    }
-
-    const user = await User.findById(userId).select("email").lean();
-    const club = await ClassClub.findOne({ inviteCode });
-    if (!user || !club) {
-        throw new Error("Invite code was not found");
-    }
-
-    if (club.ownerId?.toString() === userId.toString() || club.memberEmails.includes(user.email)) {
-        return club;
-    }
-
-    club.memberEmails = [...new Set([user.email, ...club.memberEmails])];
-    club.inviteEmails = (club.inviteEmails ?? []).filter((email) => email !== user.email);
-    club.requestEmails = (club.requestEmails ?? []).filter((email) => email !== user.email);
-    await club.save();
-    return club;
-}
-
 export function normalizeClubId(id: string): string {
     return validator.escape(id.trim());
 }
@@ -140,6 +117,28 @@ export async function regenerateClubInviteCode(club: IClassClub): Promise<string
     return inviteCode;
 }
 
+export async function requestClubWithInviteCode(userId: Types.ObjectId, code: string): Promise<IClassClub> {
+    const inviteCode = normalizeClubInviteCode(code);
+    if (!inviteCode) {
+        throw new Error("Invite code is required");
+    }
+
+    const user = await User.findById(userId).select("email").lean();
+    const club = await ClassClub.findOne({ inviteCode });
+    if (!user || !club) {
+        throw new Error("Invite code was not found");
+    }
+
+    if (club.ownerId?.toString() === userId.toString() || club.memberEmails.includes(user.email)) {
+        return club;
+    }
+
+    club.requestEmails = [...new Set([user.email, ...(club.requestEmails ?? [])])];
+    club.inviteEmails = (club.inviteEmails ?? []).filter((email) => email !== user.email);
+    await club.save();
+    return club;
+}
+
 export async function requireClubInviteCode(club: IClassClub): Promise<string> {
     if (club.inviteCode) {
         return club.inviteCode;
@@ -150,15 +149,16 @@ export async function requireClubInviteCode(club: IClassClub): Promise<string> {
 
 export function serializeClub(club: IClassClub, role: ClubRole): ClubView {
     const canManage = role === "admin" || role === "owner";
+    const canViewRoster = canManage || role === "member";
     return {
         id: club.id,
         ...(canManage && club.inviteCode ? { inviteCode: club.inviteCode } : {}),
-        inviteEmails: club.inviteEmails ?? [],
+        inviteEmails: canManage ? (club.inviteEmails ?? []) : [],
         joinPolicy: "invite",
-        memberEmails: club.memberEmails,
+        memberEmails: canViewRoster ? club.memberEmails : [],
         name: club.name,
         ...(club.ownerId ? { ownerId: club.ownerId.toString() } : {}),
-        requestEmails: club.requestEmails ?? [],
+        requestEmails: canManage ? (club.requestEmails ?? []) : [],
         role,
     };
 }

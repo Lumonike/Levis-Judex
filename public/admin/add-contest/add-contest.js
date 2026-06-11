@@ -261,7 +261,7 @@ function renderExistingProblems() {
                 <p class="text-lg font-semibold text-white break-all">${escapeText(problem.id)}</p>
             </div>
             ${numberInputMarkup("points", "Points", problem.points, 1)}
-            <button type="button" data-action="remove" class="text-lg px-3 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600">
+            <button type="button" data-action="remove" class="btn btn-danger">
                 Remove
             </button>
         `;
@@ -285,7 +285,7 @@ function renderInlineProblems() {
         section.innerHTML = `
             <div class="flex items-center justify-between gap-4">
                 <h3 class="text-xl font-bold text-white">Problem ${index + 1}</h3>
-                <button type="button" data-action="remove" class="px-3 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600">Remove</button>
+                <button type="button" data-action="remove" class="btn btn-danger">Remove</button>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 ${inputMarkup("id", "Problem ID", problem.id)}
@@ -451,4 +451,12 @@ setupEventListeners();
 toggleDuration();
 toggleClubAccess();
 applyLockedClub();
-void loadClubs();
+void initializePage();
+
+async function initializePage() {
+    await loadClubs();
+    if (editorConfig.initialContestId) {
+        getId("contest-id-search").value = editorConfig.initialContestId;
+        await loadContest();
+    }
+}

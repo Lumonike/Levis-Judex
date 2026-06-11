@@ -16,6 +16,7 @@
  */
 
 import express from "express";
+import validator from "validator";
 
 import { authenticateToken } from "../middleware/authenticate.js";
 import { requireAdmin } from "../middleware/authorize.js";
@@ -53,11 +54,13 @@ router.get("/admin/add-problem", authenticateToken, requireAdmin, (req, res) => 
 });
 
 router.get("/admin/add-contest", authenticateToken, requireAdmin, (req, res) => {
+    const initialContestId = typeof req.query.contest === "string" ? validator.escape(req.query.contest.trim()) : "";
     res.render("admin/add-contest", {
         backArrow: { href: "/admin", text: "Back to Admin" },
         contestEditorConfig: {
             clubsUrl: "/api/admin/list-clubs",
             getContestUrl: "/api/admin/get-contest?id={id}",
+            ...(initialContestId ? { initialContestId } : {}),
             saveUrl: "/api/admin/save-contest",
         },
         head: `<script type="module" src="/admin/add-contest/add-contest.js" defer></script>`,

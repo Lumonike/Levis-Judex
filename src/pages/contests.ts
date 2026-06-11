@@ -17,11 +17,13 @@
 
 import express from "express";
 import fs from "fs";
+import { Types } from "mongoose";
 import path from "path";
 
 import { sanitizeProblemHtml } from "../lib/sanitize.js";
 import { authenticateTokenOptional } from "../middleware/authenticate.js";
-import { Contest } from "../models.js";
+import { ClassClub, Contest, User } from "../models.js";
+import { canManageClub } from "../services/clubs.js";
 import { contestScopeFilter, contestUrl, getContestStorageId } from "../services/contest-scope.js";
 import { canAccessContest, getContestProblemPoints, getContestState, getScoreboard } from "../services/contests.js";
 import { getContestProblem, getContestProblems } from "../services/problems.js";
@@ -33,12 +35,22 @@ import { IContest } from "../types/models.js";
 const router = express.Router();
 export default router;
 
+type ContestPageView = IContest & {
+    clubName: null | string;
+    href: string;
+};
+
 router.get("/contests", authenticateTokenOptional, async (req, res) => {
     const allContests = await Contest.find().lean<IContest[]>();
-    const contests = [];
+    const clubNames = await getContestClubNames(allContests);
+    const contests: ContestPageView[] = [];
     for (const contest of allContests) {
         if (await canAccessContest(contest, req.user?.id)) {
-            contests.push({ ...contest, href: contestUrl(contest) });
+            contests.push({
+                ...contest,
+                clubName: contest.clubId ? (clubNames.get(contest.clubId) ?? contest.clubId) : null,
+                href: contestUrl(contest),
+            });
         }
     }
     res.render("contests", { contests });
@@ -83,16 +95,37 @@ router.get("/contests/:target", authenticateTokenOptional, async (req, res) => {
         ...row,
         elapsedLabel: formatElapsed(row.elapsedMs),
     }));
+    const clubName = contest.clubId ? ((await ClassClub.findOne({ id: contest.clubId }).select("name").lean())?.name ?? contest.clubId) : null;
+    const editHref = (await canEditContestPage(contest, req.user?.id))
+        ? contest.clubId
+            ? `/clubs/${encodeURIComponent(contest.clubId)}/contests/${encodeURIComponent(contest.id)}/edit`
+            : `/admin/add-contest?contest=${encodeURIComponent(contest.id)}`
+        : null;
 
     res.render("contest", {
         backArrow: { href: "/contests", text: "Back to Contest List" },
-        contest: { ...contest, href: contestUrl(contest), problems, storageId: getContestStorageId(contest) },
+        contest: { ...contest, clubName, editHref, href: contestUrl(contest), problems, storageId: getContestStorageId(contest) },
         mainSection: { width: "max-w-6xl" },
         scoreboard,
         state,
         title: contest.name,
     });
 });
+
+async function canEditContestPage(contest: IContest, userId: Types.ObjectId | undefined): Promise<boolean> {
+    if (!userId) {
+        return false;
+    }
+    const user = await User.findById(userId).select("admin").lean();
+    if (user?.admin) {
+        return true;
+    }
+    if (!contest.clubId) {
+        return false;
+    }
+    const club = await ClassClub.findOne({ id: contest.clubId });
+    return Boolean(club && (await canManageClub(club, userId)));
+}
 
 function formatElapsed(elapsedMs: number): string {
     if (!Number.isFinite(elapsedMs) || elapsedMs === Number.MAX_SAFE_INTEGER) {
@@ -108,6 +141,18 @@ function formatElapsed(elapsedMs: number): string {
     }
 
     return `${minutes.toString()}:${seconds.toString().padStart(2, "0")}`;
+}
+
+async function getContestClubNames(contests: IContest[]): Promise<Map<string, string>> {
+    const clubIds = [...new Set(contests.map((contest) => contest.clubId).filter((clubId): clubId is string => Boolean(clubId)))];
+    if (clubIds.length === 0) {
+        return new Map();
+    }
+
+    const clubs = await ClassClub.find({ id: { $in: clubIds } })
+        .select("id name")
+        .lean();
+    return new Map(clubs.map((club) => [club.id, club.name]));
 }
 
 router.get("/contests/:contestID/:problemID", authenticateTokenOptional, async (req, res) => {

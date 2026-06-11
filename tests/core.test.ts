@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test, { after, before, beforeEach } from "node:test";
 
 import adminRouter from "../src/api/admin";
@@ -11,17 +12,24 @@ import { sanitizeProblemHtml } from "../src/lib/sanitize";
 import { createToken, hashToken } from "../src/lib/tokens";
 import { authenticateToken } from "../src/middleware/authenticate";
 import { ClassClub, Contest, ContestAttempt, Problem, ProblemTestcase, Submission, User } from "../src/models";
+import clubsPageRouter from "../src/pages/clubs";
 import {
     assertClubCreationLimit,
     buildClubInviteLink,
     deleteClubForUser,
     getClubRole,
-    joinClubWithInviteCode,
+    requestClubWithInviteCode,
     requireClubInviteCode,
+    serializeClub,
 } from "../src/services/clubs";
 import { getContestStorageId } from "../src/services/contest-scope";
 import { canAccessContest, getContestState, getScoreboard, saveContestWithProblems, startPersonalContest } from "../src/services/contests";
-import { dropLegacyContestProblemIndexes, migrateDatabase, migrateLegacyUserSubmissions } from "../src/services/database-migration";
+import {
+    dropLegacyContestProblemIndexes,
+    migrateClubRosterFields,
+    migrateDatabase,
+    migrateLegacyUserSubmissions,
+} from "../src/services/database-migration";
 import {
     dropLegacyGlobalProblemIdIndex,
     dropLegacyProblemTestcaseIndexes,
@@ -93,6 +101,114 @@ void test("submission status route requires authentication", () => {
 
     assert.ok(layer?.route);
     assert.equal(layer.route.stack[0].handle.name, "authenticateToken");
+});
+
+void test("club detail page is authenticated without shadowing club contest creation", () => {
+    const addContestLayer = findRoute(clubsPageRouter.stack, "/clubs/:clubID/add-contest", "get");
+    const detailLayer = findRoute(clubsPageRouter.stack, "/clubs/:clubID", "get");
+
+    assert.ok(addContestLayer?.route);
+    assert.ok(detailLayer?.route);
+    assert.ok(addContestLayer.route.stack.length >= 2);
+    assert.ok(detailLayer.route.stack.length >= 2);
+    assert.ok(clubsPageRouter.stack.indexOf(addContestLayer) < clubsPageRouter.stack.indexOf(detailLayer));
+});
+
+void test("top navigation uses Code Joint logo without exposing admin link", () => {
+    const layout = fs.readFileSync("views/layout.ejs", "utf8");
+
+    assert.match(layout, /https:\/\/codejoint\.org\/images\/cjcircle\.png/);
+    assert.doesNotMatch(layout, /href="\/admin">Admin/);
+});
+
+void test("club management uses bounded roster lists instead of full-width member rows", () => {
+    const clubsScript = fs.readFileSync("public/clubs/clubs.js", "utf8");
+    const script = fs.readFileSync("public/clubs/club-detail.js", "utf8");
+    const styles = fs.readFileSync("public/styles/app.css", "utf8");
+    const clubsApi = fs.readFileSync("src/api/clubs.ts", "utf8");
+
+    assert.match(clubsScript, /mode:\s*"create"/);
+    assert.match(clubsApi, /existing && req\.body\.mode === "create"/);
+    assert.match(clubsApi, /A club with that ID already exists/);
+    assert.match(script, /club-management-layout/);
+    assert.match(script, /club-management-side/);
+    assert.ok(script.indexOf("club-code-row") < script.indexOf("rename-club-form"));
+    assert.match(script, /mode:\s*"update"/);
+    assert.match(script, /data-role="invite-email"/);
+    assert.match(script, /\{\s*email:\s*document\.querySelector\("\[data-role='invite-email'\]"\)\.value\s*\}/);
+    assert.match(script, /club-roster-list/);
+    assert.match(script, /club-roster-dialog/);
+    assert.match(styles, /\.club-modal\s*{/);
+    assert.match(styles, /\.club-management-layout\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*12\.5rem/s);
+    assert.match(styles, /\.club-management-side\s*{[^}]*padding-top:\s*1\.25rem/s);
+    assert.match(styles, /#main-section button\.club-roster-summary:not\(\.se-btn\)\s*{[^}]*display:\s*grid/s);
+    assert.match(styles, /#main-section button\.club-roster-summary:not\(\.se-btn\)\s*{[^}]*grid-template-columns:\s*8rem\s*2\.25rem/s);
+    assert.match(styles, /#main-section button\.club-roster-summary:not\(\.se-btn\)\s*{[^}]*justify-content:\s*center/s);
+    assert.match(styles, /\.club-roster-summary \.badge\s*{[^}]*justify-self:\s*end/s);
+    assert.match(styles, /\.club-roster-summary \.badge\s*{[^}]*width:\s*2rem/s);
+    assert.match(styles, /\.club-control-row\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto/s);
+    assert.match(styles, /\.club-code-row\s*{[^}]*grid-template-columns:\s*minmax\(9rem,\s*12rem\)\s*auto\s*auto/s);
+    assert.match(styles, /\.problem-page #result:empty \+ \.problem-section\s*{[^}]*margin-top:\s*0/s);
+    assert.match(clubsApi, /normalizeEmailList\(req\.body\.email \? \[req\.body\.email\] : req\.body\.emails\)/);
+});
+
+void test("shared page chrome keeps back links and contest timing compact", () => {
+    const contestView = fs.readFileSync("views/contest.ejs", "utf8");
+    const contestsView = fs.readFileSync("views/contests.ejs", "utf8");
+    const contestsPage = fs.readFileSync("src/pages/contests.ts", "utf8");
+    const backPartial = fs.readFileSync("views/partials/back-arrow.ejs", "utf8");
+    const styles = fs.readFileSync("public/styles/app.css", "utf8");
+
+    assert.match(backPartial, /class="btn btn-secondary back-link"/);
+    assert.match(styles, /\.back-link\.btn\s*{[^}]*min-height:\s*2rem/s);
+    assert.match(styles, /\.back-link\.btn\s*{[^}]*padding:\s*0\.3rem 0\.45rem 0\.3rem 0/s);
+    assert.match(styles, /\.back-link\.btn:hover\s*{[^}]*border-color:\s*transparent/s);
+    assert.match(styles, /\.back-link\.btn:hover\s*{[^}]*background:\s*transparent/s);
+    assert.match(contestView, /page-header contest-header/);
+    assert.match(contestView, /Club contest.*contest\.clubName/s);
+    assert.match(contestsView, /Club: \$\{contest\.clubName \?\? contest\.clubId\}/);
+    assert.match(contestsPage, /ClassClub\.find/);
+    assert.match(contestView, /contest-timing-panel/);
+    assert.match(styles, /\.contest-header\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*max-content/s);
+    assert.match(styles, /\.panel-body\.contest-timing-panel\s*{[^}]*justify-self:\s*end/s);
+    assert.match(styles, /\.panel-body\.contest-timing-panel\s*{[^}]*padding:\s*0 1rem 0\.55rem/s);
+    assert.match(styles, /\.panel-body\.contest-timing-panel\s*{[^}]*text-align:\s*right/s);
+    assert.match(styles, /\.contest-timing-panel \.section-note\s*{[^}]*margin:\s*0 0 0\.35rem/s);
+});
+
+void test("contest editor exposes visible remove controls and direct edit links", () => {
+    const editorScript = fs.readFileSync("public/admin/add-contest/add-contest.js", "utf8");
+    const clubDetailScript = fs.readFileSync("public/clubs/club-detail.js", "utf8");
+    const clubPages = fs.readFileSync("src/pages/clubs.ts", "utf8");
+    const adminPages = fs.readFileSync("src/pages/admin.ts", "utf8");
+    const contestView = fs.readFileSync("views/contest.ejs", "utf8");
+    const contestPages = fs.readFileSync("src/pages/contests.ts", "utf8");
+
+    assert.match(editorScript, /class="btn btn-danger"/);
+    assert.match(editorScript, /editorConfig\.initialContestId/);
+    assert.match(clubDetailScript, /\/contests\/\$\{encodeURIComponent\(contest\.id\)\}\/edit/);
+    assert.match(clubPages, /\/clubs\/:clubID\/contests\/:contestID\/edit/);
+    assert.match(adminPages, /initialContestId/);
+    assert.match(contestView, /Edit Contest/);
+    assert.match(contestPages, /editHref/);
+});
+
+void test("problem and contest lists use ordinal pills while keeping ids as metadata", () => {
+    const problemList = fs.readFileSync("views/problems.ejs", "utf8");
+    const contestList = fs.readFileSync("views/contests.ejs", "utf8");
+    const contestView = fs.readFileSync("views/contest.ejs", "utf8");
+    const clubDetailScript = fs.readFileSync("public/clubs/club-detail.js", "utf8");
+
+    assert.match(problemList, /problems\.forEach\(\(problem,\s*index\)/);
+    assert.match(problemList, /<span class="id-pill"><%= index \+ 1 %><\/span>/);
+    assert.match(problemList, /ID: <%= problem\.id %>/);
+    assert.match(contestList, /contests\.forEach\(\(contest,\s*index\)/);
+    assert.match(contestList, /<span class="id-pill"><%= index \+ 1 %><\/span>/);
+    assert.match(contestList, /ID: <%= contest\.id %>/);
+    assert.match(contestView, /contest\.problems\.forEach\(\(problem,\s*index\)/);
+    assert.match(contestView, /ID: <%= problem\.id %> · <%= problem\.points %> points/);
+    assert.match(clubDetailScript, /\(contest,\s*index\) =>/);
+    assert.match(clubDetailScript, /ID: \$\{escapeText\(contest\.id\)\}/);
 });
 
 void test("page requests with missing auth redirect to login instead of returning raw JSON", () => {
@@ -483,7 +599,26 @@ void test("club roles distinguish pending invites and join requests", async () =
     assert.equal(await getClubRole(club, visitor._id), "visitor");
 });
 
-void test("students can join invite-only clubs with an invite code", async () => {
+void test("club serialization hides roster details from non-members", async () => {
+    const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
+    const club = await ClassClub.create({
+        id: "private-roster",
+        inviteEmails: ["invited@example.com"],
+        memberEmails: ["member@example.com"],
+        name: "Private Roster",
+        ownerId: owner._id,
+        requestEmails: ["requested@example.com"],
+    });
+
+    assert.deepEqual(serializeClub(club, "visitor").memberEmails, []);
+    assert.deepEqual(serializeClub(club, "visitor").inviteEmails, []);
+    assert.deepEqual(serializeClub(club, "visitor").requestEmails, []);
+    assert.deepEqual(serializeClub(club, "member").memberEmails, ["member@example.com"]);
+    assert.deepEqual(serializeClub(club, "owner").inviteEmails, ["invited@example.com"]);
+    assert.deepEqual(serializeClub(club, "owner").requestEmails, ["requested@example.com"]);
+});
+
+void test("students request invite-only clubs with an invite code", async () => {
     const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
     const student = await User.create({ email: "student@example.com", password: "hash", verified: true });
     const club = await ClassClub.create({
@@ -500,15 +635,41 @@ void test("students can join invite-only clubs with an invite code", async () =>
     process.env.BASE_URL = "http://example.test";
     const link = buildClubInviteLink(club.inviteCode ?? "");
     process.env.BASE_URL = originalBaseUrl;
-    const joinedClub = await joinClubWithInviteCode(student._id, "abcd-1234");
+    const requestedClub = await requestClubWithInviteCode(student._id, "abcd-1234");
     const storedClub = await ClassClub.findOne({ id: "coded" }).lean();
 
     assert.equal(link, "http://example.test/clubs?code=ABCD1234");
-    assert.equal(joinedClub.id, "coded");
+    assert.equal(requestedClub.id, "coded");
     assert.ok(storedClub);
-    assert.deepEqual(storedClub.memberEmails, ["student@example.com"]);
+    assert.deepEqual(storedClub.memberEmails, []);
     assert.deepEqual(storedClub.inviteEmails, []);
+    assert.deepEqual(storedClub.requestEmails, ["student@example.com"]);
+});
+
+void test("students can request to join a club and owners can approve the request", async () => {
+    const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
+    const student = await User.create({ email: "student@example.com", password: "hash", verified: true });
+    const club = await ClassClub.create({
+        id: "requestable",
+        inviteEmails: [],
+        memberEmails: [],
+        name: "Requestable",
+        ownerId: owner._id,
+        requestEmails: [],
+    });
+
+    club.requestEmails = ["student@example.com"];
+    await club.save();
+    assert.equal(await getClubRole(club, student._id), "requested");
+
+    club.requestEmails = club.requestEmails.filter((email) => email !== "student@example.com");
+    club.memberEmails = [...new Set(["student@example.com", ...club.memberEmails])];
+    await club.save();
+    const storedClub = await ClassClub.findOne({ id: "requestable" }).lean();
+
+    assert.ok(storedClub);
     assert.deepEqual(storedClub.requestEmails, []);
+    assert.deepEqual(storedClub.memberEmails, ["student@example.com"]);
 });
 
 void test("legacy clubs receive an invite code before serialization", async () => {
@@ -530,6 +691,23 @@ void test("legacy clubs receive an invite code before serialization", async () =
     assert.equal(storedClub?.inviteCode, inviteCode);
 });
 
+void test("legacy clubs receive roster fields during migration", async () => {
+    await ClassClub.collection.insertOne({
+        id: "legacy-roster-fields",
+        name: "Legacy Roster Fields",
+    });
+
+    const migrated = await migrateClubRosterFields();
+    const storedClub = await ClassClub.findOne({ id: "legacy-roster-fields" }).lean();
+
+    assert.equal(migrated, 4);
+    assert.ok(storedClub);
+    assert.deepEqual(storedClub.memberEmails, []);
+    assert.deepEqual(storedClub.inviteEmails, []);
+    assert.deepEqual(storedClub.requestEmails, []);
+    assert.equal(storedClub.joinPolicy, "invite");
+});
+
 void test("invalid invite codes do not join clubs", async () => {
     const student = await User.create({ email: "student@example.com", password: "hash", verified: true });
     await ClassClub.create({
@@ -539,7 +717,7 @@ void test("invalid invite codes do not join clubs", async () => {
         name: "Coded Club",
     });
 
-    await assert.rejects(() => joinClubWithInviteCode(student._id, "bad-code"), /Invite code was not found/);
+    await assert.rejects(() => requestClubWithInviteCode(student._id, "bad-code"), /Invite code was not found/);
     const storedClub = await ClassClub.findOne({ id: "coded" }).lean();
 
     assert.deepEqual(storedClub?.memberEmails, []);

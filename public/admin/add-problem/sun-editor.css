@@ -1,71 +1,82 @@
 .sun-editor {
     width: 100%;
-    background-color: #4b5563;
-    border: 1px solid #6a7282;
-    border-radius: 0.5rem;
-}
-
-/* Editor content area */
-.sun-editor .se-wrapper {
-    background-color: #4b5563;
-}
-
-.sun-editor .se-wrapper .se-wrapper-inner {
-    background-color: #4b5563;
-}
-
-/* Editor text area */
-.sun-editor .se-wrapper .se-wrapper-inner .se-wrapper-wysiwyg {
-    background-color: #4b5563;
-}
-
-.se-dialog-content form {
-    background-color: #374151;
-}
-
-.se-dialog-content textarea,
-.sun-editor select {
+    overflow: hidden;
+    border: 1px solid var(--line-strong, #c9c9c1);
+    border-radius: var(--radius, 7px);
+    background: var(--panel, #fff);
+    color: var(--ink, #111);
     font-family:
+        Inter,
         ui-sans-serif,
         system-ui,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
-        Roboto,
-        "Helvetica Neue",
-        Arial,
         sans-serif;
-    color: white !important;
-    font-weight: 400 !important;
-    font-size: 1.125rem;
-    line-height: 1.5rem;
-    background-color: #4b5563;
 }
 
-.sun-editor .se-dialog button,
-.sun-editor .se-dialog span,
-.sun-editor .se-dialog label {
+.sun-editor .se-wrapper,
+.sun-editor .se-wrapper .se-wrapper-inner,
+.sun-editor .se-wrapper .se-wrapper-inner .se-wrapper-wysiwyg,
+.sun-editor-editable {
+    background: var(--panel, #fff);
+    color: var(--ink, #111);
+}
+
+.sun-editor-editable {
+    min-height: inherit;
+    padding: 0.85rem 0.95rem;
     font-family:
+        Inter,
         ui-sans-serif,
         system-ui,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
-        Roboto,
-        "Helvetica Neue",
-        Arial,
         sans-serif;
-    color: white !important;
-    font-weight: 400 !important;
-    font-size: 1.125rem;
-    line-height: 1.5rem;
-}
-
-.sun-editor .se-dialog a {
-    color: #42a5f5 !important;
+    font-size: 0.98rem;
     font-weight: 400;
-    font-size: 1.125rem;
-    line-height: 1.5rem;
+    line-height: 1.58;
+}
+
+.sun-editor-editable:not(.katex) {
+    text-align: left;
+}
+
+.sun-editor-editable:focus {
+    background: var(--panel, #fff);
+    outline: none;
+}
+
+.sun-editor-editable p {
+    margin: 0 0 0.75rem;
+}
+
+.sun-editor-editable p:last-child {
+    margin-bottom: 0;
+}
+
+.sun-editor-editable ul,
+.sun-editor-editable ol {
+    margin-block-start: 0;
+    margin-block-end: 0.75rem;
+    margin-inline-start: 1.35rem;
+    padding: 0;
+}
+
+.sun-editor-editable .katex {
+    text-align: center;
+}
+
+.sun-editor .se-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.4rem;
+    border-bottom: 1px solid var(--line, #deded8);
+    outline: 0;
+    background: var(--panel-strong, #fafaf7);
 }
 
 .sun-editor .se-toolbar button,
@@ -73,103 +84,94 @@
 .sun-editor .se-toolbar .se-btn,
 .sun-editor .se-dropdown {
     font-family:
+        Inter,
         ui-sans-serif,
         system-ui,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
-        Roboto,
-        "Helvetica Neue",
-        Arial,
-        sans-serif;
-}
-.sun-editor-editable {
-    font-size: 1.125rem;
-    line-height: 1.5rem;
-    padding: 0.5rem;
-    background-color: #4b5563;
-    color: #d1d5db;
-    font-weight: 400;
-    font-family:
-        ui-sans-serif,
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Roboto,
-        "Helvetica Neue",
-        Arial,
         sans-serif;
 }
 
-.sun-editor-editable:not(.katex) {
-    text-align: left;
+.sun-editor .se-toolbar .se-btn,
+.sun-editor .se-toolbar .se-btn-select,
+.sun-editor .se-list-layer .se-list-basic li button {
+    border-radius: 5px;
+    color: var(--ink, #111);
 }
 
-.sun-editor-editable p {
-    margin: 0;
-}
-
-.sun-editor-editable ul {
-    margin-block-start: 0;
-    margin-block-end: 0;
-    margin-left: 2.5rem;
-    margin-inline-start: 0rem;
-}
-
-.sun-editor-editable ol {
-    margin-block-start: 0;
-    margin-block-end: 0;
-    margin-left: 2.5rem;
-    margin-inline-start: 0rem;
-}
-
-.sun-editor .se-resizing-bar {
-    background-color: #4b5563 !important;
-    border-top: 1px solid #6a7282;
-}
-
-.sun-editor-editable:focus {
-    background-color: #6b7280;
-    outline: none;
-}
-
-/* Toolbar */
-.sun-editor .se-toolbar {
-    background-color: #4b5563;
-    margin-bottom: 3px;
-    padding: 4px;
-    outline: 1px solid #6a7282;
-    border-top-left-radius: 0.5rem;
-    border-top-right-radius: 0.5rem;
-}
-
-/* Toolbar buttons */
-.sun-editor .se-toolbar .se-btn {
-    color: #fff;
-}
-
-.sun-editor .se-toolbar .se-btn:hover {
-    background-color: #6b7280;
-}
-
-.sun-editor .se-toolbar .se-btn-list {
-    border: none;
-}
-
-/* Toolbar SVG icons */
-.sun-editor .se-toolbar .se-svg {
-    fill: #fff;
+.sun-editor .se-toolbar .se-btn:hover,
+.sun-editor .se-toolbar .se-btn:focus,
+.sun-editor .se-toolbar .se-btn-select:hover {
+    background: var(--bg-soft, #eeeeea);
+    color: var(--ink, #111);
 }
 
 .sun-editor .se-btn-module-border {
-    border: 1px solid #6a7282;
+    border: 1px solid var(--line, #deded8);
+    border-radius: 6px;
+    background: var(--panel, #fff);
 }
 
-.sun-editor:focus-within .se-wrapper-wysiwyg {
-    background-color: #6b7280;
+.sun-editor .se-toolbar .se-svg,
+.sun-editor button .se-svg {
+    fill: var(--ink, #111);
 }
 
-.sun-editor-editable .katex {
-    text-align: center;
+.sun-editor .se-resizing-bar {
+    min-height: 0.55rem;
+    border-top: 1px solid var(--line, #deded8);
+    background: var(--panel-strong, #fafaf7) !important;
+}
+
+.sun-editor .se-dialog .se-dialog-inner .se-dialog-content,
+.sun-editor .se-dialog-content form,
+.sun-editor .se-list-layer,
+.sun-editor .se-submenu {
+    border-color: var(--line, #deded8);
+    background: var(--panel, #fff);
+    color: var(--ink, #111);
+}
+
+.sun-editor .se-dialog button,
+.sun-editor .se-dialog span,
+.sun-editor .se-dialog label,
+.sun-editor .se-dialog input,
+.sun-editor .se-dialog textarea,
+.sun-editor .se-dialog select,
+.se-dialog-content textarea,
+.sun-editor select {
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    color: var(--ink, #111) !important;
+    font-size: 0.95rem;
+    font-weight: 400 !important;
+    line-height: 1.45;
+}
+
+.sun-editor .se-dialog input,
+.sun-editor .se-dialog textarea,
+.sun-editor .se-dialog select,
+.se-dialog-content textarea,
+.sun-editor select {
+    border: 1px solid var(--line-strong, #c9c9c1);
+    border-radius: 6px;
+    background: var(--panel, #fff);
+}
+
+.sun-editor .se-dialog a {
+    color: var(--blue, #315f9f) !important;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.sun-editor:focus-within {
+    border-color: rgba(177, 18, 38, 0.72);
+    box-shadow: 0 0 0 3px rgba(177, 18, 38, 0.08);
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= "title" in locals ? title : "Levis Judex by CodeJoint" %></title>
+    <title><%= "title" in locals ? title + " | Code Joint" : "Code Joint" %></title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="/styles/app.css" rel="stylesheet">
     <% if ("head" in locals) {%>
@@ -15,21 +15,20 @@
         <header class="app-topbar">
             <div class="app-topbar-inner">
                 <a class="brand-mark" href="/">
-                    <span class="brand-icon">LJ</span>
-                    <span>Levis Judex</span>
+                    <img class="brand-icon" src="https://codejoint.org/images/cjcircle.png" alt="" width="28" height="28">
+                    <span>Code Joint</span>
                 </a>
                 <nav class="app-nav" aria-label="Main navigation">
                     <a class="nav-link" href="/problems">Problems</a>
                     <a class="nav-link" href="/contests">Contests</a>
                     <a class="nav-link" href="/clubs">Clubs</a>
-                    <a class="nav-link" href="/admin">Admin</a>
                     <a class="nav-link" href="/login" id="nav-login">Login</a>
                     <a class="nav-link" href="/register" id="nav-register">Register</a>
                     <button class="nav-button hidden" id="logout-button" type="button">Logout</button>
                 </nav>
             </div>
         </header>
-        <main class="app-content <% if ("mainSection" in locals && "width" in mainSection && mainSection.width === "max-w-7xl") { %>wide<% } else if ("mainSection" in locals && "width" in mainSection && mainSection.width === "max-w-5xl") { %>narrow<% } %>" id="main-section">
+        <main class="app-content <% if ("mainSection" in locals && "width" in mainSection && mainSection.width === "max-w-7xl") { %>wide<% } else if ("mainSection" in locals && "width" in mainSection && (mainSection.width === "max-w-5xl" || mainSection.width === "max-w-md" || mainSection.width === "max-w-lg")) { %>narrow<% } %>" id="main-section">
             <% if ("backArrow" in locals) { %>
                 <%- include("partials/back-arrow", backArrow) %>
             <% } %>

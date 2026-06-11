@@ -13,18 +13,20 @@
                 <p class="section-note">No contests are available right now.</p>
             </div>
         <% } %>
-        <% contests.forEach((contest) => { %>
+        <% contests.forEach((contest, index) => { %>
             <a class="list-row" href="<%= contest.href %>">
                 <div class="flex min-w-0 items-center gap-4">
-                    <span class="id-pill"><%= contest.id %></span>
+                    <span class="id-pill"><%= index + 1 %></span>
                     <div class="min-w-0">
                         <p class="m-0 truncate font-medium"><%= contest.name %></p>
                         <p class="m-0 text-sm muted">
-                            <%= contest.startTime.toLocaleDateString() %> - <%= contest.endTime.toLocaleDateString() %>
+                            ID: <%= contest.id %> · <%= contest.startTime.toLocaleDateString() %> - <%= contest.endTime.toLocaleDateString() %>
                         </p>
                     </div>
                 </div>
-                <span class="muted"><%= contest.accessType === "club" ? "Club" : "Public" %></span>
+                <span class="muted text-right">
+                    <%= contest.accessType === "club" ? `Club: ${contest.clubName ?? contest.clubId}` : "Public" %>
+                </span>
             </a>
         <% }) %>
     </section>

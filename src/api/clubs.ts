@@ -10,10 +10,10 @@ import {
     deleteClubForUser,
     findUserManageableClubs,
     getClubRole,
-    joinClubWithInviteCode,
     normalizeClubId,
     normalizeEmailList,
     regenerateClubInviteCode,
+    requestClubWithInviteCode,
     requireClubInviteCode,
     serializeClub,
 } from "../services/clubs";
@@ -25,6 +25,7 @@ export default router;
 
 interface ClubSaveBody {
     id: string;
+    mode?: "create" | "update";
     name: string;
 }
 
@@ -96,6 +97,9 @@ router.post("/save", authenticateToken, async (req: Request<unknown, ApiMessage,
         }
 
         const existing = await ClassClub.findOne({ id });
+        if (existing && req.body.mode === "create") {
+            return res.status(409).json({ message: "A club with that ID already exists" });
+        }
         if (existing && !(await canManageClub(existing, req.user.id))) {
             return res.status(403).json({ message: "Only the club owner can edit this club" });
         }
@@ -139,6 +143,9 @@ router.get("/:id", authenticateToken, async (req, res) => {
     if (role === "admin" || role === "owner") {
         await requireClubInviteCode(club);
     }
+    if (role !== "admin" && role !== "member" && role !== "owner") {
+        return res.status(403).json({ message: "You must be a member of this club to view it." });
+    }
     const contests = await Contest.find({ clubId: club.id }).select("accessType endTime id name startTime timingMode").sort({ startTime: -1 }).lean();
 
     return res.json({ club: serializeClub(club, role), contests });
@@ -171,19 +178,21 @@ router.post("/:id/invite", authenticateToken, async (req: Request<{ id: string }
         return res.status(403).json({ message: "Only the club owner can invite students" });
     }
 
-    const emails = normalizeEmailList(req.body.emails);
+    const emails = normalizeEmailList(req.body.email ? [req.body.email] : req.body.emails);
     if (emails.length === 0) {
         return res.status(400).json({ message: "Enter at least one valid email address" });
     }
 
     const inviteCode = await requireClubInviteCode(club);
     const link = buildClubInviteLink(inviteCode);
+    club.inviteEmails = [...new Set([...(club.inviteEmails ?? []), ...emails])];
+    await club.save();
     await Promise.all(
         emails.map((email) =>
             transporter.sendMail({
                 from: process.env.EMAIL_USER,
                 subject: `Join ${club.name}`,
-                text: `You were invited to join ${club.name} on Levis Judex.\n\nOpen this link and sign in to join: ${link}\n\nInvite code: ${inviteCode}`,
+                text: `You were invited to join ${club.name} on Code Joint.\n\nOpen this link and sign in to join: ${link}\n\nInvite code: ${inviteCode}`,
                 to: email,
             }),
         ),
@@ -243,11 +252,10 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
         return res.json({ message: "You are already a member." });
     }
     if ((club.inviteEmails ?? []).includes(user.email)) {
-        club.memberEmails = [...new Set([user.email, ...club.memberEmails])];
+        club.requestEmails = [...new Set([user.email, ...(club.requestEmails ?? [])])];
         club.inviteEmails = (club.inviteEmails ?? []).filter((email) => email !== user.email);
-        club.requestEmails = (club.requestEmails ?? []).filter((email) => email !== user.email);
         await club.save();
-        return res.json({ message: "Joined class/club." });
+        return res.json({ message: "Request sent." });
     }
 
     return res.status(400).json({ message: "Enter an invite code to join this club." });
@@ -259,10 +267,10 @@ router.post("/join-code", authenticateToken, async (req: Request<unknown, ApiMes
     }
 
     try {
-        const club = await joinClubWithInviteCode(req.user.id, req.body.code ?? "");
-        return res.json({ message: `Joined ${club.name}.` });
+        const club = await requestClubWithInviteCode(req.user.id, req.body.code ?? "");
+        return res.json({ message: `Request sent to ${club.name}.` });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to join club.";
+        const message = error instanceof Error ? error.message : "Failed to request club access.";
         return res.status(400).json({ message });
     }
 });

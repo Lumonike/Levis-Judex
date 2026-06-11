@@ -1,10 +1,15 @@
 <div class="page" data-contest-id="<%= contest.id %>" data-contest-club-id="<%= contest.clubId ?? "" %>" data-contest-status="<%= state.status %>">
-    <section class="page-header">
+    <section class="page-header contest-header">
         <div>
-            <p class="page-kicker"><%= contest.accessType === "club" ? "Club contest" : "Contest" %></p>
+            <p class="page-kicker">
+                <%= contest.accessType === "club" ? `Club contest${contest.clubName ? ` · ${contest.clubName}` : ""}` : "Contest" %>
+            </p>
             <h1 class="page-title"><%= contest.name %></h1>
+            <% if (contest.editHref) { %>
+                <a class="btn btn-secondary mt-3" href="<%= contest.editHref %>">Edit Contest</a>
+            <% } %>
         </div>
-        <div class="panel panel-body min-w-64">
+        <div class="panel panel-body contest-timing-panel">
             <p class="section-note"><%= state.canSubmitForScore ? "Time remaining" : "Status" %></p>
             <p class="m-0 text-xl font-medium" id="contest-timing">Loading...</p>
         </div>
@@ -35,13 +40,13 @@
                 <h2 class="section-heading">Problems</h2>
             </div>
             <div class="list">
-                <% contest.problems.forEach((problem) => { %>
+                <% contest.problems.forEach((problem, index) => { %>
                     <a class="list-row" href="/contests/<%= contest.id %>/<%= problem.id %><%= contest.clubId ? `?club=${encodeURIComponent(contest.clubId)}` : "" %>">
                         <div class="flex min-w-0 items-center gap-4">
-                            <span class="id-pill"><%= problem.id %></span>
+                            <span class="id-pill"><%= index + 1 %></span>
                             <div class="min-w-0">
                                 <p class="m-0 truncate font-medium"><%= problem.name %></p>
-                                <p class="m-0 text-sm muted"><%= problem.points %> points</p>
+                                <p class="m-0 text-sm muted">ID: <%= problem.id %> · <%= problem.points %> points</p>
                             </div>
                         </div>
                         <span class="muted">Solve</span>
