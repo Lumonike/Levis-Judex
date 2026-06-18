@@ -378,6 +378,16 @@ void test("problem save splits public metadata from judge-only testcase document
     );
 });
 
+void test("problem testcase storage allows intentionally empty input", async () => {
+    await saveProblemWithTestcases(makeProblem("empty-input", [""], ["no input needed"], 0));
+
+    const storedTestcase = await ProblemTestcase.findOne({ problemId: "empty-input" }).lean();
+
+    assert.ok(storedTestcase);
+    assert.equal(storedTestcase.input, "");
+    assert.equal(storedTestcase.output, "no input needed");
+});
+
 void test("legacy problem testcase migration moves embedded arrays into testcase documents", async () => {
     await Problem.collection.insertOne({
         id: "legacy-split",
@@ -404,6 +414,29 @@ void test("legacy problem testcase migration moves embedded arrays into testcase
         storedTestcases.map((testcase) => testcase.input),
         ["sample in", "hidden in"],
     );
+});
+
+void test("legacy testcase migration preserves intentionally empty input", async () => {
+    await Problem.collection.insertOne({
+        id: "legacy-empty-input",
+        inputFormat: "Input",
+        inputTestcases: [""],
+        isPrivate: false,
+        name: "legacy-empty-input",
+        numSampleTestcases: 0,
+        outputFormat: "Output",
+        outputTestcases: ["no input needed"],
+        problemStatement: "Statement",
+        whitelist: [],
+    });
+
+    const migrated = await migrateLegacyProblemTestcases();
+    const storedTestcase = await ProblemTestcase.findOne({ problemId: "legacy-empty-input" }).lean();
+
+    assert.equal(migrated, 1);
+    assert.ok(storedTestcase);
+    assert.equal(storedTestcase.input, "");
+    assert.equal(storedTestcase.output, "no input needed");
 });
 
 void test("database migration normalizes legacy contests and user submission maps idempotently", async () => {
@@ -455,6 +488,24 @@ void test("database migration normalizes legacy contests and user submission map
     );
     assert.equal(migratedUser?.code, undefined);
     assert.equal(migratedUser?.results, undefined);
+});
+
+void test("database migration preserves empty input in legacy contest problems", async () => {
+    await Contest.collection.insertOne({
+        endTime: new Date(Date.now() + 60_000),
+        id: "empty-input-contest",
+        name: "Empty Input Contest",
+        problems: [makeProblem("empty-input-problem", [""], ["no input needed"], 0)],
+        startTime: new Date(Date.now() - 60_000),
+    });
+
+    const result = await migrateDatabase();
+    const migratedProblem = await getProblemWithTestcases("empty-input-problem", true, "empty-input-contest");
+
+    assert.equal(result.contests.migrated, 1);
+    assert.ok(migratedProblem);
+    assert.deepEqual(migratedProblem.inputTestcases, [""]);
+    assert.deepEqual(migratedProblem.outputTestcases, ["no input needed"]);
 });
 
 void test("legacy user submission migration can handle code-only maps", async () => {

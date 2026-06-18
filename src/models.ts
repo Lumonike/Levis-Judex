@@ -89,11 +89,23 @@ export const Problem = mongoose.model<IProblem>("Problem", ProblemSchema);
 
 const ProblemTestcaseSchema = new mongoose.Schema<IProblemTestcase>({
     contestId: { default: null, index: true, type: String },
-    input: { required: true, type: String },
+    input: { type: String },
     isSample: { default: false, required: true, type: Boolean },
     order: { required: true, type: Number },
-    output: { required: true, type: String },
+    output: { type: String },
     problemId: { index: true, required: true, type: String },
+});
+
+ProblemTestcaseSchema.pre("validate", function validateRequiredTestcaseText(next) {
+    const input = this.get("input") as null | string | undefined;
+    const output = this.get("output") as null | string | undefined;
+    if (input === null || input === undefined) {
+        this.invalidate("input", "Path `input` is required.");
+    }
+    if (output === null || output === undefined) {
+        this.invalidate("output", "Path `output` is required.");
+    }
+    next();
 });
 
 ProblemTestcaseSchema.index({ contestId: 1, order: 1, problemId: 1 }, { unique: true });
