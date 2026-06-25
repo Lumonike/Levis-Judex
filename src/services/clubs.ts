@@ -21,8 +21,17 @@ import validator from "validator";
 import { createClubInviteCode, normalizeClubInviteCode } from "../lib/invite-codes";
 import { MAX_CLUBS_PER_OWNER } from "../lib/limits";
 import { ClassClub, Contest, User } from "../models";
+import { transporter } from "../transporter";
 import { IClassClub } from "../types/models";
 
+export interface ClubJoinResult {
+    club: IClassClub;
+    requestCreated: boolean;
+    requesterEmail: string;
+    status: ClubJoinStatus;
+}
+
+export type ClubJoinStatus = "already-member" | "already-requested" | "joined" | "requested";
 export type ClubRole = "admin" | "invited" | "member" | "owner" | "requested" | "visitor";
 
 export interface ClubView {
@@ -123,6 +132,34 @@ export function normalizeEmailList(input: string | string[] | undefined): string
     ];
 }
 
+export async function notifyClubOwnerOfJoinRequest(
+    club: IClassClub,
+    requesterEmail: string,
+    sendMail = transporter.sendMail.bind(transporter),
+): Promise<boolean> {
+    try {
+        if (!club.ownerId) {
+            return false;
+        }
+
+        const owner = await User.findById(club.ownerId).select("email").lean();
+        if (!owner?.email) {
+            return false;
+        }
+
+        await sendMail({
+            from: process.env.EMAIL_USER,
+            subject: `${requesterEmail} requested to join ${club.name}`,
+            text: `${requesterEmail} requested to join ${club.name} on Code Joint.\n\nOpen the club management page to approve or decline the request.`,
+            to: owner.email,
+        });
+        return true;
+    } catch (error) {
+        console.warn("Failed to notify club owner about join request:", error);
+        return false;
+    }
+}
+
 export async function regenerateClubInviteCode(club: IClassClub): Promise<string> {
     const clubDocument = club as IClassClub & { _id?: Types.ObjectId };
     let inviteCode = createClubInviteCode();
@@ -134,7 +171,7 @@ export async function regenerateClubInviteCode(club: IClassClub): Promise<string
     return inviteCode;
 }
 
-export async function requestClubWithInviteCode(userId: Types.ObjectId, code: string): Promise<IClassClub> {
+export async function requestClubWithInviteCode(userId: Types.ObjectId, code: string): Promise<ClubJoinResult> {
     const inviteCode = normalizeClubInviteCode(code);
     if (!inviteCode) {
         throw new Error("Invite code is required");
@@ -147,13 +184,25 @@ export async function requestClubWithInviteCode(userId: Types.ObjectId, code: st
     }
 
     if (club.ownerId?.toString() === userId.toString() || club.memberEmails.includes(user.email)) {
-        return club;
+        return { club, requestCreated: false, requesterEmail: user.email, status: "already-member" };
+    }
+
+    if ((club.inviteEmails ?? []).includes(user.email)) {
+        club.memberEmails = [...new Set([user.email, ...club.memberEmails])];
+        club.inviteEmails = (club.inviteEmails ?? []).filter((email) => email !== user.email);
+        club.requestEmails = (club.requestEmails ?? []).filter((email) => email !== user.email);
+        await club.save();
+        return { club, requestCreated: false, requesterEmail: user.email, status: "joined" };
+    }
+
+    if ((club.requestEmails ?? []).includes(user.email)) {
+        return { club, requestCreated: false, requesterEmail: user.email, status: "already-requested" };
     }
 
     club.requestEmails = [...new Set([user.email, ...(club.requestEmails ?? [])])];
     club.inviteEmails = (club.inviteEmails ?? []).filter((email) => email !== user.email);
     await club.save();
-    return club;
+    return { club, requestCreated: true, requesterEmail: user.email, status: "requested" };
 }
 
 export async function requireClubInviteCode(club: IClassClub): Promise<string> {

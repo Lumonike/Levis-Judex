@@ -24,7 +24,7 @@ import adminRouter from "../src/api/admin";
 import submissionRouter from "../src/api/submit";
 import { parseTrustProxy } from "../src/app";
 import { judgeCode } from "../src/judge";
-import { MAX_CLUBS_PER_OWNER, MAX_CONTESTS_PER_CLUB, MAX_PROBLEMS_PER_CONTEST } from "../src/lib/limits";
+import { MAX_CLUB_NAME_LENGTH, MAX_CLUBS_PER_OWNER, MAX_CONTESTS_PER_CLUB, MAX_PROBLEMS_PER_CONTEST } from "../src/lib/limits";
 import { sanitizeProblemHtml } from "../src/lib/sanitize";
 import { createToken, hashToken } from "../src/lib/tokens";
 import { authenticateToken } from "../src/middleware/authenticate";
@@ -35,6 +35,7 @@ import {
     buildClubInviteLink,
     deleteClubForUser,
     getClubRole,
+    notifyClubOwnerOfJoinRequest,
     requestClubWithInviteCode,
     requireClubInviteCode,
     serializeClub,
@@ -167,31 +168,44 @@ void test("test user script is wired and keeps the GPL header", () => {
     assert.doesNotMatch(script, /console\.log\([^\n]*(options\.password|passwordHash)/);
 });
 
-void test("club management uses bounded roster lists instead of full-width member rows", () => {
+void test("club management uses stat cards to open bounded roster lists", () => {
     const clubsScript = fs.readFileSync("public/clubs/clubs.js", "utf8");
     const script = fs.readFileSync("public/clubs/club-detail.js", "utf8");
     const styles = fs.readFileSync("public/styles/app.css", "utf8");
     const clubsApi = fs.readFileSync("src/api/clubs.ts", "utf8");
+    const clubsView = fs.readFileSync("views/clubs.ejs", "utf8");
+    const models = fs.readFileSync("src/models.ts", "utf8");
 
     assert.match(clubsScript, /mode:\s*"create"/);
+    assert.match(clubsScript, /Join Club/);
+    assert.match(clubsScript, /data-action="leave" class="btn btn-secondary">Decline/);
     assert.match(clubsApi, /existing && req\.body\.mode === "create"/);
     assert.match(clubsApi, /A club with that ID already exists/);
+    assert.match(clubsApi, /rawName\.length > MAX_CLUB_NAME_LENGTH/);
+    assert.match(models, /name:\s*\{\s*maxlength:\s*MAX_CLUB_NAME_LENGTH/);
+    assert.equal(MAX_CLUB_NAME_LENGTH, 80);
     assert.match(script, /club-management-layout/);
-    assert.match(script, /club-management-side/);
+    assert.doesNotMatch(script, /club-management-side/);
+    assert.match(script, /data-action="leave" class="btn btn-danger" type="button">Leave Club/);
     assert.ok(script.indexOf("club-code-row") < script.indexOf("rename-club-form"));
     assert.match(script, /mode:\s*"update"/);
+    assert.match(script, /id="club-name-field" maxlength="80"/);
+    assert.match(clubsView, /id="club-name" maxlength="80"/);
     assert.match(script, /data-role="invite-email"/);
     assert.match(script, /\{\s*email:\s*document\.querySelector\("\[data-role='invite-email'\]"\)\.value\s*\}/);
+    assert.match(script, /statMarkup\("requests",\s*"Join requests",\s*club\.requestEmails\.length,\s*true\)/);
+    assert.match(script, /statMarkup\("contests",\s*"Contests",\s*contests\.length,\s*false\)/);
+    assert.match(script, /club-stat-card panel panel-body/);
+    assert.match(script, /openRosterKind/);
+    assert.match(script, /renderRosterDialog\(openRosterKind\)/);
     assert.match(script, /club-roster-list/);
     assert.match(script, /club-roster-dialog/);
     assert.match(styles, /\.club-modal\s*{/);
-    assert.match(styles, /\.club-management-layout\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*12\.5rem/s);
-    assert.match(styles, /\.club-management-side\s*{[^}]*padding-top:\s*1\.25rem/s);
-    assert.match(styles, /#main-section button\.club-roster-summary:not\(\.se-btn\)\s*{[^}]*display:\s*grid/s);
-    assert.match(styles, /#main-section button\.club-roster-summary:not\(\.se-btn\)\s*{[^}]*grid-template-columns:\s*8rem\s*2\.25rem/s);
-    assert.match(styles, /#main-section button\.club-roster-summary:not\(\.se-btn\)\s*{[^}]*justify-content:\s*center/s);
-    assert.match(styles, /\.club-roster-summary \.badge\s*{[^}]*justify-self:\s*end/s);
-    assert.match(styles, /\.club-roster-summary \.badge\s*{[^}]*width:\s*2rem/s);
+    assert.match(styles, /#main-section button\.btn-secondary:not\(\.se-btn\):not\(\.se-dialog button\)/);
+    assert.match(styles, /\.club-management-layout\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*48rem\)/s);
+    assert.match(styles, /\.club-management-main\s*{[^}]*max-width:\s*48rem/s);
+    assert.match(styles, /#main-section button\.club-stat-card:not\(\.se-btn\)\s*{[^}]*background:\s*var\(--panel\)\s*!important/s);
+    assert.match(styles, /#main-section button\.club-stat-card:not\(\.se-btn\)\s*{[^}]*flex-direction:\s*column\s*!important/s);
     assert.match(styles, /\.club-control-row\s*{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto/s);
     assert.match(styles, /\.club-code-row\s*{[^}]*grid-template-columns:\s*minmax\(9rem,\s*12rem\)\s*auto\s*auto/s);
     assert.match(styles, /\.problem-page #result:empty \+ \.problem-section\s*{[^}]*margin-top:\s*0/s);
@@ -740,32 +754,85 @@ void test("club serialization hides roster details from non-members", async () =
     assert.deepEqual(serializeClub(club, "owner").requestEmails, ["requested@example.com"]);
 });
 
-void test("students request invite-only clubs with an invite code", async () => {
+void test("uninvited students request invite-only clubs with an invite code", async () => {
     const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
     const student = await User.create({ email: "student@example.com", password: "hash", verified: true });
     const club = await ClassClub.create({
         id: "coded",
         inviteCode: "ABCD1234",
-        inviteEmails: ["student@example.com"],
+        inviteEmails: [],
         memberEmails: [],
         name: "Coded Club",
         ownerId: owner._id,
-        requestEmails: ["student@example.com"],
+        requestEmails: [],
     });
 
     const originalBaseUrl = process.env.BASE_URL;
     process.env.BASE_URL = "http://example.test";
     const link = buildClubInviteLink(club.inviteCode ?? "");
     process.env.BASE_URL = originalBaseUrl;
-    const requestedClub = await requestClubWithInviteCode(student._id, "abcd-1234");
+    const result = await requestClubWithInviteCode(student._id, "abcd-1234");
     const storedClub = await ClassClub.findOne({ id: "coded" }).lean();
 
     assert.equal(link, "http://example.test/clubs?code=ABCD1234");
-    assert.equal(requestedClub.id, "coded");
+    assert.equal(result.club.id, "coded");
+    assert.equal(result.status, "requested");
+    assert.equal(result.requestCreated, true);
     assert.ok(storedClub);
     assert.deepEqual(storedClub.memberEmails, []);
     assert.deepEqual(storedClub.inviteEmails, []);
     assert.deepEqual(storedClub.requestEmails, ["student@example.com"]);
+});
+
+void test("invited students join immediately with an invite code", async () => {
+    const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
+    const student = await User.create({ email: "student@example.com", password: "hash", verified: true });
+    await ClassClub.create({
+        id: "direct-join",
+        inviteCode: "JOIN1234",
+        inviteEmails: ["student@example.com"],
+        memberEmails: [],
+        name: "Direct Join",
+        ownerId: owner._id,
+        requestEmails: ["student@example.com"],
+    });
+
+    const result = await requestClubWithInviteCode(student._id, "join-1234");
+    const storedClub = await ClassClub.findOne({ id: "direct-join" }).lean();
+
+    assert.equal(result.status, "joined");
+    assert.equal(result.requestCreated, false);
+    assert.ok(storedClub);
+    assert.deepEqual(storedClub.memberEmails, ["student@example.com"]);
+    assert.deepEqual(storedClub.inviteEmails, []);
+    assert.deepEqual(storedClub.requestEmails, []);
+});
+
+void test("club owner notifications are sent for new join requests", async () => {
+    const owner = await User.create({ email: "owner@example.com", password: "hash", verified: true });
+    const club = await ClassClub.create({
+        id: "notify-owner",
+        memberEmails: [],
+        name: "Notify Owner",
+        ownerId: owner._id,
+        requestEmails: [],
+    });
+    const sentMessages: unknown[] = [];
+
+    const notified = await notifyClubOwnerOfJoinRequest(club, "student@example.com", (message) => {
+        sentMessages.push(message);
+        return Promise.resolve({});
+    });
+
+    assert.equal(notified, true);
+    assert.deepEqual(sentMessages, [
+        {
+            from: process.env.EMAIL_USER,
+            subject: "student@example.com requested to join Notify Owner",
+            text: "student@example.com requested to join Notify Owner on Code Joint.\n\nOpen the club management page to approve or decline the request.",
+            to: "owner@example.com",
+        },
+    ]);
 });
 
 void test("students can request to join a club and owners can approve the request", async () => {

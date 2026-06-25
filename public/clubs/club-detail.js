@@ -18,6 +18,7 @@
 const page = document.querySelector("[data-club-id]");
 const clubId = page?.dataset.clubId ?? "";
 let currentClub = null;
+let openRosterKind = null;
 
 async function api(path, options = {}) {
     const res = await fetch(path, {
@@ -35,6 +36,9 @@ async function loadClub() {
     try {
         const parsed = await api(`/api/clubs/${encodeURIComponent(clubId)}`);
         renderClub(parsed.club, parsed.contests ?? []);
+        if (openRosterKind && document.getElementById("club-roster-dialog").open) {
+            renderRosterDialog(openRosterKind);
+        }
     } catch (error) {
         document.getElementById("club-summary").textContent = error.message;
     }
@@ -46,9 +50,13 @@ function renderClub(club, contests) {
     document.getElementById("club-name").textContent = club.name;
     document.getElementById("club-summary").textContent = `${club.id} · ${roleLabel(club)}`;
     document.getElementById("club-stats").innerHTML = `
-        ${statMarkup("Members", club.memberEmails.length)}
-        ${statMarkup("Contests", contests.length)}
-        ${statMarkup("Pending invites", club.inviteEmails.length)}
+        ${statMarkup("members", "Members", club.memberEmails.length, canManage)}
+        ${
+            canManage
+                ? `${statMarkup("invites", "Pending invites", club.inviteEmails.length, true)}
+                    ${statMarkup("requests", "Join requests", club.requestEmails.length, true)}`
+                : statMarkup("contests", "Contests", contests.length, false)
+        }
     `;
     document.getElementById("club-primary-actions").innerHTML = primaryActionsMarkup(club);
     document.getElementById("club-contest-actions").innerHTML = canManage
@@ -61,7 +69,7 @@ function renderClub(club, contests) {
 
 function primaryActionsMarkup(club) {
     if (club.role === "member") {
-        return `<button data-action="leave" class="btn btn-secondary" type="button">Leave Club</button>`;
+        return `<button data-action="leave" class="btn btn-danger" type="button">Leave Club</button>`;
     }
     return "";
 }
@@ -118,15 +126,15 @@ function renderManagement(club, canManage) {
                         <label for="club-invite-code">Invite code</label>
                         <input id="club-invite-code" readonly value="${escapeAttr(inviteCode)}">
                     </div>
-                    <button data-action="copy-code" class="btn btn-secondary" type="button">Copy Link</button>
-                    <button data-action="regenerate-code" class="btn btn-secondary" type="button">New Code</button>
+                    <button data-action="copy-code" class="btn" type="button">Copy Link</button>
+                    <button data-action="regenerate-code" class="btn" type="button">New Code</button>
                     <input data-role="invite-link" type="hidden" value="${escapeAttr(inviteLink)}">
                 </div>
 
                 <form id="rename-club-form" class="club-control-row">
                     <div>
                         <label for="club-name-field">Club name</label>
-                        <input id="club-name-field" value="${escapeAttr(club.name)}">
+                        <input id="club-name-field" maxlength="80" value="${escapeAttr(club.name)}">
                     </div>
                     <button class="btn" type="submit">Save Name</button>
                 </form>
@@ -140,28 +148,10 @@ function renderManagement(club, canManage) {
                 </div>
             </div>
 
-            <aside class="club-management-side" aria-label="Club roster">
-                ${rosterSummaryMarkup("members", "Members", club.memberEmails.length)}
-                ${rosterSummaryMarkup("invites", "Pending invites", club.inviteEmails.length)}
-                ${rosterSummaryMarkup("requests", "Join requests", club.requestEmails.length)}
-            </aside>
-
             <div class="club-management-danger">
                 <button data-action="delete-club" class="btn btn-danger" type="button">Delete Club</button>
             </div>
         </div>
-    `;
-}
-
-function rosterSummaryMarkup(kind, title, count) {
-    return `
-        <button class="club-roster-summary" data-action="open-roster" data-roster-kind="${kind}" type="button">
-            <span>
-                <strong>${title}</strong>
-                <span class="muted">View details</span>
-            </span>
-            <span class="badge">${count.toString()}</span>
-        </button>
     `;
 }
 
@@ -198,8 +188,13 @@ function emailActionMarkup(action, email) {
     return `<button data-action="kick" data-email="${escapeAttr(email)}" class="btn btn-danger" style="min-height: 2rem; padding: .25rem .5rem; font-size: .78rem;">${label}</button>`;
 }
 
-function statMarkup(label, value) {
-    return `<div class="panel panel-body"><p class="m-0 text-2xl font-semibold">${escapeText(value)}</p><p class="m-0 text-sm muted">${label}</p></div>`;
+function statMarkup(kind, label, value, canOpen) {
+    const content = `<p class="m-0 text-2xl font-semibold">${escapeText(value)}</p><p class="m-0 text-sm muted">${label}</p>`;
+    if (!canOpen) {
+        return `<div class="panel panel-body">${content}</div>`;
+    }
+
+    return `<button class="club-stat-card panel panel-body" data-action="open-roster" data-roster-kind="${kind}" type="button">${content}</button>`;
 }
 
 function wireActions(club) {
@@ -235,6 +230,15 @@ function wireRosterItemActions(container, club) {
 }
 
 function openRosterDialog(kind) {
+    openRosterKind = kind;
+    renderRosterDialog(kind);
+    const dialog = document.getElementById("club-roster-dialog");
+    if (!dialog.open) {
+        dialog.showModal();
+    }
+}
+
+function renderRosterDialog(kind) {
     if (!currentClub) {
         return;
     }
@@ -247,14 +251,12 @@ function openRosterDialog(kind) {
         return;
     }
 
-    const dialog = document.getElementById("club-roster-dialog");
     document.getElementById("club-roster-dialog-title").textContent = config.title;
     document.getElementById("club-roster-dialog-count").textContent =
         `${config.emails.length.toString()} ${config.emails.length === 1 ? "entry" : "entries"}`;
     const body = document.getElementById("club-roster-dialog-body");
     body.innerHTML = emailListMarkup(config.emails, config.action);
     wireRosterItemActions(body, currentClub);
-    dialog.showModal();
 }
 
 function wireRosterDialog() {
@@ -265,6 +267,9 @@ function wireRosterDialog() {
     }
     dialog.dataset.wired = "true";
     close.addEventListener("click", () => dialog.close());
+    dialog.addEventListener("close", () => {
+        openRosterKind = null;
+    });
     dialog.addEventListener("click", (event) => {
         if (event.target === dialog) {
             dialog.close();

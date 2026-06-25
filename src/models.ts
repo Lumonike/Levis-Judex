@@ -18,6 +18,7 @@
 import mongoose from "mongoose";
 
 import { createClubInviteCode } from "./lib/invite-codes";
+import { MAX_CLUB_NAME_LENGTH } from "./lib/limits";
 import { IClassClub, IContest, IContestAttempt, IPasswordReset, IProblem, IProblemTestcase, IResult, ISubmission, IUser } from "./types/models";
 
 const ResultSchema = new mongoose.Schema<IResult>(
@@ -71,7 +72,7 @@ const ProblemSchema = new mongoose.Schema<IProblem>(
         id: { required: true, type: String }, // in case we want to do stuff like 5B like codeforces. CANNOT HAVE COLONS
         inputFormat: { required: true, type: String },
         isPrivate: Boolean,
-        name: { required: true, type: String },
+        name: { maxlength: MAX_CLUB_NAME_LENGTH, required: true, type: String },
         numSampleTestcases: { required: true, type: Number },
         outputFormat: { required: true, type: String },
         problemStatement: { required: true, type: String },

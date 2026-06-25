@@ -71,7 +71,7 @@ function renderClubs(clubs) {
 
 function actionsMarkup(club) {
     if (club.role === "invited") {
-        return `<button data-action="join" class="btn">Request Access</button>
+        return `<button data-action="join" class="btn">Join Club</button>
             <button data-action="leave" class="btn btn-secondary">Decline</button>`;
     }
     if (club.role === "requested") {

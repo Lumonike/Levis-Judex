@@ -343,14 +343,16 @@ a {
     background: var(--accent-dark);
 }
 
+#main-section button.btn-secondary:not(.se-btn):not(.se-dialog button),
 .btn-secondary {
     border-color: var(--line-strong);
-    background: var(--panel);
-    color: var(--ink);
+    background: var(--panel) !important;
+    color: var(--ink) !important;
 }
 
+#main-section button.btn-secondary:not(.se-btn):not(.se-dialog button):hover,
 .btn-secondary:hover {
-    background: var(--bg-soft);
+    background: var(--bg-soft) !important;
 }
 
 #main-section .btn-danger,
@@ -468,7 +470,7 @@ a {
 
 .club-management-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 12.5rem;
+    grid-template-columns: minmax(0, 48rem);
     align-items: start;
     gap: 1.1rem;
 }
@@ -476,6 +478,7 @@ a {
 .club-management-main {
     display: grid;
     gap: 0.9rem;
+    max-width: 48rem;
     min-width: 0;
 }
 
@@ -519,6 +522,45 @@ a {
 .club-control-row button {
     min-width: 7.5rem;
     white-space: nowrap;
+}
+
+#main-section button.club-stat-card:not(.se-btn) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    width: 100%;
+    min-height: 5.1rem !important;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--panel) !important;
+    color: var(--ink) !important;
+    padding: 1rem 1.25rem !important;
+    text-align: left;
+}
+
+#main-section button.club-stat-card:not(.se-btn):hover {
+    border-color: rgba(177, 18, 38, 0.28);
+    background: #fff !important;
+    box-shadow: var(--shadow);
+}
+
+#main-section button.club-stat-card:not(.se-btn) p:first-child {
+    display: block !important;
+    margin: 0;
+    color: var(--ink);
+    font-size: 1.55rem;
+    font-weight: 560;
+    line-height: 1.15;
+}
+
+#main-section button.club-stat-card:not(.se-btn) p:last-child {
+    display: block !important;
+    margin: 0.42rem 0 0;
+    color: var(--muted);
+    font-size: 0.98rem;
+    font-weight: 400;
+    line-height: 1.25;
 }
 
 #main-section button.club-roster-summary:not(.se-btn) {

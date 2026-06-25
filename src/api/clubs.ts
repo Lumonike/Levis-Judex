@@ -18,6 +18,7 @@
 import express, { Request, Response } from "express";
 import validator from "validator";
 
+import { MAX_CLUB_NAME_LENGTH } from "../lib/limits";
 import { authenticateToken } from "../middleware/authenticate";
 import { ClassClub, Contest, User } from "../models";
 import {
@@ -29,6 +30,7 @@ import {
     getClubRole,
     normalizeClubId,
     normalizeEmailList,
+    notifyClubOwnerOfJoinRequest,
     regenerateClubInviteCode,
     requestClubWithInviteCode,
     requireClubInviteCode,
@@ -105,12 +107,16 @@ router.post("/save", authenticateToken, async (req: Request<unknown, ApiMessage,
 
     try {
         const id = normalizeClubId(req.body.id);
-        const name = validator.escape(req.body.name.trim());
+        const rawName = req.body.name.trim();
+        const name = validator.escape(rawName);
         if (!id) {
             return res.status(400).json({ message: "Class/club ID is required" });
         }
-        if (!name) {
+        if (!rawName) {
             return res.status(400).json({ message: "Class/club name is required" });
+        }
+        if (rawName.length > MAX_CLUB_NAME_LENGTH) {
+            return res.status(400).json({ message: `Class/club name must be ${MAX_CLUB_NAME_LENGTH.toString()} characters or fewer` });
         }
 
         const existing = await ClassClub.findOne({ id });
@@ -269,10 +275,11 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
         return res.json({ message: "You are already a member." });
     }
     if ((club.inviteEmails ?? []).includes(user.email)) {
-        club.requestEmails = [...new Set([user.email, ...(club.requestEmails ?? [])])];
+        club.memberEmails = [...new Set([user.email, ...club.memberEmails])];
         club.inviteEmails = (club.inviteEmails ?? []).filter((email) => email !== user.email);
+        club.requestEmails = (club.requestEmails ?? []).filter((email) => email !== user.email);
         await club.save();
-        return res.json({ message: "Request sent." });
+        return res.json({ message: "Joined class/club." });
     }
 
     return res.status(400).json({ message: "Enter an invite code to join this club." });
@@ -284,8 +291,18 @@ router.post("/join-code", authenticateToken, async (req: Request<unknown, ApiMes
     }
 
     try {
-        const club = await requestClubWithInviteCode(req.user.id, req.body.code ?? "");
-        return res.json({ message: `Request sent to ${club.name}.` });
+        const result = await requestClubWithInviteCode(req.user.id, req.body.code ?? "");
+        if (result.requestCreated) {
+            void notifyClubOwnerOfJoinRequest(result.club, result.requesterEmail);
+        }
+
+        const messages = {
+            "already-member": `You are already a member of ${result.club.name}.`,
+            "already-requested": `Request already sent to ${result.club.name}.`,
+            joined: `Joined ${result.club.name}.`,
+            requested: `Request sent to ${result.club.name}.`,
+        };
+        return res.json({ message: messages[result.status] });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to request club access.";
         return res.status(400).json({ message });
