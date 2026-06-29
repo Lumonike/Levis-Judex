@@ -2,10 +2,6 @@
 
 Most commands should be run from the project directory:
 
-```bash
-cd /home/hongy/levis-judex
-```
-
 ## Development
 
 Run the dev server:
