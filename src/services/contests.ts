@@ -264,6 +264,7 @@ export async function saveContestWithProblems(input: ContestSaveInput): Promise<
     const existingProblemCount = await Problem.countDocuments({
         $or: [{ contestID: null }, { contestID: { $exists: false } }],
         id: { $in: existingGlobalProblemIds },
+        isPrivate: { $ne: true },
     });
     if (existingProblemCount !== existingGlobalProblemIds.length) {
         throw new Error("One or more contest problems do not exist.");

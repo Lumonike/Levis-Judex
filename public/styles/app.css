@@ -637,6 +637,116 @@ a {
     max-height: min(28rem, 62vh);
 }
 
+.contest-problem-list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.contest-problem-row {
+    display: grid;
+    grid-template-columns: 2.35rem minmax(0, 1fr) minmax(11rem, 14rem) auto;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--panel);
+    cursor: grab;
+    padding: 0.75rem;
+}
+
+.contest-problem-row:active {
+    cursor: grabbing;
+}
+
+.contest-problem-row input {
+    cursor: text;
+}
+
+.contest-problem-row button {
+    cursor: pointer;
+}
+
+.contest-problem-row.dragging {
+    opacity: 0.58;
+}
+
+.contest-problem-number {
+    display: grid;
+    place-items: center;
+    width: 2.35rem;
+    height: 2.35rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-weight: 650;
+}
+
+.contest-problem-summary {
+    min-width: 0;
+}
+
+.contest-problem-summary p {
+    margin: 0;
+    overflow: hidden;
+    font-weight: 620;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.contest-problem-summary span,
+.contest-problem-points label {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.contest-problem-points {
+    display: grid;
+    grid-template-columns: auto minmax(6.5rem, 1fr);
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.contest-problem-points input {
+    min-height: 2.35rem;
+}
+
+.contest-problem-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
+.contest-problem-modal {
+    width: min(100% - 2rem, 980px);
+    max-height: min(48rem, 92vh);
+    overflow: auto;
+}
+
+.contest-problem-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+#main-section button.contest-modal-close:not(.se-btn):not(.se-dialog button) {
+    width: 2.1rem;
+    border-color: transparent !important;
+    border-radius: 999px;
+    min-height: 2.1rem;
+    background: transparent !important;
+    color: var(--ink) !important;
+    font-size: 1.15rem;
+    line-height: 1;
+    padding: 0 !important;
+}
+
+#main-section button.contest-modal-close:not(.se-btn):not(.se-dialog button):hover {
+    background: transparent !important;
+    color: var(--accent-dark) !important;
+}
+
 .club-roster-empty {
     margin: 0;
     color: var(--muted);
@@ -699,6 +809,15 @@ a {
     .club-modal-header {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .contest-problem-row {
+        grid-template-columns: 2.35rem minmax(0, 1fr);
+    }
+
+    .contest-problem-points,
+    .contest-problem-actions {
+        grid-column: 1 / -1;
     }
 }
 

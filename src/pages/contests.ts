@@ -205,6 +205,7 @@ router.get("/contests/:contestID/:problemID", authenticateTokenOptional, async (
         backArrow: { href: contestUrl(contest), text: "Back to Contest" },
         head: `<script src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
                    <script type="module" src="/problems/problem-script.js" defer></script>
+                   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" />
                    <link rel="stylesheet" href="/problems/problem-style.css"></link>`,
         problem: {
             ...problem,

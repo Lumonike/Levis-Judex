@@ -25,7 +25,7 @@ import { requireAdmin } from "../middleware/authorize";
 import { ClassClub, Problem, User } from "../models";
 import { ContestSaveBody, getEditableContest, isExpectedContestSaveError, parseContestSaveBody } from "../services/contest-editor";
 import { saveContestWithProblems } from "../services/contests";
-import { saveProblemWithTestcases } from "../services/problems";
+import { getProblemWithTestcases, saveProblemWithTestcases } from "../services/problems";
 import { ApiError, ApiMessage, ApiSuccess } from "../types/api";
 import { IProblemWithTestcases } from "../types/models";
 
@@ -129,6 +129,32 @@ router.get("/get-contest", authenticateToken, requireAdmin, async (req, res) => 
     }
 
     return res.json({ contest });
+});
+
+router.get("/get-public-problem", authenticateToken, requireAdmin, async (req, res) => {
+    const id = req.query.id;
+    if (!id || typeof id !== "string") {
+        return res.status(400).json({ message: "Problem ID is required" });
+    }
+
+    const sanitizedId = validator.escape(id.trim());
+    const publicProblem = await Problem.findOne({
+        $or: [{ contestID: null }, { contestID: { $exists: false } }],
+        id: sanitizedId,
+        isPrivate: { $ne: true },
+    })
+        .select("id")
+        .lean();
+    if (!publicProblem) {
+        return res.status(404).json({ message: "Problem not found" });
+    }
+
+    const problem = await getProblemWithTestcases(sanitizedId, true);
+    if (!problem) {
+        return res.status(404).json({ message: "Problem not found" });
+    }
+
+    return res.json(problem);
 });
 
 router.post("/save-contest", authenticateToken, requireAdmin, async (req: Request<unknown, ApiMessage, ContestSaveBody>, res: Response) => {

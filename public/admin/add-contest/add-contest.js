@@ -17,33 +17,32 @@
 
 const getId = document.getElementById.bind(document);
 const editorConfig = window.contestEditorConfig ?? {};
-const existingProblems = [];
 let availableClubs = [];
+let activeProblemIndex = null;
+let draggedProblemIndex = null;
 const inlineEditors = new Map();
 const inlineProblems = [];
 const editorReady = loadRichEditorAssets();
 
-function addExistingProblem(problemID, points = 100) {
-    const id = problemID.trim();
-    if (!id || existingProblems.some((problem) => problem.id === id)) return;
-    existingProblems.push({ id, points: normalizePoints(points) });
-    renderExistingProblems();
-}
-
 function addInlineProblem(problem = {}) {
     syncInlineProblemsFromDom();
+    saveOpenProblemEditor();
+    const testcaseCount = Math.max(problem.inputTestcases?.length ?? 0, problem.outputTestcases?.length ?? 0, 1);
+    const inputTestcases = normalizeTestcaseArray(problem.inputTestcases ?? [""], testcaseCount);
+    const outputTestcases = normalizeTestcaseArray(problem.outputTestcases ?? [""], testcaseCount);
     inlineProblems.push({
         id: problem.id ?? "",
         inputFormat: problem.inputFormat ?? "",
-        inputTestcases: problem.inputTestcases ?? [""],
+        inputTestcases,
         name: problem.name ?? "",
-        numSampleTestcases: problem.numSampleTestcases ?? 1,
+        numSampleTestcases: clampNumber(problem.numSampleTestcases ?? 1, 0, inputTestcases.length),
         outputFormat: problem.outputFormat ?? "",
-        outputTestcases: problem.outputTestcases ?? [""],
+        outputTestcases,
         points: normalizePoints(problem.points ?? 100),
         problemStatement: problem.problemStatement ?? "",
     });
     renderInlineProblems();
+    return inlineProblems.length - 1;
 }
 
 function createRichEditor(index, field, height) {
@@ -97,13 +96,11 @@ function getInlineEditorContent(index, field) {
     return inlineEditors.get(editorKey(index, field))?.getContents() ?? "";
 }
 
-async function initializeInlineEditors() {
+async function initializeProblemModalEditors(index) {
     await editorReady;
-    inlineProblems.forEach((_problem, index) => {
-        createRichEditor(index, "problemStatement", 220);
-        createRichEditor(index, "inputFormat", 120);
-        createRichEditor(index, "outputFormat", 120);
-    });
+    createRichEditor(index, "problemStatement", 220);
+    createRichEditor(index, "inputFormat", 120);
+    createRichEditor(index, "outputFormat", 120);
 }
 
 async function loadContest() {
@@ -130,14 +127,6 @@ async function loadContest() {
         toggleDuration();
         toggleClubAccess();
 
-        existingProblems.splice(
-            0,
-            existingProblems.length,
-            ...(contest.problemIds ?? []).map((problemId) => ({
-                id: problemId,
-                points: normalizePoints(problemPoints[problemId] ?? 100),
-            })),
-        );
         inlineProblems.splice(
             0,
             inlineProblems.length,
@@ -146,7 +135,9 @@ async function loadContest() {
                 points: normalizePoints(problemPoints[problem.id] ?? problem.points ?? 100),
             })),
         );
-        renderExistingProblems();
+        activeProblemIndex = null;
+        destroyInlineEditors();
+        getId("contest-problem-dialog").close();
         renderInlineProblems();
     } catch (err) {
         alert("Failed to load contest: " + err.message);
@@ -172,13 +163,15 @@ async function loadExistingProblemAsInline() {
     if (!id) return alert("Please enter a problem ID to load.");
 
     try {
-        const res = await fetch(`/api/problems/get-problem?id=${encodeURIComponent(id)}`);
+        const res = await fetch(`/api/admin/get-public-problem?id=${encodeURIComponent(id)}`);
         const problem = await res.json();
         if (!res.ok) {
-            throw new Error(problem.message ?? problem.error ?? "Problem not found");
+            throw new Error(problem.message ?? "Problem not found");
         }
 
-        addInlineProblem(problem);
+        const index = addInlineProblem(problem);
+        getId("existing-problem-id").value = "";
+        openProblemEditor(index);
     } catch (err) {
         alert("Failed to load problem: " + err.message);
     }
@@ -230,6 +223,24 @@ function normalizePoints(value) {
     return Number.isFinite(points) && points > 0 ? points : 100;
 }
 
+function clampNumber(value, min, max) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return min;
+    }
+    return Math.min(Math.max(Math.floor(parsed), min), max);
+}
+
+function normalizeTestcaseArray(testcases, total) {
+    const normalized = Array.isArray(testcases) ? [...testcases] : [];
+    normalized.length = total;
+    return normalized.map((testcase) => testcase ?? "");
+}
+
+function normalizeTestcaseCount(value, fallback = 1) {
+    return clampNumber(value, 1, 50) || fallback;
+}
+
 function numberInputMarkup(field, label, value, min) {
     return `
         <div>
@@ -239,26 +250,19 @@ function numberInputMarkup(field, label, value, min) {
     `;
 }
 
-function readExistingProblem(index) {
-    const container = document.querySelector(`[data-existing-index="${index}"]`);
-
-    return {
-        id: container.dataset.problemId,
-        points: normalizePoints(container.querySelector("[data-field='points']").value),
-    };
-}
-
-function readInlineProblem(index) {
-    const container = document.querySelector(`[data-inline-index="${index}"]`);
-    const inputTestcases = splitTestcases(container.querySelector("[data-field='inputTestcases']").value);
-    const outputTestcases = splitTestcases(container.querySelector("[data-field='outputTestcases']").value);
+function readInlineProblemFromEditor(index) {
+    const container = getId("contest-problem-editor");
+    saveInlineTestcase(container);
+    const totalTestcases = normalizeTestcaseCount(container.querySelector("[data-field='numTestcases']").value);
+    const inputTestcases = normalizeTestcaseArray(inlineProblems[index]?.inputTestcases ?? [], totalTestcases);
+    const outputTestcases = normalizeTestcaseArray(inlineProblems[index]?.outputTestcases ?? [], totalTestcases);
 
     return {
         id: container.querySelector("[data-field='id']").value.trim(),
         inputFormat: getInlineEditorContent(index, "inputFormat"),
         inputTestcases,
         name: container.querySelector("[data-field='name']").value.trim(),
-        numSampleTestcases: Number(container.querySelector("[data-field='numSampleTestcases']").value),
+        numSampleTestcases: clampNumber(container.querySelector("[data-field='numSampleTestcases']").value, 0, totalTestcases),
         outputFormat: getInlineEditorContent(index, "outputFormat"),
         outputTestcases,
         points: normalizePoints(container.querySelector("[data-field='points']").value),
@@ -266,47 +270,102 @@ function readInlineProblem(index) {
     };
 }
 
-function renderExistingProblems() {
-    const list = getId("existing-problem-list");
-    list.innerHTML = "";
+function renderInlineProblems() {
+    const container = getId("inline-problems");
+    container.innerHTML = "";
 
-    existingProblems.forEach((problem, index) => {
-        const item = document.createElement("div");
-        item.className = "flex flex-col sm:flex-row sm:items-end gap-3 rounded-lg bg-gray-600 p-3 border border-gray-500";
-        item.dataset.existingIndex = index.toString();
-        item.dataset.problemId = problem.id;
-        item.innerHTML = `
-            <div class="flex-1 min-w-48">
-                <p class="text-sm text-gray-300 mb-1">Problem ID</p>
-                <p class="text-lg font-semibold text-white break-all">${escapeText(problem.id)}</p>
+    if (inlineProblems.length === 0) {
+        container.innerHTML = `<p class="section-note">No problems yet. Create one or load a public problem from the bank.</p>`;
+        return;
+    }
+
+    inlineProblems.forEach((problem, index) => {
+        const row = document.createElement("article");
+        row.className = "contest-problem-row";
+        row.draggable = true;
+        row.dataset.inlineIndex = index.toString();
+        row.innerHTML = `
+            <div class="contest-problem-number">${(index + 1).toString()}</div>
+            <div class="contest-problem-summary">
+                <p>${escapeText(problem.name || "Untitled problem")}</p>
+                <span>ID: ${escapeText(problem.id || "not set")}</span>
             </div>
-            ${numberInputMarkup("points", "Points", problem.points, 1)}
-            <button type="button" data-action="remove" class="btn btn-danger">
-                Remove
-            </button>
+            <div class="contest-problem-points">
+                <label for="inline-${index.toString()}-points">Points</label>
+                <input id="inline-${index.toString()}-points" type="number" min="1" data-field="points" value="${escapeAttr(problem.points)}">
+            </div>
+            <div class="contest-problem-actions">
+                <button type="button" data-action="edit" class="btn btn-secondary">Edit</button>
+                <button type="button" data-action="remove" class="btn btn-danger">Remove</button>
+            </div>
         `;
-        item.querySelector("[data-action='remove']").addEventListener("click", () => {
-            existingProblems.splice(index, 1);
-            renderExistingProblems();
+        row.addEventListener("dragstart", () => {
+            draggedProblemIndex = index;
+            row.classList.add("dragging");
         });
-        list.appendChild(item);
+        row.addEventListener("dragend", () => {
+            draggedProblemIndex = null;
+            row.classList.remove("dragging");
+        });
+        row.addEventListener("dragover", (event) => {
+            event.preventDefault();
+        });
+        row.addEventListener("drop", (event) => {
+            event.preventDefault();
+            moveProblem(draggedProblemIndex, index);
+        });
+        row.querySelector("[data-field='points']").addEventListener("change", () => {
+            inlineProblems[index].points = normalizePoints(row.querySelector("[data-field='points']").value);
+            row.querySelector("[data-field='points']").value = inlineProblems[index].points.toString();
+        });
+        row.querySelector("[data-action='edit']").addEventListener("click", () => openProblemEditor(index));
+        row.querySelector("[data-action='remove']").addEventListener("click", () => {
+            syncInlineProblemsFromDom();
+            inlineProblems.splice(index, 1);
+            if (activeProblemIndex === index) {
+                closeProblemEditor();
+            } else if (activeProblemIndex !== null && activeProblemIndex > index) {
+                activeProblemIndex--;
+            }
+            renderInlineProblems();
+        });
+        container.appendChild(row);
     });
 }
 
-function renderInlineProblems() {
-    const container = getId("inline-problems");
+function closeProblemEditor() {
     destroyInlineEditors();
-    container.innerHTML = "";
+    activeProblemIndex = null;
+    getId("contest-problem-editor").innerHTML = "";
+    const dialog = getId("contest-problem-dialog");
+    if (dialog.open) {
+        dialog.close();
+    }
+}
 
-    inlineProblems.forEach((problem, index) => {
-        const section = document.createElement("section");
-        section.className = "rounded-lg border border-gray-600 bg-gray-800 p-4 space-y-4";
-        section.dataset.inlineIndex = index.toString();
-        section.innerHTML = `
-            <div class="flex items-center justify-between gap-4">
-                <h3 class="text-xl font-bold text-white">Problem ${index + 1}</h3>
-                <button type="button" data-action="remove" class="btn btn-danger">Remove</button>
-            </div>
+function moveProblem(fromIndex, toIndex) {
+    if (fromIndex === null || fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+
+    syncInlineProblemsFromDom();
+    const [problem] = inlineProblems.splice(fromIndex, 1);
+    inlineProblems.splice(toIndex, 0, problem);
+    renderInlineProblems();
+}
+
+function openProblemEditor(index) {
+    syncInlineProblemsFromDom();
+    if (activeProblemIndex !== null) {
+        saveOpenProblemEditor(false);
+    }
+
+    activeProblemIndex = index;
+    const problem = inlineProblems[index];
+    const editor = getId("contest-problem-editor");
+    destroyInlineEditors();
+    getId("contest-problem-dialog-title").textContent = `Edit problem ${(index + 1).toString()}`;
+    editor.dataset.inlineIndex = index.toString();
+    editor.innerHTML = `
+        <div class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 ${inputMarkup("id", "Problem ID", problem.id)}
                 ${inputMarkup("name", "Problem Name", problem.name)}
@@ -319,25 +378,42 @@ function renderInlineProblems() {
                 ${richEditorMarkup(index, "inputFormat", "Input Format")}
                 ${richEditorMarkup(index, "outputFormat", "Output Format")}
             </div>
-            <div>
-                <label class="text-lg font-semibold text-white mb-2 block">Sample Testcases</label>
-                <input type="number" min="0" data-field="numSampleTestcases" value="${problem.numSampleTestcases}"
-                    class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500">
-            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${textareaMarkup("inputTestcases", "Input Testcases", problem.inputTestcases.join("\n---\n"), 7)}
-                ${textareaMarkup("outputTestcases", "Output Testcases", problem.outputTestcases.join("\n---\n"), 7)}
+                ${numberInputMarkup("numTestcases", "Total Testcases", problem.inputTestcases.length, 1)}
+                ${numberInputMarkup("numSampleTestcases", "Sample Testcases", problem.numSampleTestcases, 0)}
             </div>
-        `;
-        section.querySelector("[data-action='remove']").addEventListener("click", () => {
-            syncInlineProblemsFromDom();
-            inlineProblems.splice(index, 1);
-            renderInlineProblems();
-        });
-        container.appendChild(section);
+            ${testcaseEditorMarkup(index)}
+        </div>
+    `;
+    editor.querySelector("[data-field='numTestcases']").addEventListener("change", () => resizeInlineTestcases(editor));
+    editor.querySelector("[data-field='numSampleTestcases']").addEventListener("change", () => {
+        saveInlineTestcase(editor);
+        clampInlineSampleCount(editor);
+        fillInlineTestcaseSelector(editor);
     });
+    editor.querySelector("[data-field='testcaseSelector']").addEventListener("change", () => loadSelectedInlineTestcase(editor));
+    editor.querySelector("[data-field='inputTestcaseEditor']").addEventListener("change", () => saveInlineTestcase(editor));
+    editor.querySelector("[data-field='outputTestcaseEditor']").addEventListener("change", () => saveInlineTestcase(editor));
+    editor.querySelector("[data-field='inputFileUpload']").addEventListener("change", (event) => loadInlineTestcaseFromFile(event, editor, "input"));
+    editor
+        .querySelector("[data-field='outputFileUpload']")
+        .addEventListener("change", (event) => loadInlineTestcaseFromFile(event, editor, "output"));
+    fillInlineTestcaseSelector(editor);
 
-    void initializeInlineEditors();
+    const dialog = getId("contest-problem-dialog");
+    if (!dialog.open) {
+        dialog.showModal();
+    }
+    void initializeProblemModalEditors(index);
+}
+
+function saveOpenProblemEditor(shouldRender = true) {
+    if (activeProblemIndex === null || !getId("contest-problem-editor").dataset.inlineIndex) return;
+
+    inlineProblems[activeProblemIndex] = readInlineProblemFromEditor(activeProblemIndex);
+    if (shouldRender) {
+        renderInlineProblems();
+    }
 }
 
 function richEditorMarkup(index, field, label) {
@@ -358,14 +434,11 @@ function setDateInput(id, dateString) {
 function setupEventListeners() {
     getId("timing-mode").addEventListener("change", toggleDuration);
     getId("access-type").addEventListener("change", toggleClubAccess);
-    getId("add-existing-problem-button").addEventListener("click", () => {
-        addExistingProblem(getId("existing-problem-id").value);
-        getId("existing-problem-id").value = "";
-    });
     getId("load-existing-problem-button").addEventListener("click", loadExistingProblemAsInline);
-    getId("add-inline-problem-button").addEventListener("click", () => addInlineProblem());
+    getId("add-inline-problem-button").addEventListener("click", () => openProblemEditor(addInlineProblem()));
     getId("load-contest-button").addEventListener("click", loadContest);
     getId("contest-form").addEventListener("submit", submitContest);
+    setupProblemDialog();
 }
 
 function editorUrl(template, id) {
@@ -391,16 +464,85 @@ function applyLockedClub() {
     toggleClubAccess();
 }
 
-function splitTestcases(value) {
-    return value.split(/\n---\n/g).map((testcase) => testcase.trimEnd());
+function resizeInlineTestcases(section) {
+    saveInlineTestcase(section);
+    const totalInput = section.querySelector("[data-field='numTestcases']");
+    const total = normalizeTestcaseCount(totalInput.value);
+    totalInput.value = total.toString();
+
+    const index = getInlineIndex(section);
+    inlineProblems[index].inputTestcases = normalizeTestcaseArray(inlineProblems[index].inputTestcases, total);
+    inlineProblems[index].outputTestcases = normalizeTestcaseArray(inlineProblems[index].outputTestcases, total);
+    clampInlineSampleCount(section);
+    fillInlineTestcaseSelector(section);
+}
+
+function clampInlineSampleCount(section) {
+    const total = normalizeTestcaseCount(section.querySelector("[data-field='numTestcases']").value);
+    const sampleInput = section.querySelector("[data-field='numSampleTestcases']");
+    sampleInput.max = total.toString();
+    sampleInput.value = clampNumber(sampleInput.value, 0, total).toString();
+}
+
+function fillInlineTestcaseSelector(section) {
+    const index = getInlineIndex(section);
+    const total = normalizeTestcaseCount(section.querySelector("[data-field='numTestcases']").value);
+    const samples = clampNumber(section.querySelector("[data-field='numSampleTestcases']").value, 0, total);
+    const selector = section.querySelector("[data-field='testcaseSelector']");
+    const previousValue = selector.value;
+
+    inlineProblems[index].inputTestcases = normalizeTestcaseArray(inlineProblems[index].inputTestcases, total);
+    inlineProblems[index].outputTestcases = normalizeTestcaseArray(inlineProblems[index].outputTestcases, total);
+    selector.innerHTML = "";
+    for (let i = 1; i <= total; i++) {
+        let label = i.toString();
+        if (i <= samples) label += " (sample)";
+        selector.appendChild(new Option(label, i.toString()));
+    }
+    selector.value = previousValue && Number(previousValue) <= total ? previousValue : "1";
+    loadSelectedInlineTestcase(section);
+}
+
+function getInlineIndex(section) {
+    return Number(section.dataset.inlineIndex);
+}
+
+function loadInlineTestcaseFromFile(event, section, type) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.readAsText(file);
+    reader.onload = (e) => {
+        section.querySelector(`[data-field='${type}TestcaseEditor']`).value = e.target.result;
+        saveInlineTestcase(section);
+    };
+}
+
+function loadSelectedInlineTestcase(section) {
+    const index = getInlineIndex(section);
+    const selector = section.querySelector("[data-field='testcaseSelector']");
+    const testcaseIndex = Number(selector.value) - 1;
+    section.querySelector("[data-field='inputTestcaseEditor']").value = inlineProblems[index].inputTestcases[testcaseIndex] ?? "";
+    section.querySelector("[data-field='outputTestcaseEditor']").value = inlineProblems[index].outputTestcases[testcaseIndex] ?? "";
+}
+
+function saveInlineTestcase(section) {
+    if (!section) return;
+
+    const index = getInlineIndex(section);
+    const selector = section.querySelector("[data-field='testcaseSelector']");
+    if (!selector?.value) return;
+
+    const testcaseIndex = Number(selector.value) - 1;
+    inlineProblems[index].inputTestcases[testcaseIndex] = section.querySelector("[data-field='inputTestcaseEditor']").value;
+    inlineProblems[index].outputTestcases[testcaseIndex] = section.querySelector("[data-field='outputTestcaseEditor']").value;
 }
 
 async function submitContest(event) {
     event.preventDefault();
-    for (let i = 0; i < existingProblems.length; i++) {
-        existingProblems[i] = readExistingProblem(i);
-    }
     syncInlineProblemsFromDom();
+    saveOpenProblemEditor();
 
     const timingMode = getId("timing-mode").value;
     const contest = {
@@ -408,11 +550,11 @@ async function submitContest(event) {
         accessType: getId("access-type").value,
         clubId: getId("access-type").value === "club" ? getId("club-id").value : null,
         endTime: fromDateInput(getId("end-time").value),
-        existingProblemIds: existingProblems.map((problem) => problem.id),
+        existingProblemIds: [],
         id: getId("id").value.trim(),
         inlineProblems,
         name: getId("name").value.trim(),
-        problemPoints: Object.fromEntries([...existingProblems, ...inlineProblems].map((problem) => [problem.id, problem.points])),
+        problemPoints: Object.fromEntries(inlineProblems.map((problem) => [problem.id, problem.points])),
         startTime: fromDateInput(getId("start-time").value),
         timingMode,
     };
@@ -434,18 +576,63 @@ async function submitContest(event) {
 }
 
 function syncInlineProblemsFromDom() {
-    for (let i = 0; i < inlineProblems.length; i++) {
-        if (document.querySelector(`[data-inline-index="${i}"]`)) {
-            inlineProblems[i] = readInlineProblem(i);
-        }
-    }
+    document.querySelectorAll("#inline-problems [data-inline-index]").forEach((row) => {
+        const index = Number(row.dataset.inlineIndex);
+        inlineProblems[index].points = normalizePoints(row.querySelector("[data-field='points']").value);
+    });
 }
 
-function textareaMarkup(field, label, value, rows) {
+function setupProblemDialog() {
+    const dialog = getId("contest-problem-dialog");
+    const close = getId("contest-problem-dialog-close");
+    const save = getId("contest-problem-dialog-save");
+
+    close.addEventListener("click", () => {
+        saveOpenProblemEditor();
+        closeProblemEditor();
+    });
+    save.addEventListener("click", () => {
+        saveOpenProblemEditor();
+        closeProblemEditor();
+    });
+    dialog.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        saveOpenProblemEditor();
+        closeProblemEditor();
+    });
+    dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) {
+            saveOpenProblemEditor();
+            closeProblemEditor();
+        }
+    });
+}
+
+function testcaseEditorMarkup(index) {
     return `
-        <div>
-            <label class="text-lg font-semibold text-white mb-2 block">${label}</label>
-            <textarea data-field="${field}" rows="${rows}" class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500 font-mono">${escapeText(value)}</textarea>
+        <div class="border-t pt-4" style="border-color: var(--line)">
+            <label class="text-lg font-semibold text-white mb-2 block">Testcase Editor</label>
+            <select data-field="testcaseSelector"
+                class="w-full p-3 mb-4 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500">
+            </select>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-3">
+                    <label for="inline-${index.toString()}-input-testcase">Input</label>
+                    <textarea id="inline-${index.toString()}-input-testcase" data-field="inputTestcaseEditor" rows="7"
+                        class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 border border-gray-500 font-mono"></textarea>
+                    <input type="file" data-field="inputFileUpload"
+                        class="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                </div>
+
+                <div class="space-y-3">
+                    <label for="inline-${index.toString()}-output-testcase">Output</label>
+                    <textarea id="inline-${index.toString()}-output-testcase" data-field="outputTestcaseEditor" rows="7"
+                        class="w-full text-lg p-3 rounded-lg bg-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-500 font-mono"></textarea>
+                    <input type="file" data-field="outputFileUpload"
+                        class="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                </div>
+            </div>
         </div>
     `;
 }

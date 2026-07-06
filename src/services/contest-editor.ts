@@ -20,7 +20,7 @@ import validator from "validator";
 
 import { MAX_CONTESTS_PER_CLUB, MAX_PROBLEMS_PER_CONTEST } from "../lib/limits";
 import { sanitizeProblemHtml } from "../lib/sanitize";
-import { Contest } from "../models";
+import { Contest, Problem } from "../models";
 import { contestScopeFilter, getContestStorageId } from "./contest-scope";
 import { ContestProblemInput, ContestSaveInput } from "./contests";
 import { getContestProblemIds, getProblemWithTestcases } from "./problems";
@@ -49,17 +49,35 @@ export async function getEditableContest(id: string, clubId?: null | string): Pr
 
     const problemIds = getContestProblemIds(contest);
     const contestStorageId = getContestStorageId(contest);
-    const scopedProblems = (await Promise.all(problemIds.map((problemId) => getProblemWithTestcases(problemId, true, contestStorageId)))).filter(
-        (problem) => problem !== null,
-    );
-    const scopedProblemIds = new Set(scopedProblems.map((problem) => problem.id));
-    const existingProblemIds = problemIds.filter((problemId) => !scopedProblemIds.has(problemId));
+    const problemPoints = serializeProblemPoints(contest.problemPoints);
+    const editableProblems = (
+        await Promise.all(
+            problemIds.map(async (problemId) => {
+                const scopedProblem = await getProblemWithTestcases(problemId, true, contestStorageId);
+                if (scopedProblem) {
+                    return { ...scopedProblem, points: normalizePointValue(problemPoints[problemId] ?? 100) };
+                }
+
+                const publicProblem = await Problem.exists({
+                    $or: [{ contestID: null }, { contestID: { $exists: false } }],
+                    id: problemId,
+                    isPrivate: { $ne: true },
+                });
+                if (!publicProblem) {
+                    return null;
+                }
+
+                const globalProblem = await getProblemWithTestcases(problemId, true);
+                return globalProblem ? { ...globalProblem, points: normalizePointValue(problemPoints[problemId] ?? 100) } : null;
+            }),
+        )
+    ).filter((problem) => problem !== null);
 
     return {
         ...contest,
-        problemIds: existingProblemIds,
-        problemPoints: serializeProblemPoints(contest.problemPoints),
-        problems: scopedProblems,
+        problemIds: [],
+        problemPoints,
+        problems: editableProblems,
     };
 }
 

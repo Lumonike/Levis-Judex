@@ -40,6 +40,7 @@ import {
     requireClubInviteCode,
     serializeClub,
 } from "../src/services/clubs";
+import { getEditableContest } from "../src/services/contest-editor";
 import { getContestStorageId } from "../src/services/contest-scope";
 import { canAccessContest, getContestState, getScoreboard, saveContestWithProblems, startPersonalContest } from "../src/services/contests";
 import {
@@ -241,16 +242,42 @@ void test("contest editor exposes visible remove controls and direct edit links"
     const clubDetailScript = fs.readFileSync("public/clubs/club-detail.js", "utf8");
     const clubPages = fs.readFileSync("src/pages/clubs.ts", "utf8");
     const adminPages = fs.readFileSync("src/pages/admin.ts", "utf8");
+    const adminContestView = fs.readFileSync("views/admin/add-contest.ejs", "utf8");
     const contestView = fs.readFileSync("views/contest.ejs", "utf8");
     const contestPages = fs.readFileSync("src/pages/contests.ts", "utf8");
+    const styles = fs.readFileSync("public/styles/app.css", "utf8");
 
     assert.match(editorScript, /class="btn btn-danger"/);
     assert.match(editorScript, /editorConfig\.initialContestId/);
+    assert.match(editorScript, /openProblemEditor/);
+    assert.match(editorScript, /moveProblem/);
+    assert.match(editorScript, /Total Testcases/);
+    assert.match(editorScript, /data-field=["']numTestcases["']/);
+    assert.match(editorScript, /resizeInlineTestcases/);
+    assert.match(editorScript, /data-field="testcaseSelector"/);
+    assert.match(editorScript, /loadInlineTestcaseFromFile/);
+    assert.match(editorScript, /api\/admin\/get-public-problem/);
+    assert.match(editorScript, /existingProblemIds:\s*\[\]/);
+    assert.doesNotMatch(editorScript, /data-action="drag"/);
+    assert.doesNotMatch(editorScript, /splitTestcases/);
+    assert.doesNotMatch(adminContestView, /add-existing-problem-button/);
+    assert.match(adminContestView, /contest-problem-dialog/);
+    assert.match(adminContestView, /contest-modal-close/);
+    assert.match(adminContestView, />\s*Load\s*<\/button>/);
+    assert.doesNotMatch(adminContestView, />Close<\/button>/);
+    assert.match(styles, /\.contest-problem-row/);
+    assert.match(styles, /\.contest-problem-modal-actions\s*{[^}]*justify-content:\s*flex-end/s);
+    assert.match(styles, /\.contest-problem-points\s*{[^}]*grid-template-columns:\s*auto minmax/s);
+    assert.doesNotMatch(styles, /\.contest-problem-points\s*{[^}]*transform:/s);
+    assert.match(styles, /\.contest-problem-points input\s*{[^}]*min-height:\s*2\.35rem/s);
+    assert.match(styles, /button\.contest-modal-close[^}]*background:\s*transparent/s);
+    assert.match(styles, /\.contest-problem-modal/);
     assert.match(clubDetailScript, /\/contests\/\$\{encodeURIComponent\(contest\.id\)\}\/edit/);
     assert.match(clubPages, /\/clubs\/:clubID\/contests\/:contestID\/edit/);
     assert.match(adminPages, /initialContestId/);
     assert.match(contestView, /Edit Contest/);
     assert.match(contestPages, /editHref/);
+    assert.ok(findRoute((adminRouter as unknown as { stack: RouteLayer[] }).stack, "/get-public-problem", "get"));
 });
 
 void test("problem editors preserve SunEditor KaTeX metadata on reload", () => {
@@ -258,9 +285,11 @@ void test("problem editors preserve SunEditor KaTeX metadata on reload", () => {
     const contestEditorScript = fs.readFileSync("public/admin/add-contest/add-contest.js", "utf8");
     const editorStyles = fs.readFileSync("public/admin/add-problem/sun-editor.css", "utf8");
     const appStyles = fs.readFileSync("public/styles/app.css", "utf8");
+    const contestPages = fs.readFileSync("src/pages/contests.ts", "utf8");
 
     assert.match(problemEditorScript, /attributesWhitelist:\s*{[^}]*span:\s*"style\|contenteditable\|data-exp\|data-font-size"/s);
     assert.match(contestEditorScript, /attributesWhitelist:\s*{[^}]*span:\s*"style\|contenteditable\|data-exp\|data-font-size"/s);
+    assert.match(contestPages, /cdn\.jsdelivr\.net\/npm\/katex@0\.11\.1\/dist\/katex\.min\.css/);
     assert.match(editorStyles, /\.sun-editor-editable \.__se__katex\.katex\s*{[^}]*font-size:\s*1em/s);
     assert.match(appStyles, /\.problem-section \.__se__katex\.katex\s*{[^}]*font-size:\s*1em/s);
     assert.doesNotMatch(appStyles, /p:has\(>\s*\.katex:only-child\)/);
@@ -682,6 +711,52 @@ void test("contest save supports existing and inline-created problems", async ()
     assert.ok(inlineProblem);
     assert.equal(inlineProblem.contestID, "creator");
     assert.deepEqual(inlineProblem.inputTestcases, ["sample", "hidden"]);
+});
+
+void test("contest editor loads problem bank entries as editable contest copies", async () => {
+    await saveProblemWithTestcases(makeProblem("bank", ["sample", "hidden"], ["sample", "hidden"], 1));
+    await saveContestWithProblems({
+        endTime: new Date("2026-01-05T00:00:00Z"),
+        existingProblemIds: ["bank"],
+        id: "editable-copies",
+        inlineProblems: [],
+        name: "Editable Copies",
+        problemPoints: { bank: 150 },
+        startTime: new Date("2026-01-01T00:00:00Z"),
+        timingMode: "global",
+    });
+
+    const editable = (await getEditableContest("editable-copies")) as {
+        problemIds: string[];
+        problems: (IProblemWithTestcases & { points: number })[];
+    };
+
+    assert.deepEqual(editable.problemIds, []);
+    assert.equal(editable.problems.length, 1);
+    assert.equal(editable.problems[0].id, "bank");
+    assert.equal(editable.problems[0].points, 150);
+    assert.deepEqual(editable.problems[0].inputTestcases, ["sample", "hidden"]);
+});
+
+void test("contest save rejects private problem bank entries", async () => {
+    await saveProblemWithTestcases({
+        ...makeProblem("private-bank", ["1"], ["1"], 1),
+        isPrivate: true,
+    });
+
+    await assert.rejects(
+        () =>
+            saveContestWithProblems({
+                endTime: new Date("2026-01-05T00:00:00Z"),
+                existingProblemIds: ["private-bank"],
+                id: "private-loader",
+                inlineProblems: [],
+                name: "Private Loader",
+                startTime: new Date("2026-01-01T00:00:00Z"),
+                timingMode: "global",
+            }),
+        /One or more contest problems do not exist/,
+    );
 });
 
 void test("restricted contests are available only to class or club members and admins", async () => {
